@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Inventory Management - Samples</title>
+  <link rel="icon" type="image/png" href="https://www.pristinepearlpharma.in/images/alt-logo.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    @media print { body { background: #fff; } }
+    .top-tabs { gap: .25rem; }
+    .required-star::after { content: " *"; color: #e11d48; }
+  </style>
+</head>
+<body class="bg-gray-50 text-slate-900">
+
+  <header class="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+ <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" alt="Pristine Pearl Pharma Logo" class="w-20 h-20 object-contain rounded-lg" onerror="this.onerror=null;this.src='https://placehold.co/40x40/059669/ffffff?text=PP'">
+        <div>
+          <div class="text-lg font-bold">Inventory Management</div>
+          <div class="text-xs text-slate-500">Pristine Pearl Pharma</div>
+        </div>
+      </div>
+
+      <nav class="flex items-center top-tabs overflow-x-auto">
+        <button data-tab="request" class="tab px-3 py-2 rounded-md font-semibold text-emerald-600 hover:bg-emerald-50" onclick="switchTab(event)">Request</button>
+        <button data-tab="receipt" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Receipt</button>
+        <button data-tab="supply" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Supply</button>
+        <button data-tab="live" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Live Inventory</button>
+        <button data-tab="po" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">PO Generation</button>
+        <button onclick="window.location.href='Invoice.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Supply-Inv</button>
+        <button onclick="window.location.href='Report.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Reports</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+
+      <section id="request" class="card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Request Entry</h2>
+            <p class="text-sm text-slate-500">Select Type → Product. Division & MRP auto-fill.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-500">Date</label>
+            <input id="reqDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addRequestRow()">+ Add</button>
+            <button id="saveRequestBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveRequest()">Save</button>
+            <button id="sendMailBtn" class="px-3 py-2 rounded-md bg-emerald-700 text-white font-bold hidden" onclick="sendRequestMailUI()">Send Mail</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 gap-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-semibold mb-1">Request For (Employee) — optional</label>
+            <div class="flex gap-2 items-center w-full">
+  <select id="reqFor" class="border border-gray-200 rounded-md px-2 py-1 w-full" onchange="toggleDoctorInput()">
+    <option value="">-- Select Employee (optional) --</option>
+  </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Purpose — optional</label>
+              <input id="reqPurpose" type="text" placeholder="Purpose (optional)" class="border border-gray-200 rounded-md px-2 py-1 w-full" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1">Remarks — optional</label>
+            <textarea id="reqRemarks" rows="2" placeholder="Remarks (optional)" class="border border-gray-200 rounded-md px-2 py-2 w-full"></textarea>
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+          <table id="reqTable" class="min-w-full text-sm">
+            <thead class="bg-white">
+              <tr>
+                <th class="p-3 text-left font-semibold text-slate-600">Type</th>
+                <th class="p-3 text-left font-semibold text-slate-600">Product</th>
+                <th class="p-3 text-left font-semibold text-slate-600">Division</th>
+                <th class="p-3 text-left font-semibold text-slate-600">MRP</th>
+                <th class="p-3 text-left font-semibold text-slate-600">Qty</th>
+                <th class="p-3 text-left font-semibold text-slate-600">Total</th>
+                <th class="p-3 text-left font-semibold text-slate-600">Remarks</th>
+                <th class="p-3"></th>
+              </tr>
+            </thead>
+            <tbody class="bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="receipt" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Receipt Entry</h2>
+            <p class="text-sm text-slate-500">Fetch request by Request ID to record received qty and batch/expiry.</p>
+          </div>
+
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="text-sm text-slate-500">Date</label>
+            <input id="recDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <button class="px-3 py-2 rounded-md border border-gray-200 text-sm" onclick="fetchRequestDetails()">Fetch</button>
+            <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveReceipt()">Save</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          <div>
+            <label class="block text-sm font-semibold mb-1">View Pending Requests</label>
+            <select id="pendingRequests" class="border border-gray-200 rounded-md px-2 py-1 w-full" onchange="onPendingRequestSelect()">
+              <option value="">-- Loading pending requests... --</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1">Request ID</label>
+            <input id="recReqId" type="text" placeholder="e.g. REQ12" class="border border-gray-200 rounded-md px-2 py-1 w-full" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1">Receipt Type</label>
+            <div class="flex items-center gap-3">
+              <label class="text-sm"><input type="radio" name="receiptType" value="Medicine" checked onchange="onReceiptTypeChange(this.value)" /> Medicine</label>
+              <label class="text-sm"><input type="radio" name="receiptType" value="Gift" onchange="onReceiptTypeChange(this.value)" /> Gift</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Purchased From (Supplier) — optional</label>
+            <select id="recPurchasedFrom" class="border border-gray-200 rounded-md px-2 py-1 w-full">
+              <option value="">-- Select Supplier (optional) --</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Remarks — optional</label>
+            <input id="recRemarks" type="text" placeholder="Remarks (optional)" class="border border-gray-200 rounded-md px-2 py-1 w-full" />
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+          <table id="recTable" class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="p-2 text-left font-semibold text-slate-600">Item</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Req Qty</th>
+                <th class="p-2 text-left font-semibold text-slate-600">MRP</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Total</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Req Remarks</th>
+                <th class="p-2 text-left font-semibold text-slate-600 required-star">Batch No</th>
+                <th class="p-2 text-left font-semibold text-slate-600 required-star">Expiry (MM-YYYY)</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Received Qty</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Remarks</th>
+                <th class="p-2"></th>
+              </tr>
+            </thead>
+            <tbody class="bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="supply" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Supply Entry</h2>
+            <p class="text-sm text-slate-500">Only show items in inventory with stock &gt; 0.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-500">Date</label>
+            <input id="supDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addSupplyRow()">+ Add</button>
+            <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveSupply()">Save</button>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block font-semibold text-sm">Select Employee</label>
+          <select id="supTo" onchange="showEmployeeDetails()" class="border border-gray-200 rounded-md px-2 py-1 w-full max-w-lg"></select>
+
+          <div class="mt-3">
+            <label class="block font-semibold text-sm">Select Type (inventory)</label>
+            <select id="sType" onchange="onSupplyTypeChange()" class="border border-gray-200 rounded-md px-2 py-1 w-full max-w-lg"></select>
+          </div>
+
+          <div id="empGrid" class="mt-4"></div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+          <table id="supTable" class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="p-2 text-left font-semibold text-slate-600">Item</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Batch</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Expiry</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Qty</th>
+                <th class="p-2 text-left font-semibold text-slate-600">MRP</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Total</th>
+                <th class="p-2"></th>
+              </tr>
+            </thead>
+            <tbody class="bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="live" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Live Inventory</h2>
+            <p class="text-sm text-slate-500">View current stock with filters</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-500">Type</label>
+            <select id="filterType" onchange="renderLiveInventory()" class="border border-gray-200 rounded-md px-2 py-1"></select>
+            <label class="text-sm text-slate-500">Search</label>
+            <input id="filterSearch" type="text" placeholder="Search product..." oninput="renderLiveInventory()" class="border border-gray-200 rounded-md px-2 py-1" />
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+          <table id="liveTable" class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="p-2 text-left font-semibold text-slate-600">Type</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Product</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Division</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Batch</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Expiry (MM-YYYY)</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Qty</th>
+                <th class="p-2 text-left font-semibold text-slate-600">MRP</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Last Updated</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="po" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Purchase Order (PO) Generation</h2>
+            <p class="text-sm text-slate-500">Auto PO number, save to sheet, print after save. Tax options: IGST or CGST+SGST.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-500">PO Number</label>
+            <input id="poNumber" type="text" readonly class="border border-gray-200 rounded-md px-2 py-1 min-w-[160px]" />
+            <label class="text-sm text-slate-500">PO Date</label>
+            <input id="poDate" type="date" class="border border-gray-200 rounded-md px-2 py-1" />
+          </div>
+        </div>
+
+        <div class="mt-4 p-3 rounded-lg bg-white border border-gray-100">
+          <div class="flex flex-col md:flex-row md:items-center gap-2">
+            <label class="font-semibold text-sm">Use Request ID:</label>
+            <input id="poReqId" type="text" placeholder="e.g. REQ12" class="border border-gray-200 rounded-md px-2 py-1 max-w-xs" />
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="generatePoFromRequest()">Fetch Items</button>
+            <div class="text-sm text-slate-500"> (Fetches Product, Qty, and MRP as Rate)</div>
+          </div>
+        </div>
+
+        <div class="mt-4 bg-white border border-gray-100 rounded-lg p-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="md:col-span-2">
+              <label class="block font-semibold text-sm">Supplier</label>
+              <select id="poSupplier" class="border border-gray-200 rounded-md px-2 py-1 w-full max-w-2xl"></select>
+            </div>
+
+            <div class="flex gap-3 items-center">
+              <div>
+                <label class="block font-semibold text-sm">GST %</label>
+                <input id="poGstPercent" type="number" value="18" min="0" step="0.01" class="border border-gray-200 rounded-md px-2 py-1 w-28" />
+              </div>
+
+              <div>
+                <label class="block font-semibold text-sm">Tax Type</label>
+                <div class="flex gap-2 items-center">
+                  <label class="text-sm"><input type="radio" name="taxType" value="cgst" checked /> CGST + SGST</label>
+                  <label class="text-sm"><input type="radio" name="taxType" value="igst" /> IGST</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between gap-4">
+            <div>
+              <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addPoRow()">+ Add Item</button>
+              <button class="px-3 py-2 rounded-md border border-gray-200" onclick="clearPo()">Clear</button>
+              <button id="savePoBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="savePo()">Save PO</button>
+              <button id="printPoBtn" class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold hidden" onclick="printPo()">Print PO</button>
+            </div>
+
+            <div class="hidden print:block text-right min-w-[260px]">
+              <div class="font-semibold">Invoice To / Consignee (printed)</div>
+              <div class="text-sm text-slate-500 mt-2">
+                PRISTINE PEARL PHARMA PVT LTD<br/>
+                Second Floor - 2B, Door No: 129,<br/>
+                Thottasalai East, Power House Road,<br/>
+                Perur Village, Coimbatore - 641010<br/><br/>
+                GSTIN/UIN: 33AAGCB2183C1Z6<br/>
+                State Name : Tamil Nadu, Code : 33
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+            <table id="poTable" class="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="p-2 text-left font-semibold text-slate-600" style="width:6%">Sl</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Description of Goods</th>
+                  <th class="p-2 text-left font-semibold text-slate-600" style="width:12%">Rate</th>
+                  <th class="p-2 text-left font-semibold text-slate-600" style="width:8%">Qty</th>
+                  <th class="p-2 text-left font-semibold text-slate-600" style="width:12%">Amount</th>
+                  <th class="p-2 text-left font-semibold text-slate-600" style="width:12%">Due on</th>
+                  <th class="p-2"></th>
+                </tr>
+              </thead>
+              <tbody class="bg-white"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 flex justify-end gap-4 items-start">
+            <div class="w-full max-w-md border border-gray-100 rounded-md p-3 bg-gray-50">
+              <div class="flex justify-between text-sm text-slate-500"><div>Sub Total</div><div id="poSubtotal">0.00</div></div>
+              <div id="poTaxRows" class="mt-2">
+                <div class="flex justify-between text-sm text-slate-500"><div>CGST</div><div id="poCgst">0.00</div></div>
+                <div class="flex justify-between text-sm text-slate-500 mt-1"><div>SGST</div><div id="poSgst">0.00</div></div>
+              </div>
+              <div class="flex justify-between text-sm text-slate-500 mt-2"><div>Less : Round Off</div><div id="poRound">0.00</div></div>
+              <hr class="my-2" />
+              <div class="flex justify-between font-bold"><div>Total ₹</div><div id="poTotal">0.00</div></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/20">
+    <div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div>
+  </div>
+
+  <script>
+  /* ----------------- CONFIG ----------------- */
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzMDxxpb7Q2gCwUl0nDgo8iMBMfHJTx-YGK93eYugjncbknWHSc3EfzxyPE6y-a-xW2/exec";
+  /* ------------------------------------------ */
+
+  let products = [], employees = [], inventory = [], vendors = [];
+  let currentRequestId = null; // Stores the ID after a successful save
+
+  function showLoading(){ const el=document.getElementById('loading'); if(el) el.style.display='flex'; }
+  function hideLoading(){ const el=document.getElementById('loading'); if(el) el.style.display='none'; }
+
+  async function post(action, payload={}) {
+    showLoading();
+    try {
+      const res = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(Object.assign({action}, payload))
+      });
+      const json = await res.json();
+      hideLoading();
+      return json;
+    } catch (err) {
+      hideLoading();
+      console.error(err);
+      return { success:false, message: String(err) };
+    }
+  }
+
+  function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function num(v){ return Number(v) || 0; }
+  function to2(v){ return (Math.round((num(v) + Number.EPSILON) * 100)/100).toFixed(2); }
+
+  function formatDateForPrint(dateStr){
+    if(!dateStr) return '';
+    const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m){ const [, y, mo, d] = m; return `${d}-${mo}-${y}`; }
+    const dt = new Date(dateStr);
+    if(!isNaN(dt)){ const dd = String(dt.getDate()).padStart(2,'0'); const mm = String(dt.getMonth()+1).padStart(2,'0'); const yy = dt.getFullYear(); return `${dd}-${mm}-${yy}`; }
+    return dateStr;
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const todayISO = new Date().toISOString().slice(0,10);
+    document.getElementById('reqDate').value = todayISO;
+    document.getElementById('recDate').value = todayISO;
+    document.getElementById('supDate').value = todayISO;
+    document.getElementById('poDate').value = todayISO;
+
+    activateTabVisuals(document.querySelectorAll('.tab')[0]);
+    ['request','receipt','supply','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
+
+    await loadProducts();
+    await loadEmployees();
+    await loadInventory();
+    await loadVendors();
+    await fetchNextPoNumber();
+    await loadPendingRequests();
+
+    addRequestRow();
+    addSupplyRow();
+    addPoRow();
+
+    // ensure receipt type UI state
+    onReceiptTypeChange(document.querySelector('input[name="receiptType"]:checked').value);
+  });
+
+  /* LOADERS */
+  async function loadProducts(){ const r = await post('getProducts',{}); products = (r && r.success) ? r.products : []; }
+  async function loadEmployees(){ 
+    const r = await post('getEmployeeList',{}); 
+    employees = (r && r.success) ? r.employees : []; 
+    const supSel = document.getElementById('supTo'); 
+    const reqSel = document.getElementById('reqFor');
+    const options = `<option value="">-- Select Employee (optional) --</option>` + employees.map(e=>`<option value="${escapeHtml(e["Employee Code"])}">${escapeHtml(e["Employee Code"])} - ${escapeHtml(e["Employee Name"])}</option>`).join('');
+    if(supSel) supSel.innerHTML = options.replace('-- Select Employee (optional) --','Select Employee');
+    if(reqSel) reqSel.innerHTML = options;
+  }
+  async function loadInventory(){ 
+    const r = await post('getInventory',{}); 
+    inventory = (r && r.success) ? r.rows : []; 
+    const types = [...new Set(inventory.map(x=>x.Type).filter(Boolean))].sort(); 
+    const tSel = document.getElementById('sType'); 
+    if(tSel) tSel.innerHTML = `<option value="">(All types)</option>` + types.map(t=>`<option>${t}</option>`).join(''); 
+    const f=document.getElementById('filterType'); if(f) f.innerHTML=`<option value="">All</option>`+types.map(t=>`<option>${t}</option>`).join(''); 
+
+    // refresh supply rows and live inventory when visible
+    if(document.getElementById('supply').style.display !== 'none'){
+      const supTb = document.querySelector('#supTable tbody'); if(supTb){ supTb.innerHTML=''; addSupplyRow(); }
+    }
+    if(document.getElementById('live').style.display !== 'none'){ renderLiveInventory(); }
+  }
+  async function loadVendors(){ const r = await post('getVendors',{}); vendors = (r && r.success) ? r.vendors : []; const sel = document.getElementById('poSupplier'); const recSel = document.getElementById('recPurchasedFrom'); if(sel) sel.innerHTML = `<option value="">Select Supplier</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join(''); if(recSel) recSel.innerHTML = `<option value="">-- Select Supplier (optional) --</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join(''); }
+
+  async function loadPendingRequests(){
+    const sel = document.getElementById('pendingRequests');
+    sel.innerHTML = `<option value="">Loading...</option>`;
+    const r = await post('getPendingRequests', {});
+    if(!r || !r.success){ sel.innerHTML = `<option value="">No pending requests</option>`; return; }
+    const list = r.requests || [];
+    if(!list.length){ sel.innerHTML = `<option value="">No pending requests</option>`; return; }
+    sel.innerHTML = `<option value="">-- Select Pending Request --</option>` + list.map(id=>`<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('');
+  }
+
+  async function fetchNextPoNumber(){
+    try{ let r = await post('getNextPoNumber', {}); if(r && r.success && r.next){ document.getElementById('poNumber').value = r.next; return; } }catch(e){}
+    const t = Date.now().toString().slice(-6);
+    document.getElementById('poNumber').value = 'PO-' + t;
+  }
+
+  /* TAB SWITCH */
+  function activateTabVisuals(el){
+    document.querySelectorAll('.tab').forEach(t=>{ t.classList.remove('bg-emerald-600','text-white','shadow-md','font-semibold'); t.classList.add('text-slate-600'); });
+    if(el){ el.classList.add('bg-emerald-600','text-white','shadow-md','font-semibold'); el.classList.remove('text-slate-600'); }
+  }
+
+  function switchTab(e){
+    const tab = e.currentTarget ? e.currentTarget.dataset.tab : e.dataset.tab;
+    const clicked = e.currentTarget ? e.currentTarget : e;
+    activateTabVisuals(clicked);
+    ['request','receipt','supply','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
+    if(tab==='po'){ loadVendors(); fetchNextPoNumber(); }
+    if(tab==='live'){ loadInventory().then(renderLiveInventory); }
+    if(tab==='supply'){ loadInventory(); loadEmployees(); }
+    if(tab==='receipt'){ loadPendingRequests(); }
+  }
+
+  /* REQUEST */
+  function addRequestRow(data={}) {
+    const tbody = document.querySelector('#reqTable tbody');
+    const tr = document.createElement('tr');
+    const types = [...new Set(products.map(p=>p.Type).filter(Boolean))].sort();
+    tr.innerHTML = `<td class="p-2"><select class="typeSel border border-gray-200 rounded-md px-2 py-1"><option value="">-- Type --</option>${types.map(t=>`<option>${escapeHtml(t)}</option>`).join('')}</select></td>
+      <td class="p-2"><select class="productSel border border-gray-200 rounded-md px-2 py-1" disabled><option value="">-- Product --</option></select></td>
+      <td class="p-2"><input class="division border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="mrp border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="qty border border-gray-200 rounded-md px-2 py-1" type="number" min="0"></td>
+      <td class="p-2"><input class="total border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="remarks border border-gray-200 rounded-md px-2 py-1"></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+    tbody.appendChild(tr);
+
+    const typeSel = tr.querySelector('.typeSel');
+    const prodSel = tr.querySelector('.productSel');
+    const qty = tr.querySelector('.qty');
+
+    typeSel.addEventListener('change', () => {
+      const val = typeSel.value;
+      if(!val){ prodSel.disabled=true; prodSel.innerHTML='<option>-- Product --</option>'; return; }
+      prodSel.disabled=false;
+      const list = products.filter(p=>p.Type===val);
+      prodSel.innerHTML = '<option>-- Product --</option>' + list.map(p=>`<option>${escapeHtml(p.Product)}</option>`).join('');
+    });
+
+    prodSel.addEventListener('change', () => {
+      const p = products.find(x=>x.Product===prodSel.value);
+      if(p){ tr.querySelector('.division').value=p.Division||''; tr.querySelector('.mrp').value=p.MRP||''; computeRowTotal(tr); } else { tr.querySelector('.division').value=''; tr.querySelector('.mrp').value=''; tr.querySelector('.total').value=''; }
+    });
+
+    qty.addEventListener('input', ()=>computeRowTotal(tr));
+  }
+
+  function computeRowTotal(tr){
+    const q = Number(tr.querySelector('.qty').value) || 0;
+    const m = Number(tr.querySelector('.mrp').value) || 0;
+    tr.querySelector('.total').value = to2(q * m);
+  }
+
+async function saveRequest() {
+  const date = document.getElementById("reqDate").value || "";
+  const empSelect = document.getElementById("reqFor");
+  const empCode = empSelect?.value || "";
+  const empText = empSelect?.options[empSelect.selectedIndex]?.text || "";
+  const empName = empText.split(" - ")[1] || "";
+  const purpose = document.getElementById("reqPurpose")?.value || "";
+  const remarksOverall = document.getElementById("reqRemarks")?.value || "";
+
+  // ✅ Pick the Team Wise directly from loaded employees array
+  const team =
+    employees.find(e =>
+      `${e["Employee Code"]} - ${e["Employee Name"]}`.trim() === empText.trim()
+    )?.["Team Wise"] || "";
+
+  // Collect line items
+  const rows = [...document.querySelectorAll("#reqTable tbody tr")].map(tr => ({
+    item: tr.querySelector(".productSel")?.value || "",
+    qty: Number(tr.querySelector(".qty")?.value || 0),
+    mrp: Number(tr.querySelector(".mrp")?.value || 0),
+    total: Number(tr.querySelector(".total")?.value || 0),
+    remarks: tr.querySelector(".remarks")?.value || ""
+  })).filter(r => r.item && r.qty > 0);
+
+  if (!rows.length) return alert("Add at least one product");
+
+  const payload = {
+    action: "saveRequest",
+    date,
+    empCode,
+    empName,
+    requestFor: empText,
+    team,   // ✅ send Team Wise directly
+    purpose,
+    remarksOverall,
+    rows
+  };
+
+  const res = await post("saveRequest", payload);
+  if (res && res.success) {
+    alert(res.message || "Request saved successfully!");
+    currentRequestId = res.requestId || (res.message ? res.message.match(/(REQ\\d+)/i)?.[1] : null);
+    document.getElementById("sendMailBtn").classList.remove("hidden");
+    document.getElementById("saveRequestBtn").classList.add("hidden");
+    await loadPendingRequests();
+  } else {
+    alert("Save failed: " + (res.message || ""));
+  }
+}
+  // NEW: Function to clear the form fields and reset UI state
+  function clearRequestForm(){
+    document.getElementById('reqFor').value = '';
+    document.getElementById('reqPurpose').value = '';
+    document.getElementById('reqRemarks').value = '';
+    document.querySelector('#reqTable tbody').innerHTML = '';
+    addRequestRow();
+    document.getElementById('sendMailBtn').classList.add('hidden');
+    document.getElementById('saveRequestBtn').classList.remove('hidden');
+    currentRequestId = null;
+  }
+
+  // NEW/MODIFIED: Send Mail function that clears the form only after success
+  async function sendRequestMailUI(){
+    if(!currentRequestId) {
+        return alert('Please save the request first to generate a Request ID before sending mail.');
+    }
+
+    // 'post' handles the loading animation
+    const res = await post('sendRequestMail', { reqId: currentRequestId });
+
+    if(res && res.success) {
+        alert('Mail successfully sent!');
+        // Clear the form only after mail is successfully sent
+        clearRequestForm();
+    } else {
+        alert('Mail sending failed: ' + (res.message || 'The server returned an error.'));
+        // Keep the form and Send Mail button visible so the user can try again or check the data
+    }
+  }
+
+
+  /* RECEIPT */
+  function onPendingRequestSelect(){
+    const sel = document.getElementById('pendingRequests');
+    const val = sel.value || '';
+    if(val){
+      document.getElementById('recReqId').value = val;
+      fetchRequestDetails();
+    }
+  }
+
+  function onReceiptTypeChange(value){
+    // visually mark if batch/expiry mandatory
+    const isMedicine = (value === 'Medicine');
+    const headerBatch = document.querySelectorAll('#recTable thead th')[5];
+    const headerExp = document.querySelectorAll('#recTable thead th')[6];
+    if(isMedicine){
+      headerBatch.classList.add('required-star');
+      headerExp.classList.add('required-star');
+    } else {
+      headerBatch.classList.remove('required-star');
+      headerExp.classList.remove('required-star');
+    }
+  }
+
+  async function fetchRequestDetails(){
+    const id = document.getElementById('recReqId').value;
+    if(!id) return alert('Enter Request ID');
+    const r = await post('getRequestDetails',{ reqId: id });
+    if(!r || !r.success) return alert('Fetch failed: '+(r.message||''));
+    const tb = document.querySelector('#recTable tbody'); tb.innerHTML = '';
+    r.rows.forEach(x=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="p-2"><input value="${escapeHtml(x.itemName)}" readonly class="border border-gray-200 rounded-md px-2 py-1" /></td>
+        <td class="p-2"><input value="${escapeHtml(x.qtyReq)}" readonly class="border border-gray-200 rounded-md px-2 py-1" /></td>
+        <td class="p-2"><input value="${escapeHtml(x.mrp)}" readonly class="border border-gray-200 rounded-md px-2 py-1" /></td>
+        <td class="p-2"><input value="${escapeHtml(x.total)}" readonly class="border border-gray-200 rounded-md px-2 py-1" /></td>
+        <td class="p-2"><input value="${escapeHtml(x.remarksReq)}" readonly class="border border-gray-200 rounded-md px-2 py-1" /></td>
+        <td class="p-2"><input class="r-batch border border-gray-200 rounded-md px-2 py-1" /></td>
+        <td class="p-2"><input class="r-exp border border-gray-200 rounded-md px-2 py-1" type="month" /></td>
+        <td class="p-2"><input class="r-rec border border-gray-200 rounded-md px-2 py-1" type="number" value="${escapeHtml(x.qtyReq)}" /></td>
+        <td class="p-2"><input class="r-rem border border-gray-200 rounded-md px-2 py-1" /></td>
+        <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+      const rec = tr.querySelector('.r-rec');
+      rec.addEventListener('input', ()=>{
+        const q = Number(rec.value) || 0;
+        const m = Number(tr.querySelectorAll('input')[2].value) || 0;
+        tr.querySelectorAll('input')[3].value = to2(q*m);
+      });
+      tb.appendChild(tr);
+    });
+    // ensure receipt type rules apply visually
+    onReceiptTypeChange(document.querySelector('input[name="receiptType"]:checked').value);
+  }
+
+  async function saveReceipt(){
+    const reqId = document.getElementById('recReqId').value || '';
+    const purchasedFrom = document.getElementById('recPurchasedFrom').value || '';
+    const remarksOverall = document.getElementById('recRemarks').value || '';
+    const receiptType = document.querySelector('input[name="receiptType"]:checked').value || 'Medicine';
+
+    const rows = [...document.querySelectorAll('#recTable tbody tr')].map((tr,i)=>{
+      return {
+        itemName: tr.children[0].firstChild.value,
+        qtyReq: tr.children[1].firstChild.value,
+        mrp: tr.children[2].firstChild.value,
+        total: tr.children[3].firstChild.value,
+        remarksReq: tr.children[4].firstChild.value,
+        batchNo: tr.children[5].firstChild.value,
+        expiry: tr.children[6].firstChild.value,
+        recQty: tr.children[7].firstChild.value,
+        remarks: tr.children[8].firstChild.value
+      };
+    }).filter(r=> r.itemName && num(r.recQty) > 0);
+
+    if(!rows.length) return alert('No rows');
+
+    // If Medicine, ensure batch & expiry provided for each row
+    if(receiptType === 'Medicine'){
+      for(const [idx,row] of rows.entries()){
+        if(!row.batchNo || !row.expiry){
+          return alert(`For Medicine receipt, Batch No & Expiry are mandatory for row ${idx+1} (${row.itemName}).`);
+        }
+      }
+    }
+
+    const payload = {
+      reqId,
+      purchasedFrom,
+      remarksOverall,
+      receiptType,
+      rows
+    };
+
+    const res = await post('saveReceipt', payload);
+    if(res && res.success) {
+      alert(res.message || 'Saved');
+      document.querySelector('#recTable tbody').innerHTML = '';
+      document.getElementById('recPurchasedFrom').value = '';
+      document.getElementById('recRemarks').value = '';
+      // refresh inventory & pending requests
+      await loadInventory();
+      await loadPendingRequests();
+    } else {
+      alert('Save failed: '+(res.message||''));
+    }
+  }
+
+  /* SUPPLY */
+  function showEmployeeDetails(){
+    const id = document.getElementById('supTo').value; const g = document.getElementById('empGrid'); g.innerHTML = '';
+    if(!id) return;
+    const e = employees.find(x=> x["Employee Code"] === id);
+    if(!e) return;
+    g.innerHTML = `<div class="rounded-lg border border-gray-100 p-4 bg-white">
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-sky-300 to-sky-500 flex items-center justify-center font-bold text-sky-900 text-xl">${(e["Employee Name"]||'E')[0]}</div>
+        <div>
+          <div class="font-bold">${escapeHtml(e["Employee Name"]||'')}</div>
+          <div class="text-sm text-slate-500">Code: ${escapeHtml(e["Employee Code"]||'')}</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+        <div class="p-2 border border-gray-100 rounded text-sm"><b class="block text-slate-600">Designation</b>${escapeHtml(e["Designation"]||'')}</div>
+        <div class="p-2 border border-gray-100 rounded text-sm"><b class="block text-slate-600">Division & HQ</b>${escapeHtml(e["Division"]||'')} ${escapeHtml(e["HQ"]||'')}</div>
+        <div class="p-2 border border-gray-100 rounded text-sm"><b class="block text-slate-600">Reporting Manager</b>${escapeHtml(e["Reporting Manager"]||'')}</div>
+        <div class="p-2 border border-gray-100 rounded text-sm"><b class="block text-slate-600">Team Wise</b>${escapeHtml(e["Team Wise"]||'')}</div>
+        <div class="p-2 border border-gray-100 rounded text-sm"><b class="block text-slate-600">Mobile & Mail</b>${escapeHtml(e["MobileNo"]||'')} ${escapeHtml(e["Mail"]||'')}</div>
+        <div class="p-2 border border-gray-100 rounded text-sm"><b class="block text-slate-600">Address & Pincode</b>${escapeHtml(e["Address"]||'')} ${escapeHtml(e["Pincode"]||'')}</div>
+      </div>
+    </div>`;
+  }
+
+  function addSupplyRow(){
+    const type = document.getElementById('sType').value;
+    const list = inventory.filter(r=> Number(r.Qty) > 0 && ( type ? r.Type === type : true ));
+    const opts = list.map(r=>`<option value='${encodeURIComponent(JSON.stringify(r))}'>${escapeHtml(r.Product)} (Batch:${escapeHtml(r.Batch||'-')}|Exp:${escapeHtml(r.Expiry||'') }|Avl:${escapeHtml(r.Qty||'0')})</option>`).join('');
+    const tb = document.querySelector('#supTable tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="p-2"><select class="s-prod border border-gray-200 rounded-md px-2 py-1"><option value="">--select--</option>${opts}</select></td>
+      <td class="p-2"><input class="s-batch border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="s-exp border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="s-qty border border-gray-200 rounded-md px-2 py-1" type="number" min="0"></td>
+      <td class="p-2"><input class="s-mrp border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="s-total border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+    tb.appendChild(tr);
+
+    const sel = tr.querySelector('.s-prod'); const qty = tr.querySelector('.s-qty');
+
+    sel.addEventListener('change', ()=>{
+      if(!sel.value){ tr.querySelector('.s-batch').value=''; tr.querySelector('.s-exp').value=''; tr.querySelector('.s-mrp').value=''; tr.querySelector('.s-total').value=''; return; }
+      const o = JSON.parse(decodeURIComponent(sel.value));
+      tr.querySelector('.s-batch').value = o.Batch || '';
+      tr.querySelector('.s-exp').value = o.Expiry || '';
+      tr.querySelector('.s-mrp').value = o.MRP || '';
+      const available = num(o.Qty);
+      if(num(qty.value) > available){ qty.value = available; alert('Not enough stock available — quantity reduced to available stock.'); }
+      qty.dispatchEvent(new Event('input'));
+    });
+
+    qty.addEventListener('input', ()=>{
+      const selVal = sel.value; const q = num(qty.value); let available = Infinity;
+      if(selVal){ try{ const o = JSON.parse(decodeURIComponent(selVal)); available = num(o.Qty); }catch(e){ available = Infinity; } }
+      if(available !== Infinity && q > available){ qty.value = available; alert('Not enough stock available — quantity reduced to available stock.'); }
+      const qFinal = num(qty.value); const m = num(tr.querySelector('.s-mrp').value) || 0;
+      tr.querySelector('.s-total').value = to2(qFinal * m);
+    });
+  }
+
+  async function saveSupply(){
+    const emp = document.getElementById('supTo').value;
+    if(!emp) return alert('Select Employee');
+    const rows = [...document.querySelectorAll('#supTable tbody tr')].map(tr=>{
+      const s = tr.querySelector('.s-prod'); if(!s || !s.value) return null;
+      const o = JSON.parse(decodeURIComponent(s.value));
+      return { item: o.Product, batchNo: o.Batch||'', expiry: o.Expiry||'', qty: tr.querySelector('.s-qty').value, mrp: o.MRP||0, total: tr.querySelector('.s-total').value };
+    }).filter(r=> r && num(r.qty) > 0);
+    if(!rows.length) return alert('No rows');
+    const res = await post('saveSupply',{ supTo: emp, rows });
+    if(res && res.success) alert(res.message || 'Saved'); else alert('Save failed: '+(res.message||''));
+    document.querySelector('#supTable tbody').innerHTML = '';
+    loadInventory();
+  }
+
+  /* LIVE INVENTORY */
+  function renderLiveInventory(){
+    const type = (document.getElementById('filterType').value||'').toLowerCase();
+    const search = (document.getElementById('filterSearch').value||'').toLowerCase();
+    const tb = document.querySelector('#liveTable tbody'); tb.innerHTML = '';
+    inventory.filter(r=>{
+      const mt = !type || (r.Type||'').toLowerCase() === type;
+      const ms = !search || (r.Product||'').toLowerCase().includes(search);
+      return mt && ms;
+    }).forEach(r=>{
+      const tr = document.createElement('tr');
+      const lastUpdated = formatDateForPrint(r['Last Updated'] || r['LastUpdated'] || r['Updated On'] || r['Date'] || '');
+      tr.innerHTML = `<td class="p-2">${escapeHtml(r.Type)}</td>
+        <td class="p-2">${escapeHtml(r.Product)}</td>
+        <td class="p-2">${escapeHtml(r.Division)}</td>
+        <td class="p-2">${escapeHtml(r.Batch)}</td>
+        <td class="p-2">${escapeHtml(r.Expiry)}</td>
+        <td class="p-2">${escapeHtml(r.Qty)}</td>
+        <td class="p-2">${escapeHtml(r.MRP)}</td>
+        <td class="p-2">${escapeHtml(lastUpdated)}</td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ---------------- PO FUNCTIONS ---------------- */
+  async function generatePoFromRequest(){
+    const id = document.getElementById('poReqId').value;
+    if(!id) return alert('Enter Request ID');
+    const r = await post('getRequestDetails',{ reqId: id });
+    if(!r || !r.success) return alert('Fetch failed: '+(r.message||''));
+
+    document.querySelector('#poTable tbody').innerHTML = '';
+    if(r.rows && r.rows.length > 0) {
+        r.rows.forEach(x => {
+            addPoRow({
+                description: x.itemName,
+                rate: x.mrp,
+                qty: x.qtyReq,
+                due: document.getElementById('poDate').value
+            });
+        });
+    } else {
+        alert('Request ID found, but no items were listed.');
+        addPoRow();
+    }
+    updatePoTotals();
+    alert('Items fetched successfully! Please select a Supplier before saving the PO.');
+  }
+
+  function addPoRow(data){
+    const tbody = document.querySelector('#poTable tbody');
+    const tr = document.createElement('tr');
+    const rowIndex = tbody.children.length + 1;
+    tr.innerHTML = `<td class="p-2 sl">${rowIndex}</td>
+      <td class="p-2"><textarea class="po-desc border border-gray-200 rounded-md px-2 py-1" rows="2" placeholder="Description of Goods"></textarea></td>
+      <td class="p-2"><input class="po-rate border border-gray-200 rounded-md px-2 py-1" type="number" min="0" step="0.01"></td>
+      <td class="p-2"><input class="po-qty border border-gray-200 rounded-md px-2 py-1" type="number" min="0" step="1" value="1"></td>
+      <td class="p-2"><input class="po-amt border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="po-due border border-gray-200 rounded-md px-2 py-1" type="date"></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove();renumberPo();updatePoTotals()">✕</button></td>`;
+    tbody.appendChild(tr);
+
+    if(data){
+      tr.querySelector('.po-desc').value = data.description || data.Product || '';
+      const rateValue = num(data.rate || data.MRP);
+      tr.querySelector('.po-rate').value = rateValue > 0 ? rateValue : '';
+      const qtyValue = num(data.qty);
+      tr.querySelector('.po-qty').value = qtyValue > 0 ? qtyValue : 1;
+      tr.querySelector('.po-due').value = data.due || '';
+    }
+
+    const rate = tr.querySelector('.po-rate');
+    const qty = tr.querySelector('.po-qty');
+    function recalc(){
+      const r = num(rate.value);
+      const q = num(qty.value);
+      tr.querySelector('.po-amt').value = to2(r * q);
+      updatePoTotals();
+    }
+    rate.addEventListener('input', recalc);
+    qty.addEventListener('input', recalc);
+    recalc();
+  }
+
+  function renumberPo(){
+    [...document.querySelectorAll('#poTable tbody tr')].forEach((tr, i) => {
+      const sl = tr.querySelector('.sl');
+      if(sl) sl.textContent = i+1;
+    });
+  }
+
+  function updatePoTotals(){
+    const rows = [...document.querySelectorAll('#poTable tbody tr')];
+    let subtotal = 0;
+    rows.forEach(tr => { subtotal += num(tr.querySelector('.po-amt').value); });
+    subtotal = Math.round((subtotal + Number.EPSILON) * 100) / 100;
+    const gstPercent = num(document.getElementById('poGstPercent').value);
+    const taxType = document.querySelector('input[name="taxType"]:checked').value;
+    const taxTotal = subtotal * gstPercent / 100;
+    let cgst = 0, sgst = 0, igst = 0;
+    if(taxType === 'cgst'){
+      cgst = taxTotal / 2;
+      sgst = taxTotal / 2;
+    } else {
+      igst = taxTotal;
+    }
+    const gross = subtotal + taxTotal;
+    const rounded = Math.round(gross);
+    const roundOff = rounded - gross;
+    const total = rounded;
+
+    document.getElementById('poSubtotal').textContent = to2(subtotal);
+    if(taxType === 'cgst'){
+      document.getElementById('poTaxRows').innerHTML = `<div class="flex justify-between text-sm text-slate-500"><div>CGST</div><div id="poCgst">${to2(cgst)}</div></div>
+        <div class="flex justify-between text-sm text-slate-500 mt-1"><div>SGST</div><div id="poSgst">${to2(sgst)}</div></div>`;
+    } else {
+      document.getElementById('poTaxRows').innerHTML = `<div class="flex justify-between text-sm text-slate-500"><div>IGST</div><div id="poIgst">${to2(igst)}</div></div>`;
+    }
+    document.getElementById('poRound').textContent = to2(roundOff);
+    document.getElementById('poTotal').textContent = to2(total);
+  }
+
+  document.addEventListener('input', (e) => {
+    if(e.target && (e.target.id==='poGstPercent' || e.target.name==='taxType' || e.target.classList.contains('po-rate') || e.target.classList.contains('po-qty'))){
+      updatePoTotals();
+    }
+  });
+
+  function clearPo(){
+    document.querySelector('#poTable tbody').innerHTML='';
+    addPoRow();
+    document.getElementById('poSupplier').value='';
+    document.getElementById('poGstPercent').value='18';
+    document.querySelector('input[name="taxType"][value="cgst"]').checked = true;
+    updatePoTotals();
+    document.getElementById('printPoBtn').classList.add('hidden');
+    lastSavedPo = null;
+  }
+
+  async function savePo(){
+    const supplierIndex = document.getElementById('poSupplier').value;
+    if(supplierIndex === '') return alert('Select a supplier first.');
+    const supplier = vendors[supplierIndex];
+
+    const rows = [...document.querySelectorAll('#poTable tbody tr')].map(tr => ({
+      description: tr.querySelector('.po-desc').value.trim(),
+      rate: to2(num(tr.querySelector('.po-rate').value)),
+      qty: to2(num(tr.querySelector('.po-qty').value)),
+      amount: to2(num(tr.querySelector('.po-amt').value)),
+      due: tr.querySelector('.po-due').value || ''
+    })).filter(r => r.description && num(r.qty) > 0);
+
+    if(!rows.length) return alert('Add at least one valid item.');
+
+    const gst = num(document.getElementById('poGstPercent').value);
+    const taxType = document.querySelector('input[name="taxType"]:checked').value;
+    const payload = {
+      supplier,
+      rows,
+      gst,
+      taxType,
+      poNumber: document.getElementById('poNumber').value,
+      poDate: document.getElementById('poDate').value
+    };
+
+    const res = await post('generatePO', payload);
+    if(res && res.success){
+      const msg = res.message || '';
+      let poNum = '';
+      const m = msg.match(/PO[-\s]?\d+/i);
+      if(m) poNum = m[0];
+      else poNum = payload.poNumber || ('PO-'+Date.now().toString().slice(-6));
+      lastSavedPo = { poNum, supplier, rows, gst, taxType, poDate: payload.poDate };
+      document.getElementById('poNumber').value = poNum;
+      document.getElementById('printPoBtn').classList.remove('hidden');
+      alert(res.message || 'PO saved: '+poNum);
+    } else {
+      alert('Save failed: ' + (res.message || 'Unknown error'));
+    }
+  }
+ function buildPoHtmlForPrint(){
+    // Utility functions (assuming num, to2, escapeHtml, and numberToWords are defined globally or locally)
+    const num = (v) => Number(v) || 0;
+    const to2 = (v) => (Number(v) || 0).toFixed(2);
+    
+    // Fallback for escapeHtml if not defined elsewhere
+    const escapeHtml = (unsafe) => {
+      if (typeof unsafe !== 'string') return unsafe;
+      return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    };
+
+
+    // Fetch data from the form/last saved state
+    // NOTE: lastSavedPo, vendors, and element IDs are assumed to be available in the scope.
+    const use = lastSavedPo || {
+      poNum: document.getElementById('poNumber')?.value,
+      supplier: vendors?.[document.getElementById('poSupplier')?.value] || {},
+      rows: [...document.querySelectorAll('#poTable tbody tr')].map(tr=>({
+        description: tr.querySelector('.po-desc')?.value || '',
+        rate: tr.querySelector('.po-rate')?.value || 0,
+        qty: tr.querySelector('.po-qty')?.value || 0,
+        amount: tr.querySelector('.po-amt')?.value || 0,
+        due: tr.querySelector('.po-due')?.value || ''
+      })),
+      gst: num(document.getElementById('poGstPercent')?.value),
+      taxType: document.querySelector('input[name="taxType"]:checked')?.value || 'igst', // Default to igst
+      poDate: document.getElementById('poDate')?.value
+    };
+
+    // Calculations
+    const subtotal = use.rows.reduce((s,r)=> s + num(r.amount), 0);
+    const gst = use.gst || 0;
+    const taxTotal = subtotal * gst / 100;
+    let cgst = 0, sgst = 0, igst = 0;
+    if(use.taxType === 'cgst'){ cgst = taxTotal/2; sgst = taxTotal/2; } else { igst = taxTotal; }
+    const gross = subtotal + taxTotal;
+    const rounded = Math.round(gross);
+    const roundOff = (rounded - gross);
+    const total = rounded;
+
+    // --- Modern Invoice Structure ---
+
+    // 1. Company and Document Title Block
+    const companyBlock = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <div>
+            <div style="font-size: 14pt; font-weight: bold; color: #059669;">PRISTINE PEARL PHARMA PVT LTD</div>
+            <div style="font-size: 8pt; color: #555;">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+            <div style="font-size: 8pt; color: #555;">Perur Village, Coimbatore - 641010</div>
+            <div style="font-size: 8pt; color: #555;">samples.pearl@gmail.com | +91 8838001387</div>
+            <div style="font-size: 8pt; color: #555;">GSTIN/UIN: 33AAGCB2183C1Z6 | State: Tamil Nadu (33)</div>
+        </div>
+        <div style="text-align: right;">
+            <h1 style="font-size: 24pt; font-weight: bold; margin: 0; color: #333;">PURCHASE ORDER</h1>
+            <div style="font-size: 9pt; margin-top: 5px;">
+                <span style="font-weight: bold; color: #555;">PO Number:</span> <span style="font-weight: bold; color: #059669;">${escapeHtml(use.poNum||'')}</span><br>
+                <span style="font-weight: bold; color: #555;">Date:</span> ${escapeHtml(formatDateForPrint(use.poDate||''))}
+            </div>
+        </div>
+      </div>
+    `;
+
+    // 2. Address & Meta Blocks
+    const supplier = use.supplier || {};
+    const supplierBlock = `
+      <div style="padding-right: 20px;">
+        <div style="font-weight: 700; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 8pt;">Supplier (Bill From)</div>
+        <div style="font-weight: bold; color: #333;">${escapeHtml(supplier['Supplier Name']||'')}</div>
+        <div style="font-size: 9pt; color: #666;">${escapeHtml(supplier['Address']||'')}</div>
+        <div style="font-size: 9pt; color: #666;">GSTIN/UIN: ${escapeHtml(supplier['GSTIN / UIN']||supplier['GSTIN']||'')}</div>
+        <div style="font-size: 9pt; color: #666;">State: ${escapeHtml(supplier['State']||'')} (${escapeHtml(supplier['Code']||'')})</div>
+      </div>
+    `;
+
+    const recipientBlock = `
+      <div>
+        <div style="font-weight: 700; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 8pt;">Consignee (Ship To)</div>
+        <div style="font-weight: bold; color: #333;">PRISTINE PEARL PHARMA PVT LTD</div>
+        <div style="font-size: 9pt; color: #666;">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+        <div style="font-size: 9pt; color: #666;">Perur Village, Coimbatore - 641010</div>
+        <div style="font-size: 9pt; color: #666;">GSTIN: 33AAGCB2183C1Z6 | State: Tamil Nadu (33)</div>
+      </div>
+    `;
+
+    const addressMetaHtml = `
+      <div style="display: flex; justify-content: space-between; font-size: 10pt; background-color: #f3f4f6; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+        <div style="width: 48%;">${supplierBlock}</div>
+        <div style="width: 48%;">${recipientBlock}</div>
+      </div>
+    `;
+
+    // 3. Items Table
+    const itemsHtmlRows = use.rows.map((r,i) => {
+      return `<tr>
+        <td style="text-align:center; width: 5%;">${i+1}</td>
+        <td style="width: auto;">${escapeHtml(r.description || '')}</td>
+        <td style="text-align:right; width: 15%;">₹ ${to2(num(r.rate))}</td>
+        <td style="text-align:right; width: 10%;">${to2(num(r.qty))}</td>
+        <td style="text-align:right; width: 15%;">₹ ${to2(num(r.amount))}</td>
+        <td style="width: 15%;">${escapeHtml(formatDateForPrint(r.due || ''))}</td>
+      </tr>`;
+    }).join('');
+
+    const itemsTableHtml = `
+      <table style="width:100%; border-collapse: collapse; margin-top: 15px; font-size: 10pt;">
+        <thead>
+          <tr style="background-color: #059669; color: white;">
+            <th style="padding: 6px 8px; border: 1px solid #059669; text-align: left; width: 5%;">Sl No.</th>
+            <th style="padding: 6px 8px; border: 1px solid #059669; text-align: left;">Description of Goods</th>
+            <th style="padding: 6px 8px; border: 1px solid #059669; text-align: right;">Rate (₹)</th>
+            <th style="padding: 6px 8px; border: 1px solid #059669; text-align: right;">Quantity</th>
+            <th style="padding: 6px 8px; border: 1px solid #059669; text-align: right;">Amount (₹)</th>
+            <th style="padding: 6px 8px; border: 1px solid #059669; text-align: left;">Due on</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtmlRows}
+        </tbody>
+        <tfoot style="background-color: #f3f4f6; font-weight: bold;">
+          <tr>
+            <td colspan="4" style="text-align:right; padding: 8px; border: 1px solid #e5e7eb;">Sub Total ₹</td>
+            <td style="text-align:right; padding: 8px; border: 1px solid #e5e7eb; color: #059669;">${to2(subtotal)}</td>
+            <td style="border: 1px solid #e5e7eb;"></td>
+          </tr>
+        </tfoot>
+      </table>
+    `;
+
+    // 4. Totals and Footer
+    const totalsHtml = `
+      <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
+        <div style="width: 35%; border: 1px solid #ddd; padding: 10px; border-radius: 6px; font-size: 10pt; background-color: #f9f9f9;">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>Sub Total:</div><div>₹ ${to2(subtotal)}</div></div>
+          
+          ${ use.taxType === 'cgst' ? 
+            `<div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>CGST (${gst/2}%)</div><div>₹ ${to2(cgst)}</div></div>
+             <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>SGST (${gst/2}%)</div><div>₹ ${to2(sgst)}</div></div>` :
+            `<div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>IGST (${gst}%)</div><div>₹ ${to2(igst)}</div></div>`
+          }
+
+          <div style="display:flex; justify-content:space-between; padding-top: 5px; border-top: 1px solid #ccc;">
+             <div>Less : Round Off:</div><div>₹ ${to2(roundOff)}</div>
+          </div>
+          
+          <div style="display:flex; justify-content:space-between; font-weight:800; font-size: 12pt; color: #059669; padding-top: 5px; border-top: 2px solid #059669;">
+            <div>TOTAL AMOUNT:</div>
+            <div>₹ ${to2(total)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const wordsHtml = `
+      <div style="margin-top: 15px;">
+        <div style="font-weight: 700; text-transform: uppercase; color: #555; font-size: 8pt; margin-bottom: 3px;">Amount Chargeable (in words)</div>
+        <div style="border: 1px solid #ddd; padding: 8px; border-radius: 6px; background: #fafafa; font-weight: 500; font-size: 10pt; color: #333;">${numberToWords(Math.round(total))} Only</div>
+      </div>
+    `;
+
+    const footer = `
+      <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 9pt;">
+        <div style="width: 50%; color: #666; padding-right: 20px;">
+          <div style="font-weight: bold; color: #333; margin-bottom: 5px;">Declaration:</div>
+          <div>We declare that this Purchase Order shows the actual price of the goods described.</div>
+          <div style="margin-top: 10px; font-size: 8pt; color: #999;">Created By : SAMPLE DEPARTMENT<br/>This is an Auto-Generated Document.</div>
+        </div>
+        <div style="text-align: center; font-size: 10pt;">
+          <div style="border-top: 1px solid #333; width: 150px; margin-bottom: 5px;"></div>
+          <div style="font-weight: bold;">Authorised Signatory</div>
+          <div style="font-size: 9pt; color: #666;">for PRISTINE PEARL PHARMA PVT LTD</div>
+        </div>
+      </div>
+    `;
+
+
+    // Final HTML structure with Watermark wrapper
+    return `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Purchase Order - ${escapeHtml(use.poNum||'')}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            body { 
+              font-family: 'Inter', sans-serif; 
+              color: #1f2937; 
+              font-size: 10pt; 
+              padding: 0; 
+              margin: 0;
+            }
+            @page { size: A4; margin: 15mm; }
+            table { border-collapse: collapse; }
+            /* Styling specific to the items table */
+            .items-table th { background-color: #059669; color: white; border-color: #059669; font-weight: 600; }
+            .items-table th, .items-table td { border: 1px solid #e5e7eb; padding: 6px 8px; vertical-align: top; }
+          </style>
+        </head>
+        <body>
+          <div style="padding: 20px; position: relative; min-height: 280mm;">
+              <!-- Watermark Element for Print -->
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; 
+                          display: flex; justify-content: center; align-items: center;">
+                  <img src="https://www.pristinepearlpharma.in/images/alt-logo.png" 
+                       alt="Watermark" 
+                       style="width: 300px; height: auto; opacity: 0.1; transform: rotate(-15deg);" 
+                       onerror="this.style.display='none';">
+              </div>
+              
+              <!-- Content Wrapper -->
+              <div style="position: relative; z-index: 1;">
+                ${companyBlock}
+                ${addressMetaHtml}
+                ${itemsTableHtml.replace(/<table/g, '<table class="items-table"')}
+                ${totalsHtml}
+                ${wordsHtml}
+                ${footer}
+              </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Updated printPo function to use the new HTML generator.
+   * Uses a custom message box instead of alert.
+   */
+  function printPo(){
+    // Utility for a simple console log instead of alert, as custom modals are not provided here.
+    const showMessage = (msg) => console.log('PO Print Message:', msg); 
+    
+    if(!lastSavedPo) {
+      return showMessage('Please save the PO first before printing.');
+    }
+
+    const html = buildPoHtmlForPrint(); // Uses the updated HTML generator
+
+    const w = window.open('', '_blank');
+    if(!w) {
+      return showMessage('Popup blocked — allow popups for this site.');
+    }
+    
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    
+    // Wait a short moment for the content to render before printing
+    setTimeout(()=> w.print(), 700);
+  }
+
+  /**
+   * Improved numberToWords function for better Indian Numbering System accuracy.
+   */
+  function numberToWords(num) {
+    if (num === 0) return "Zero";
+    const upto19 = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+    const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+    
+    function twoDigit(n){ 
+      if(n < 20) return upto19[n]; 
+      const t = Math.floor(n/10);
+      const r = n % 10; 
+      return tens[t] + (r ? " " + upto19[r] : ""); 
+    }
+
+    function threeDigit(n){ 
+      const h = Math.floor(n/100); 
+      const rem = n % 100; 
+      let result = "";
+      if (h) result += upto19[h] + " Hundred";
+      if (rem) result += (h ? " " : "") + twoDigit(rem);
+      return result;
+    }
+
+    let s = ""; 
+    let workingNum = Math.abs(Math.round(num)); 
+    
+    const crore = Math.floor(workingNum / 10000000); 
+    workingNum %= 10000000; 
+    const lakh = Math.floor(workingNum / 100000); 
+    workingNum %= 100000; 
+    const thousand = Math.floor(workingNum / 1000); 
+    workingNum %= 1000; 
+    const hundred = workingNum;
+
+    if(crore) s += twoDigit(crore) + " Crore ";
+    if(lakh) s += twoDigit(lakh) + " Lakh "; 
+    if(thousand) s += twoDigit(thousand) + " Thousand "; 
+    if(hundred) s += threeDigit(hundred);
+    
+    return s.trim();
+  }
+  /* small no-op to avoid console errors if referenced */
+  function onSupplyTypeChange(){ /* currently no-op; kept for compatibility */ }
+
+function toggleDoctorInput() {
+  const reqFor = document.getElementById('reqFor').value;
+  const doctorInput = document.getElementById('doctorName');
+  if (reqFor === 'DOCTOR') {
+    doctorInput.classList.remove('hidden');
+    doctorInput.focus();
+  } else {
+    doctorInput.classList.add('hidden');
+    doctorInput.value = '';
+  }
+}
+
+  </script>
+
+</body>
+</html>

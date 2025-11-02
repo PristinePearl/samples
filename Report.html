@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Reports & Ledgers</title>
+  <link rel="icon" type="image/png" href="https://www.pristinepearlpharma.in/images/alt-logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js for all charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+    .sidebar-wrapper {
+      transition: transform 0.3s ease-in-out;
+    }
+    .tab-active { background:#10b981; color:#fff; font-weight: 600; }
+    .no-print { display: block; }
+    /* Ensure the chart container is stable */
+    .chart-container {
+        position: relative;
+        height: 320px; /* Fixed height for consistency */
+    }
+
+    @media (max-width: 768px) {
+      .sidebar-wrapper {
+        position: fixed;
+        z-index: 40;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        overflow-y: auto;
+        padding-top: 5rem;
+        transform: translateX(-100%);
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      }
+      .sidebar-wrapper.open {
+        transform: translateX(0);
+      }
+      .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 35;
+      }
+    }
+    .table-header-bg { background-color: #f7fafc; }
+    @media print { .no-print { display: none } }
+  </style>
+</head>
+<body class="bg-gray-100 text-slate-800">
+
+<script>
+/* IMPORTANT: The WEB_APP_URL is assumed to be defined by the user in the environment */
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyh435uV-JUW8zM-dzeOa8T1Vb79MpEZn8ar14KupbWfLHXxLzPGsyPXvH7zaSwfOo/exec";
+</script>
+
+<!-- Header -->
+<header class="bg-white border-b px-4 py-3 sticky top-0 z-40 no-print shadow-md">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+ <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" alt="Pristine Pearl Pharma Logo" class="w-20 h-20 object-contain rounded-lg" onerror="this.onerror=null;this.src='https://placehold.co/40x40/059669/ffffff?text=PP'">
+      <div>
+        <div class="text-xl font-bold">Inventory Reports</div>
+        <div class="text-xs text-slate-500">Pristine Pearl Pharma</div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button id="menuToggle" class="md:hidden p-2 rounded-lg border bg-gray-100 hover:bg-gray-200 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <button id="refreshBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 transition-colors text-sm">Refresh</button>
+      <button id="goBtn" class="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-sm">Go</button>
+      <button id="exportExcelBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 transition-colors text-sm">Export Excel</button>
+      <button id="exportCsvBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 transition-colors text-sm">Export CSV</button>
+      <a href="index.html" class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 transition-colors text-sm">Back</a>
+    </div>
+  </div>
+</header>
+
+<!-- Sidebar Backdrop (for mobile) -->
+<div id="sidebarBackdrop" class="sidebar-backdrop hidden md:hidden" onclick="toggleSidebar()"></div>
+
+<main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+  <!-- Sidebar (full text) -->
+  <aside id="sidebar" class="col-span-1 bg-white border rounded-xl p-4 shadow-lg sidebar-wrapper md:sticky md:top-20 md:h-fit">
+    <div class="text-lg font-bold text-slate-700 mb-4">Reports & Ledgers</div>
+    <div class="flex flex-col gap-2">
+      <button class="sidebtn px-3 py-2 rounded-lg text-left tab-active hover:bg-gray-50" data-target="stock" onclick="switchTab(event)">Stock Summary</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="minStock" onclick="switchTab(event)">Minimum Stock</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="expiry" onclick="switchTab(event)">Expiry Tracker</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="receipts" onclick="switchTab(event)">Receipts Summary</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="teamSupply" onclick="switchTab(event)">Team Supply Report</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productLedger" onclick="switchTab(event)">Product Ledger</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeLedger" onclick="switchTab(event)">Employee Ledger</button>
+    </div>
+
+    <hr class="my-4 border-gray-200" />
+    <div class="text-sm font-semibold text-slate-600 mb-3">Filters</div>
+    <div class="mt-2 space-y-3 text-sm">
+      <div>
+        <label class="block text-xs font-medium text-slate-500">Product Type</label>
+        <select id="filterType" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"></select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500">Date From</label>
+        <input id="filterFrom" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500">Date To</label>
+        <input id="filterTo" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-slate-500">Search</label>
+        <input id="filterSearch" placeholder="Product, batch, employee..." class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+      </div>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <section class="col-span-3 space-y-6">
+    <!-- Active label -->
+    <div class="bg-white p-4 rounded-xl border shadow-sm">
+      <div class="flex items-center justify-between">
+        <div class="text-base text-slate-600 font-medium">Active Report: <strong id="activeLabel" class="text-indigo-600">Stock Summary</strong></div>
+        <div class="text-xs text-slate-500">Click the <strong class="text-indigo-600">Go</strong> button to apply filters.</div>
+      </div>
+    </div>
+
+    <!-- Panels -->
+    <div id="panels" class="space-y-6">
+
+      <!-- STOCK -->
+      <div id="stock" class="panel bg-white p-4 rounded-xl border shadow-lg">
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <h3 class="text-2xl font-bold text-slate-700">Stock Summary</h3>
+            <div class="text-sm text-slate-500">Current inventory snapshot with key metrics.</div>
+          </div>
+          <div class="text-sm text-slate-500">Total Batches: <span id="stockCount" class="font-bold text-slate-700">0</span></div>
+        </div>
+
+        <!-- NEW Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
+            <div class="text-xs font-medium text-emerald-700">Total Inventory Value</div>
+            <div id="totalStockValue" class="text-2xl font-extrabold mt-1 text-emerald-800">N/A</div>
+          </div>
+          <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 shadow-sm">
+            <div class="text-xs font-medium text-indigo-700">Unique Products</div>
+            <div id="uniqueProductsCount" class="text-2xl font-extrabold mt-1 text-indigo-800">N/A</div>
+          </div>
+          <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
+            <div class="text-xs font-medium text-amber-700">Batches Below Min</div>
+            <div id="minStockBatches" class="text-2xl font-extrabold mt-1 text-amber-800">N/A</div>
+          </div>
+        </div>
+
+        <!-- NEW Chart -->
+        <div class="bg-white p-4 rounded-xl border shadow-sm mb-6">
+          <h4 class="text-lg font-semibold mb-3 text-slate-700">Inventory Value by Product Type</h4>
+          <div class="chart-container">
+            <canvas id="stockValueByTypeChart" class="w-full"></canvas>
+          </div>
+        </div>
+
+        <!-- Table (Existing, slightly styled) -->
+        <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Inventory Snapshot</h4>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="stockTable" class="min-w-full text-sm">
+            <thead class="bg-gray-50 border-b"><tr>
+              <th class="p-3 text-left font-semibold text-gray-600">Type</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">MRP (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Last Updated</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- MIN STOCK -->
+      <div id="minStock" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div><h3 class="text-2xl font-bold text-slate-700">Minimum Stock</h3><div class="text-sm text-slate-500">Batches below the specified reorder threshold.</div></div>
+          <div>
+            <label class="text-sm text-slate-600 font-medium mr-2">Threshold Qty:</label>
+            <input id="minThreshold" type="number" value="20" class="w-20 border px-3 py-1 rounded-lg focus:border-indigo-500" onchange="renderMinStock()"/>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- NEW Chart -->
+          <div class="bg-white p-4 rounded-xl border shadow-sm">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Top 5 Critical Batches (Lowest Qty)</h4>
+            <div class="chart-container">
+              <canvas id="minStockTop5Chart" class="w-full"></canvas>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Low Stock List</h4>
+            <div class="overflow-x-auto rounded-lg border shadow-md">
+              <table id="minTable" class="min-w-full text-sm">
+                <thead class="bg-red-50 border-b"><tr>
+                  <th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">MRP (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Type</th></tr></thead>
+                <tbody class="divide-y divide-gray-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPIRY -->
+      <div id="expiry" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div><h3 class="text-2xl font-bold text-slate-700">Expiry Tracker</h3><div class="text-sm text-slate-500">Items expiring within the next specified period.</div></div>
+          <div>
+            <label class="text-sm text-slate-600 font-medium mr-2">Next (Days):</label>
+            <input id="expiryDays" type="number" value="30" class="w-20 border px-3 py-1 rounded-lg focus:border-indigo-500" onchange="renderExpiry()"/>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- NEW Chart -->
+          <div class="bg-white p-4 rounded-xl border shadow-sm">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Expiring Items Count by Month</h4>
+            <div class="chart-container">
+              <canvas id="expiryByMonthChart" class="w-full"></canvas>
+            </div>
+          </div>
+
+          <!-- Table Container -->
+          <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Expiry List</h4>
+            <div class="overflow-x-auto rounded-lg border shadow-md">
+              <table id="expiryTable" class="min-w-full text-sm">
+                <thead class="bg-amber-50 border-b"><tr>
+                  <th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry (MM-YYYY)</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">Days Left</th></tr></thead>
+                <tbody class="divide-y divide-gray-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECEIPTS -->
+      <div id="receipts" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="mb-6"><h3 class="text-2xl font-bold text-slate-700">Receipts Summary</h3><div class="text-sm text-slate-500">All received inventory items.</div></div>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="receiptsTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr>
+              <th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Receipt ID</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-left font-semibold text-gray-600">Supplier</th><th class="p-3 text-right font-semibold text-gray-600">Amount (₹)</th></tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TEAM SUPPLY (Original, adapted for new style) -->
+      <div id="teamSupply" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
+          <div>
+            <h3 class="text-2xl font-bold text-slate-700">Team Supply Report</h3>
+            <div class="text-sm text-slate-500">Summary of inventory supplied by team.</div>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 text-sm">
+            <label class="font-medium">Team</label>
+            <select id="filterTeam" class="border rounded-lg px-2 py-1"></select>
+            <label class="font-medium">From</label>
+            <input id="teamFrom" type="date" class="border rounded-lg px-2 py-1" />
+            <label class="font-medium">To</label>
+            <input id="teamTo" type="date" class="border rounded-lg px-2 py-1" />
+            <button id="refreshTeam" class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 transition-colors text-sm">Refresh Team Data</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div class="lg:col-span-2 bg-white p-4 rounded-xl border shadow-sm">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Team Supply Value Summary</h4>
+            <div class="overflow-x-auto rounded-lg border shadow-md">
+              <table id="teamSummaryTable" class="min-w-full text-sm">
+                <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Team</th><th class="p-3 text-right font-semibold text-gray-600">No. of Distributions</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th></tr></thead>
+                <tbody class="divide-y divide-gray-100"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Value Distribution</h4>
+            <div class="chart-container w-full h-[300px]">
+              <canvas id="teamPie" class="w-full"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Supply Transactions</h4>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="teamSupplyTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Team</th><th class="p-3 text-left font-semibold text-gray-600">Emp Code</th><th class="p-3 text-left font-semibold text-gray-600">Emp Name</th><th class="p-3 text-left font-semibold text-gray-600">Designation</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Remarks</th></tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PRODUCT LEDGER -->
+      <div id="productLedger" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div><h3 class="text-2xl font-bold text-slate-700">Product Ledger (Batch-wise)</h3><div class="text-sm text-slate-500">View detailed in/out summary for a specific product.</div></div>
+          <div><label class="text-sm font-medium mr-2">Product</label><select id="ledgerProduct" class="border rounded-lg px-3 py-1 min-w-[260px] focus:border-indigo-500" onchange="renderProductLedger()"></select></div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="prodLedgerTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr>
+              <th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Received</th><th class="p-3 text-right font-semibold text-gray-600">Supplied</th><th class="p-3 text-right font-semibold text-gray-600">Remaining</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- EMPLOYEE LEDGER -->
+      <div id="employeeLedger" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="flex justify-between items-center mb-6">
+          <div><h3 class="text-2xl font-bold text-slate-700">Employee Ledger</h3><div class="text-sm text-slate-500">View all supplies distributed to a specific employee.</div></div>
+          <div><label class="text-sm font-medium mr-2">Employee</label><select id="ledgerEmployee" class="border rounded-lg px-3 py-1 min-w-[260px] focus:border-indigo-500" onchange="renderEmployeeLedger()"></select></div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="empLedgerTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr>
+              <th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Emp Code</th><th class="p-3 text-left font-semibold text-gray-600">Emp Name</th><th class="p-3 text-left font-semibold text-gray-600">Designation</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Remarks</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/20"><div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div></div>
+
+<script>
+/* ---------- Config & State ---------- */
+const API = WEB_APP_URL;
+
+let inventory = [], products = [], staff = [], receipts = [], supplies = [], teams = [];
+let currentTab = 'stock';
+let chartInstances = {}; // Global map to store Chart.js instances
+
+/* ---------- Helpers ---------- */
+function showLoading(){ document.getElementById('loading').style.display = 'flex'; }
+function hideLoading(){ document.getElementById('loading').style.display = 'none'; }
+
+async function post(action, payload = {}) {
+  showLoading();
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: {'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(Object.assign({action}, payload))
+    });
+    const json = await res.json();
+    hideLoading();
+    return json;
+  } catch (e) {
+    hideLoading();
+    console.error(e);
+    // Use an error message box instead of alert()
+    alert('API error — check console and WEB_APP_URL'); 
+    return { success:false, message: String(e) };
+  }
+}
+
+function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function num(v){ return Number(v)||0; }
+
+/* Date/expiry format utility */
+function fmtDDMMYYYY(d){
+  if(!d) return '';
+  const s = String(d).trim();
+  if(/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+  if(/^\d{2}-\d{4}$/.test(s)) return '01-' + s; // treat as 1st day -> convert
+  const dt = new Date(s);
+  if(!isNaN(dt)){
+    const dd = String(dt.getDate()).padStart(2,'0'), mm = String(dt.getMonth()+1).padStart(2,'0'), yy = dt.getFullYear();
+    return dd + '-' + mm + '-' + yy;
+  }
+  return s;
+}
+function fmtExpiryMMYYYY(v){
+  if(!v) return '';
+  const s = String(v).trim();
+  if(/^\d{2}-\d{4}$/.test(s)) return s;
+  const dt = new Date(s);
+  if(!isNaN(dt)) return String(dt.getMonth()+1).padStart(2,'0') + '-' + dt.getFullYear();
+  const parts = s.split(/[-\/]/);
+  if(parts.length===3) return parts[1].padStart(2,'0') + '-' + (parts[2].length===2? '20'+parts[2] : parts[2]);
+  return s;
+}
+
+/* Generic Chart Helper - Updated for stability */
+function createChart(chartId, type, data, options = {}) {
+  if (chartInstances[chartId]) {
+    chartInstances[chartId].destroy();
+  }
+  const canvas = document.getElementById(chartId);
+  if (!canvas) {
+    console.error('Canvas element not found for chartId:', chartId);
+    return;
+  }
+  const ctx = canvas.getContext('2d');
+  
+  // Default options for cleaner modern look - maintainAspectRatio: false is key for fixed containers
+  const defaultOptions = {
+      responsive: true,
+      maintainAspectRatio: false, // Prevents the chart from resizing wildly and causing scroll issues
+      plugins: {
+          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6, padding: 20 } },
+          title: { display: false }
+      },
+      scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+      }
+  };
+
+  chartInstances[chartId] = new Chart(ctx, { 
+    type, 
+    data, 
+    options: Chart.helpers.merge(defaultOptions, options)
+  });
+}
+
+/* ---------- Loaders & Selectors ---------- */
+async function loadAll(){
+  const [invR, prodR, staffR, recR, supR] = await Promise.all([
+    post('getInventory', {}),
+    post('getProducts', {}),
+    post('getEmployeeList', {}),
+    post('getAllReceipts', {}),
+    post('getAllSupplies', {})
+  ]);
+  inventory = (invR && invR.success) ? invR.rows : [];
+  products = (prodR && prodR.success) ? prodR.products : [];
+  staff = (staffR && staffR.success) ? staffR.employees : [];
+  receipts = (recR && recR.success) ? recR.receipts : [];
+  supplies = (supR && supR.success) ? supR.supplies : [];
+
+  populateSelectors();
+}
+
+function populateSelectors(){
+  const typeSet = [...new Set(inventory.map(i => i.Type).filter(Boolean))].sort();
+  const ft = document.getElementById('filterType');
+  ft.innerHTML = '<option value="">All</option>' + typeSet.map(t => `<option>${escapeHtml(t)}</option>`).join('');
+
+  const pSel = document.getElementById('ledgerProduct');
+  pSel.innerHTML = '<option value="">-- Select Product --</option>' + products.map(p => `<option>${escapeHtml(p.Product || p['Item Name'] || '')}</option>`).join('');
+
+  const eSel = document.getElementById('ledgerEmployee');
+  eSel.innerHTML = '<option value="">-- Select Employee --</option>' + staff.map(s => `<option value="${escapeHtml(s['Employee Code'])}">${escapeHtml(s['Employee Code'])} - ${escapeHtml(s['Employee Name'])}</option>`).join('');
+
+  teams = [...new Set(supplies.map(s => s.Team).filter(Boolean))].sort();
+  const teamSel = document.getElementById('filterTeam');
+  teamSel.innerHTML = '<option value="">All Teams</option>' + teams.map(t => `<option>${escapeHtml(t)}</option>`).join('');
+}
+
+/* Mobile Sidebar Toggle */
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  sidebar.classList.toggle('open');
+  backdrop.classList.toggle('hidden');
+}
+
+/* ---------- Tab switching ---------- */
+function switchTab(e, force){
+  const target = force || (e && e.currentTarget && e.currentTarget.dataset.target);
+  if(!target) return;
+  currentTab = target;
+  document.getElementById('activeLabel').textContent = ({
+    stock:'Stock Summary', minStock:'Minimum Stock', expiry:'Expiry Tracker', receipts:'Receipts Summary',
+    teamSupply:'Team Supply Report', productLedger:'Product Ledger', employeeLedger:'Employee Ledger'
+  })[target] || target;
+  
+  document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden', 'shadow-lg'));
+  const el = document.getElementById(target); if(el) el.classList.remove('hidden');
+
+  document.querySelectorAll('.sidebtn').forEach(b => b.classList.remove('tab-active'));
+  document.querySelectorAll('.sidebtn').forEach(b => { if(b.dataset.target === target) b.classList.add('tab-active'); });
+
+  // Hide sidebar on mobile after selection
+  if (window.innerWidth < 768) { toggleSidebar(); }
+
+  // auto-render
+  renderForCurrentTab();
+}
+
+/* ---------- Renderers ---------- */
+function renderStock(){
+  const tbody = document.querySelector('#stockTable tbody'); tbody.innerHTML = '';
+  const typeValueMap = {};
+  let totalValue = 0;
+  const uniqueProducts = new Set();
+  const minThreshold = Number(document.getElementById('minThreshold').value || 20);
+  let lowStockCount = 0;
+  let count = 0;
+
+  inventory.forEach(r => {
+    const value = num(r.Qty) * num(r.MRP);
+    totalValue += value;
+
+    // Data for charts/cards
+    const type = r.Type || 'Uncategorized';
+    typeValueMap[type] = (typeValueMap[type] || 0) + value;
+    uniqueProducts.add(r.Product);
+    if (num(r.Qty) < minThreshold) { lowStockCount++; }
+
+    // Table rendering
+    const tr = document.createElement('tr');
+    // Updated 'Value' column to include ₹
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Type||'')}</td><td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right font-medium">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${value.toFixed(2)||''}</td><td class="p-3 text-left text-xs text-slate-500">${escapeHtml(fmtDDMMYYYY(r['Last Updated']||r['Receipt Date']||''))}</td>`;
+    tbody.appendChild(tr);
+    count++;
+  });
+
+  // Render Summary Cards
+  document.getElementById('stockCount').textContent = count;
+  document.getElementById('totalStockValue').textContent = '₹' + totalValue.toFixed(2);
+  document.getElementById('uniqueProductsCount').textContent = uniqueProducts.size;
+  document.getElementById('minStockBatches').textContent = lowStockCount;
+
+  // Render Chart
+  const labels = Object.keys(typeValueMap);
+  const values = labels.map(label => typeValueMap[label]);
+  const backgroundColors = labels.map((_, i) => `hsl(${i * 45 % 360} 70% 55%)`);
+
+  createChart('stockValueByTypeChart', 'bar', {
+    labels: labels,
+    datasets: [{
+      label: 'Stock Value (₹)',
+      data: values,
+      backgroundColor: backgroundColors,
+      borderRadius: 6
+    }]
+  }, {
+    scales: { y: { beginAtZero: true, ticks: { callback: (v) => '₹' + v.toLocaleString() } } },
+    indexAxis: 'y', // Horizontal bars
+  });
+}
+
+function renderMinStock(){
+  const th = Number(document.getElementById('minThreshold').value || 20);
+  const tbody = document.querySelector('#minTable tbody'); tbody.innerHTML = '';
+  
+  const lowStock = inventory
+    .filter(i => num(i.Qty) < th)
+    .sort((a,b) => num(a.Qty) - num(b.Qty)); // Sort by lowest quantity
+
+  // Chart data: Top 5 Critical Batches
+  const top5 = lowStock.slice(0, 5);
+  const chartLabels = top5.map(r => `${r.Product} (${r.Batch})`);
+  const chartValues = top5.map(r => num(r.Qty));
+
+  createChart('minStockTop5Chart', 'bar', {
+    labels: chartLabels,
+    datasets: [{
+      label: 'Current Quantity',
+      data: chartValues,
+      backgroundColor: 'rgba(239, 68, 68, 0.7)', // Red
+      borderColor: 'rgba(239, 68, 68, 1)',
+      borderWidth: 1,
+      borderRadius: 4
+    }]
+  }, {
+    scales: { x: { reverse: true } }, // Show lowest first
+    indexAxis: 'y', // Horizontal bars
+  });
+
+  // Table rendering
+  lowStock.forEach(r => {
+    const val = num(r.Qty) * num(r.MRP);
+    const tr = document.createElement('tr');
+    // Updated 'Value' column to include ₹
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right font-semibold text-red-600">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right">₹${val.toFixed(2)||''}</td><td class="p-3">${escapeHtml(r.Type||'')}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderExpiry(){
+  const days = Number(document.getElementById('expiryDays').value || 30);
+  const tbody = document.querySelector('#expiryTable tbody'); tbody.innerHTML = '';
+  const now = new Date();
+  const expiringItems = [];
+
+  // Month map for charting
+  const expiryMonthMap = {};
+  const monthOrder = []; // To keep months in chronological order
+
+  inventory.forEach(r => {
+    if(!r.Expiry) return;
+    let expDate = null;
+    let expiryStr = String(r.Expiry).trim();
+    
+    // Attempt to parse date
+    if(/^\d{2}-\d{4}$/.test(expiryStr)){
+      const [mm,yy] = expiryStr.split('-');
+      expDate = new Date(Number(yy), Number(mm)-1, 1);
+    } else {
+      const dt = new Date(expiryStr);
+      if(!isNaN(dt)) expDate = dt;
+    }
+
+    if(!expDate) return;
+    
+    // Check if the date is actually set to the first day of the month for comparison
+    const year = expDate.getFullYear();
+    const month = expDate.getMonth();
+    const expiryMonthKey = `${String(month + 1).padStart(2, '0')}-${year}`;
+
+    // Get the last day of the expiry month for accurate diff calculation
+    const lastDayOfMonth = new Date(year, month + 1, 0); 
+    const diff = Math.ceil((lastDayOfMonth - now) / (1000 * 60 * 60 * 24));
+    
+    if(diff <= days && diff > 0){
+      expiringItems.push({...r, diff: diff});
+    }
+
+    if(diff > 0 && diff <= 365){ // For chart: show next year of expiries
+      expiryMonthMap[expiryMonthKey] = (expiryMonthMap[expiryMonthKey] || 0) + 1;
+      if (!monthOrder.includes(expiryMonthKey)) {
+        monthOrder.push(expiryMonthKey);
+      }
+    }
+  });
+
+  // Sort months chronologically
+  monthOrder.sort((a, b) => {
+    const [m1, y1] = a.split('-').map(Number);
+    const [m2, y2] = b.split('-').map(Number);
+    if (y1 !== y2) return y1 - y2;
+    return m1 - m2;
+  });
+  
+  // Prepare chart data
+  const chartLabels = monthOrder.map(key => key);
+  const chartValues = monthOrder.map(key => expiryMonthMap[key]);
+
+  createChart('expiryByMonthChart', 'bar', {
+    labels: chartLabels,
+    datasets: [{
+      label: 'Batches Expiring',
+      data: chartValues,
+      backgroundColor: 'rgba(251, 191, 36, 0.7)', // Amber
+      borderColor: 'rgba(251, 191, 36, 1)',
+      borderWidth: 1,
+      borderRadius: 4
+    }]
+  });
+
+  // Table rendering
+  expiringItems.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-semibold text-amber-700">${r.diff}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderReceipts(){
+  const tbody = document.querySelector('#receiptsTable tbody'); tbody.innerHTML = '';
+  receipts.forEach(r => {
+    const tr = document.createElement('tr');
+    // Updated 'Amount' column to include ₹
+    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Received Date']||''))}</td><td class="p-3">${escapeHtml(r['Receipt ID']||'')}</td><td class="p-3">${escapeHtml(r['Item Name']||r['Item']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r['Received Qty']||r.Qty||0}</td><td class="p-3">${escapeHtml(r['Supplier Name']||'')}</td><td class="p-3 text-right font-medium text-emerald-600">₹${num(r['Total Value']||r.Amount||0).toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* Team summary + pie chart + table */
+let teamPieChart = null; 
+
+function renderTeamSummary(){
+  const map = {};
+  supplies.forEach(s => {
+    const t = s.Team || '(Unassigned)';
+    if(!map[t]) map[t] = { count:0, value:0 };
+    map[t].count += 1;
+    map[t].value += num(s['Total Value']||0);
+  });
+
+  const tbody = document.querySelector('#teamSummaryTable tbody'); tbody.innerHTML = '';
+  const labels = [], values = [];
+  Object.keys(map).forEach(team => {
+    labels.push(team);
+    values.push(map[team].value);
+    const tr = document.createElement('tr');
+    // Updated 'Total Value' column to include ₹
+    tr.innerHTML = `<td class="p-3">${escapeHtml(team)}</td><td class="p-3 text-right">${map[team].count}</td><td class="p-3 text-right font-medium text-indigo-600">₹${map[team].value.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // pie chart (using createChart for standardization)
+  const backgroundColors = labels.map((_,i)=>`hsl(${i*40 % 360} 70% 55%)`);
+  
+  if(teamPieChart) teamPieChart.destroy();
+  
+  createChart('teamPie', 'pie', {
+    labels: labels,
+    datasets: [{ 
+      data: values, 
+      backgroundColor: backgroundColors,
+      hoverOffset: 4
+    }]
+  }, {
+    scales: { x: { display: false }, y: { display: false } } // Hide scales for pie chart
+  });
+
+  teamPieChart = chartInstances['teamPie']; // Update reference
+}
+
+function renderTeamSupply(){
+  const team = document.getElementById('filterTeam').value;
+  const f = document.getElementById('teamFrom').value;
+  const t = document.getElementById('teamTo').value;
+  const tbody = document.querySelector('#teamSupplyTable tbody'); tbody.innerHTML = '';
+
+  const rows = supplies.filter(s => {
+    if(team && s.Team !== team) return false;
+    if(f || t){
+      const d = new Date(s.Date || s['Supply Date'] || s.DateRaw || s['Date']);
+      if(f && new Date(f) > d) return false;
+      if(t && new Date(t) < d) return false;
+    }
+    return true;
+  });
+
+  rows.forEach(r => {
+    const code = r['Supply to (Emp ID)'] || r['Supply to'] || r['Employee Code'] || '';
+    const st = staff.find(x => String(x['Employee Code']).trim() === String(code).trim()) || {};
+    const tr = document.createElement('tr');
+    // Updated 'Total Value' column to include ₹
+    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(r.Team||'')}</td><td class="p-3">${escapeHtml(code)}</td><td class="p-3">${escapeHtml(st['Employee Name']||r['Emp Name']||'')}</td><td class="p-3">${escapeHtml(st['Designation']||r.Designation||'')}</td><td class="p-3">${escapeHtml(r['Item Supplied']||r['Item Name']||r.Product||'')}</td><td class="p-3">${escapeHtml(r['Batch No']||r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']||0).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* Product ledger - FIXED: MRP lookup added */
+async function renderProductLedger(){
+  const product = document.getElementById('ledgerProduct').value;
+  const tbody = document.querySelector('#prodLedgerTable tbody'); tbody.innerHTML = '';
+  if(!product) { tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">Please select a product from the dropdown above.</td></tr>`; return; }
+  
+  const res = await post('getReportData', { reportType: 'productLedger', product });
+  if(!res || !res.success || (res.rows || []).length === 0){ 
+    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">${escapeHtml(res.message || 'No ledger data found for this product.')}</td></tr>`; return; 
+  }
+  
+  (res.rows || []).forEach(r => {
+    const remainingQty = num(r.Balance || 0);
+    let mrp = num(r.MRP || 0);
+
+    // FIX: Fallback MRP lookup if the backend didn't provide it (which is common)
+    if (mrp === 0) {
+        const inventoryItem = inventory.find(i => 
+            String(i.Product).trim() === String(product).trim() && 
+            String(i.Batch).trim() === String(r.Batch).trim()
+        );
+        if (inventoryItem) {
+            mrp = num(inventoryItem.MRP);
+        }
+    }
+
+    const totalValue = remainingQty * mrp;
+
+    const tr = document.createElement('tr');
+    // Updated Total Value to include ₹
+    tr.innerHTML = `<td class="p-3">${escapeHtml(product)}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(r.Expiry||'')}</td><td class="p-3 text-right text-emerald-600 font-medium">${r.Received||0}</td><td class="p-3 text-right text-red-600 font-medium">${r.Supplied||0}</td><td class="p-3 text-right font-bold">${remainingQty}</td><td class="p-3 text-right font-bold text-indigo-600">₹${totalValue.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* Employee ledger - FIXED: MRP lookup added */
+async function renderEmployeeLedger(){
+  const empCode = document.getElementById('ledgerEmployee').value;
+  const tbody = document.querySelector('#empLedgerTable tbody'); tbody.innerHTML = '';
+  if(!empCode) { tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-slate-500">Please select an employee from the dropdown above.</td></tr>`; return; }
+
+  const res = await post('getReportData', { reportType: 'employeeLedger', employee: empCode });
+  if(!res || !res.success || (res.rows || []).length === 0){ 
+    tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-slate-500">${escapeHtml(res.message || 'No supply data found for this employee.')}</td></tr>`; return; 
+  }
+  
+  (res.rows || []).forEach(r => {
+    const qty = num(r.Qty || 0);
+    let mrp = num(r.MRP || 0);
+    const product = r.Product || r['Item Supplied'] || '';
+    const batch = r.Batch || '';
+
+    // FIX: Fallback MRP lookup if the backend didn't provide it (which is common for supplies)
+    if (mrp === 0 && product && batch) {
+        const inventoryItem = inventory.find(i => 
+            String(i.Product).trim() === String(product).trim() && 
+            String(i.Batch).trim() === String(batch).trim()
+        );
+        if (inventoryItem) {
+            mrp = num(inventoryItem.MRP);
+        }
+    }
+
+    // Calculate total value using the fetched/looked-up MRP
+    const totalValue = num(r['Total Value'] || (qty * mrp));
+
+    const tr = document.createElement('tr');
+    // Updated Total Value to include ₹
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Date||'')}</td><td class="p-3">${escapeHtml(r['Employee Code']||'')}</td><td class="p-3">${escapeHtml(r['Employee Name']||'')}</td><td class="p-3">${escapeHtml(r['Designation']||'')}</td><td class="p-3">${escapeHtml(r.Product||r['Item Supplied']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(r.Expiry||'')}</td><td class="p-3 text-right font-medium">${qty}</td><td class="p-3 text-right font-medium text-red-600">₹${totalValue.toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Export helpers (unchanged) ---------- */
+function tableToCsv(table) {
+  const rows = [];
+  table.querySelectorAll('tr').forEach(tr => {
+    const cols = [];
+    tr.querySelectorAll('th,td').forEach(td => {
+      let txt = td.textContent.replace(/\n+/g,' ').trim();
+      cols.push('"' + txt.replace(/"/g,'""') + '"');
+    });
+    if(cols.length) rows.push(cols.join(','));
+  });
+  return rows.join('\n');
+}
+
+function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+}
+
+/* Export visible as CSV */
+function exportCsvCurrent(){
+  let tableId = 'stockTable';
+  if(currentTab === 'minStock') tableId = 'minTable';
+  else if(currentTab === 'expiry') tableId = 'expiryTable';
+  else if(currentTab === 'receipts') tableId = 'receiptsTable';
+  else if(currentTab === 'teamSupply') tableId = 'teamSupplyTable';
+  else if(currentTab === 'productLedger') tableId = 'prodLedgerTable';
+  else if(currentTab === 'employeeLedger') tableId = 'empLedgerTable';
+  const table = document.getElementById(tableId);
+  const csv = tableToCsv(table);
+  downloadCsv(`${currentTab}_report_${new Date().toISOString().slice(0,10)}.csv`, csv);
+}
+
+/* Export current visible report as Excel (.xlsx) */
+async function exportExcelCurrent(){
+  if(currentTab === 'teamSupply'){
+    const team = document.getElementById('filterTeam').value;
+    const from = document.getElementById('teamFrom').value;
+    const to = document.getElementById('teamTo').value;
+
+    const res = await post('getReportData', { reportType: 'teamSupply', team, from, to });
+    const allRows = (res && res.success && res.rows) ? res.rows : [];
+
+    const summaryTable = document.getElementById('teamSummaryTable');
+    const summarySheet = XLSX.utils.table_to_sheet(summaryTable, { raw:true });
+
+    const details = allRows.map(r => ({
+      Date: r.Date || '', Team: r.Team || '', 'Employee Code': r['Employee Code'] || '',
+      'Employee Name': r['Employee Name'] || '', Designation: r.Designation || '',
+      Product: r.Product || '', Batch: r.Batch || '', Expiry: r.Expiry || '',
+      Qty: r.Qty || 0, 'Total Value': r['Total Value'] || 0, Remarks: r.Remarks || ''
+    }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
+
+    if(details.length){
+      const detSheet = XLSX.utils.json_to_sheet(details);
+      XLSX.utils.book_append_sheet(wb, detSheet, 'Details');
+    } else {
+      const empty = XLSX.utils.json_to_sheet([{Info:'No data found for selected filters'}]);
+      XLSX.utils.book_append_sheet(wb, empty, 'Details');
+    }
+
+    XLSX.writeFile(wb, `team_supply_${team || 'all'}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    return;
+  }
+
+  // other tabs
+  let tableId = 'stockTable';
+  if(currentTab === 'minStock') tableId = 'minTable';
+  else if(currentTab === 'expiry') tableId = 'expiryTable';
+  else if(currentTab === 'receipts') tableId = 'receiptsTable';
+  else if(currentTab === 'productLedger') tableId = 'prodLedgerTable';
+  else if(currentTab === 'employeeLedger') tableId = 'empLedgerTable';
+
+  const table = document.getElementById(tableId);
+  const wb = XLSX.utils.table_to_book(table, { sheet: "Report" });
+  XLSX.writeFile(wb, `${currentTab}_report_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+/* ---------- Wiring UI actions ---------- */
+document.getElementById('refreshBtn').addEventListener('click', async () => { await loadAll(); renderForCurrentTab(); });
+document.getElementById('goBtn').addEventListener('click', () => { renderForCurrentTab(); });
+document.getElementById('exportCsvBtn').addEventListener('click', exportCsvCurrent);
+document.getElementById('exportExcelBtn').addEventListener('click', exportExcelCurrent);
+document.getElementById('refreshTeam').addEventListener('click', () => { renderTeamSummary(); renderTeamSupply(); });
+document.getElementById('menuToggle').addEventListener('click', toggleSidebar); // New mobile toggle binding
+
+async function renderForCurrentTab(){
+  // Apply date and product type filters to the main inventory/supplies lists if needed before rendering.
+  // For this application, filtering is handled by the `post` calls in ledgers or is simple in-memory in other render functions.
+  // For complex filtering, you'd call a new API function here. Since we don't have that, we render as is.
+  if(currentTab === 'stock') renderStock();
+  else if(currentTab === 'minStock') renderMinStock();
+  else if(currentTab === 'expiry') renderExpiry();
+  else if(currentTab === 'receipts') renderReceipts();
+  else if(currentTab === 'teamSupply') { renderTeamSummary(); renderTeamSupply(); }
+  else if(currentTab === 'productLedger') renderProductLedger();
+  else if(currentTab === 'employeeLedger') renderEmployeeLedger();
+}
+
+/* ---------- Initial load ---------- */
+(async ()=>{
+  await loadAll();
+  switchTab(null, 'stock');
+})();
+</script>
+
+</body>
+</html>

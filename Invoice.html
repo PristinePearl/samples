@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Supply Invoice </title>
+  <link rel="icon" type="image/png" href="https://www.pristinepearlpharma.in/images/alt-logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Updated styles for modern look */
+    body { font-family: 'Inter', sans-serif; background:#f4f7f9; color:#1f2937; }
+    .invoice-preview { 
+      background:#fff; 
+      border:none; /* Removing outer border for cleaner look */
+      padding:40px; 
+      border-radius:12px; 
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Soft shadow */
+      position: relative; /* Added for watermark positioning */
+      z-index: 1; /* Ensure content stacks above the watermark */
+    }
+    
+    /* Watermark Style for On-Screen Preview (uses CSS pseudo-element) */
+    .invoice-preview::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: url('https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: 300px; /* Size of the watermark */
+      opacity: 0.10; /* Very subtle transparency */
+      pointer-events: none; /* Allows clicks/selection through the watermark */
+      z-index: -1; /* Place behind the content */
+      transform: rotate(-5deg); /* Slight rotation for effect */
+    }
+
+    .accent-bg { background-color: #059669; color: #ffffff; } /* Emerald-600 */
+    .accent-text { color: #059669; }
+    
+    @media print {
+      body { background:#fff; }
+      .no-print { display:none !important; }
+      /* Remove box shadow and padding for clean print */
+      .invoice-preview { border:none; box-shadow:none; padding: 0; } 
+      
+      /* Disable the pseudo-element watermark in print since we use an HTML element in getPrintPreview for better control */
+      .invoice-preview::before { content: none; }
+    }
+    
+    /* Print styles for printInvoiceSameTab function to use */
+    .print-invoice-body {
+      font-family: 'Inter', sans-serif; 
+      font-size: 10pt; 
+      padding: 0; 
+      color: #1f2937;
+    }
+    .print-invoice-table {
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-top: 15px; 
+    }
+    .print-invoice-table th, .print-invoice-table td {
+      border: 1px solid #e5e7eb; 
+      padding: 6px 8px;
+    }
+    .print-invoice-table th {
+      background-color: #f3f4f6; 
+      font-weight: 600;
+      color: #1f2937;
+    }
+    .print-invoice-table tfoot td {
+        background-color: #f3f4f6; 
+        font-weight: 700;
+    }
+    @page {
+      size: A4; 
+      margin: 10mm;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-slate-900">
+
+<!-- HEADER -->
+<header class="bg-white border-b border-gray-200 px-4 py-3 no-print">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <!-- Logo in the navigation bar -->
+      <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" alt="Pristine Pearl Pharma Logo" class="w-20 h-20 object-contain rounded-lg" onerror="this.onerror=null;this.src='https://placehold.co/40x40/059669/ffffff?text=PP'">
+      <div>
+        <div class="text-lg font-semibold">Inventory Management</div>
+        <div class="text-xs text-slate-500">Pristine Pearl Pharma</div>
+      </div>
+    </div>
+    <nav class="flex items-center gap-3">
+      <button onclick="window.location.href='index.html'" class="hover:text-emerald-600 font-medium">Request</button>
+      <button onclick="window.location.href='index.html'" class="hover:text-emerald-600 font-medium">Receipt</button>
+      <button onclick="window.location.href='index.html'" class="hover:text-emerald-600 font-medium">Supply</button>
+      <button onclick="window.location.href='index.html'" class="hover:text-emerald-600 font-medium">PO Generation</button>
+      <button onclick="window.location.href='Report.html'" class="hover:text-emerald-600 font-medium">Reports</button>
+      <button onclick="window.location.href='Invoice.html'" class="text-emerald-600 font-semibold">Supply-Inv</button>
+    </nav>
+  </div>
+</header>
+
+<main class="p-4 md:p-6">
+  <div class="max-w-7xl mx-auto bg-white border border-gray-200 rounded-lg p-4 shadow-sm no-print">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-semibold">Supply Invoice</h2>
+        <p class="text-sm text-slate-500">Select a saved Supply ID and click Print Invoice</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Supply ID</label>
+        <select id="supplyIdSelect" class="border rounded-md px-2 py-1 text-sm focus:ring-emerald-500 focus:border-emerald-500" onchange="onSupplySelect()">
+          <option value="">Loading...</option>
+        </select>
+        <button id="printSupplyBtn" onclick="printInvoiceSameTab()" class="hidden px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors duration-150">Print Invoice</button>
+      </div>
+    </div>
+
+    <!-- This area uses the new modernized style -->
+    <div id="supplyPreviewArea" class="mt-5"></div>
+  </div>
+</main>
+
+<div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/25 no-print">
+  <div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div>
+</div>
+
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzMDxxpb7Q2gCwUl0nDgo8iMBMfHJTx-YGK93eYugjncbknWHSc3EfzxyPE6y-a-xW2/exec";
+
+let employees = [], lastSelectedSupply=null;
+function showLoading(){document.getElementById('loading').style.display='flex'}
+function hideLoading(){document.getElementById('loading').style.display='none'}
+
+async function post(action,payload={}) {
+  showLoading();
+  // Implementing exponential backoff for robust API calls
+  const maxRetries = 5;
+  let delay = 1000;
+  
+  for (let i = 0; i < maxRetries; i++) {
+      try {
+          const res = await fetch(WEB_APP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({...payload, action})
+          });
+
+          if (res.ok) {
+              const json = await res.json();
+              hideLoading();
+              return json;
+          } else if (res.status === 429 || res.status >= 500) {
+              // Throttle or server error, attempt retry
+              if (i < maxRetries - 1) {
+                  await new Promise(resolve => setTimeout(resolve, delay));
+                  delay *= 2; // Exponential backoff
+                  continue; // Retry the loop
+              }
+          }
+          
+          // Non-retryable error
+          throw new Error(`API returned status ${res.status}`);
+
+      } catch (e) {
+          console.error(`Attempt ${i + 1} failed:`, e);
+          if (i < maxRetries - 1) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              delay *= 2; // Exponential backoff
+          } else {
+              hideLoading();
+              return { success: false, error: e.message };
+          }
+      }
+  }
+}
+
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  await loadEmployees(); await loadSupplyList();
+});
+
+async function loadEmployees(){
+  const r=await post('getEmployeeList'); if(r.success) employees=r.employees;
+}
+async function loadSupplyList(){
+  const sel=document.getElementById('supplyIdSelect');
+  const r=await post('getSupplyReport');
+  if(!r.success){sel.innerHTML=`<option>No supplies</option>`;return;}
+  const ids=[...new Set(r.rows.map(x=>x.supplyId))];
+  sel.innerHTML=`<option value="">--Select--</option>`+ids.map(i=>`<option>${i}</option>`).join('');
+}
+
+async function onSupplySelect(){
+  const id=document.getElementById('supplyIdSelect').value;
+  const area=document.getElementById('supplyPreviewArea');
+  if(!id){area.innerHTML='';document.getElementById('printSupplyBtn').classList.add('hidden');return;}
+  const r=await post('getSupplyReport'); if(!r.success)return;
+  const rows=r.rows.filter(x=>x.supplyId==id); if(!rows.length)return;
+  const emp=employees.find(e=>e['Employee Code']==rows[0].empCode)||{};
+  area.innerHTML=buildPreview(id,emp,rows);
+  lastSelectedSupply={supplyId:id,emp,rows};
+  document.getElementById('printSupplyBtn').classList.remove('hidden');
+}
+
+function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function to2(v){return (Number(v)||0).toFixed(2);}
+function numberToWords(n){const o=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"],t=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];function f(x){return x<20?o[x]:t[Math.floor(x/10)]+(x%10?" "+o[x%10]:"")}function h(x){return x>99?o[Math.floor(x/100)]+" Hundred "+f(x%100):f(x)}let w="",c=Math.floor(n/1e7),l=Math.floor(n/1e5)%100,tTh=Math.floor(n/1e3)%1000,hun=n%1e3;if(c)w+=h(c)+" Crore ";if(l)w+=h(l)+" Lakh ";if(tTh)w+=h(tTh)+" Thousand ";if(hun)w+=h(hun);return w.trim()||"Zero"}
+
+// --- MODERNIZED INVOICE PREVIEW FUNCTION ---
+function buildPreview(id,emp,rows){
+  const name=emp['Employee Name']||rows[0].empName||'';
+  const code=emp['Employee Code']||rows[0].empCode||'';
+  const addr=emp['Address']||''; const city=emp['City']||''; const pin=emp['Pincode']||'';
+  const mob=emp['MobileNo']||''; const mail=emp['New Mail Id']||'';
+  const date=new Date().toLocaleDateString('en-GB');
+  let tot=0; let itemRows='';
+  
+  rows.forEach((r,i)=>{
+    const qty = Number(r.qty) || 0;
+    const mrp = Number(r.mrp) || 0;
+    const amt = qty * mrp;
+    tot+=amt;
+    itemRows+=`
+    <tr class="text-gray-700 hover:bg-gray-50 transition-colors duration-75">
+      <td class="p-2 text-center border-b border-gray-200">${i+1}</td>
+      <td class="p-2 border-b border-gray-200">${escapeHtml(r.item||'')}</td>
+      <td class="p-2 text-right border-b border-gray-200">${to2(mrp)}</td>
+      <td class="p-2 text-right border-b border-gray-200">${qty}</td>
+      <td class="p-2 text-right border-b border-gray-200 font-medium">${to2(amt)}</td>
+    </tr>`});
+  const words=numberToWords(Math.round(tot))+" Only";
+
+  // Re-engineered HTML structure for a modern look
+  return `
+  <div class="invoice-preview text-sm leading-normal">
+    
+    <!-- Header Section (Company & Invoice Details) -->
+    <!-- Removed items-start, added items-center. The watermark is now applied via the ::before pseudo-element on .invoice-preview -->
+    <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+      
+      <!-- Company Info (Logo removed from here) -->
+      <div>
+          <div>
+            <!-- Company Header Details Applied -->
+            <div class="text-xl font-bold accent-text">PRISTINE PEARL PHARMA PVT LTD</div>
+            <div class="text-xs text-gray-600 mt-0.5">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+            <div class="text-xs text-gray-600">Perur Village, Coimbatore - 641010</div>
+            <div class="text-xs text-gray-600">GSTIN/UIN: 33AAGCB2183C1Z6 | DL NO - TN-10-20B-00354, TN-10-21B-00354</div>
+            <!-- End Company Header Details -->
+          </div>
+      </div>
+
+      <!-- Invoice Metadata -->
+      <div class="text-right">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-2">INVOICE</h1>
+        <div class="space-y-1">
+          <div class="text-sm"><span class="font-semibold text-gray-600">Invoice No:</span> <span class="font-bold accent-text">${escapeHtml(id)}</span></div>
+          <div class="text-sm"><span class="font-semibold text-gray-600">Date:</span> ${escapeHtml(date)}</div>
+          <div class="text-sm"><span class="font-semibold text-gray-600">Reference:</span> Supply-ID-${escapeHtml(id)}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Client / Consignee Details -->
+    <div class="flex justify-between gap-6 mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+      <div>
+        <div class="text-xs font-semibold uppercase text-gray-500 mb-1">Bill/Ship To:</div>
+        <div class="font-semibold text-gray-800">${escapeHtml(name)} (${escapeHtml(code)})</div>
+        <div class="text-gray-600">${escapeHtml(addr)}</div>
+        <div class="text-gray-600">${escapeHtml(city)} - ${escapeHtml(pin)}</div>
+      </div>
+      <div class="text-right">
+        <div class="text-xs font-semibold uppercase text-gray-500 mb-1">Contact:</div>
+        <div class="text-gray-600">Mobile: ${escapeHtml(mob)}</div>
+        <div class="text-gray-600">Email: ${escapeHtml(mail)}</div>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table class="w-full text-left">
+      <thead class="accent-bg text-white">
+        <tr>
+          <th class="p-2 w-10 text-center rounded-tl-lg">Sl</th>
+          <th class="p-2">Description of Goods</th>
+          <th class="p-2 w-24 text-right">Rate (₹)</th>
+          <th class="p-2 w-20 text-right">Qty</th>
+          <th class="p-2 w-28 text-right rounded-tr-lg">Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+
+    <!-- Totals & Summary Section -->
+    <div class="flex justify-end mt-6">
+      <div class="w-full max-w-sm">
+        <!-- Subtotal / Grand Total Box -->
+        <div class="p-4 border border-gray-300 rounded-lg bg-gray-50">
+          <div class="flex justify-between py-1 text-gray-700">
+            <div>Sub Total:</div>
+            <div class="font-medium">${to2(tot)}</div>
+          </div>
+          
+          <div class="flex justify-between py-2 mt-2 pt-3 border-t-2 border-emerald-500/50 font-extrabold text-lg accent-text">
+            <div>TOTAL AMOUNT:</div>
+            <div>₹ ${to2(tot)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Amount in Words & Declaration -->
+    <div class="mt-6">
+      <div class="text-xs font-semibold uppercase text-gray-500 mb-1">Amount Chargeable (in words):</div>
+      <div class="p-2 border border-gray-300 bg-white font-medium text-gray-800 rounded-md">${escapeHtml(words)}</div>
+    </div>
+
+    <div class="mt-8 flex justify-between items-end">
+      <!-- Declaration & Footer Left -->
+      <div class="w-1/2 text-xs text-gray-600 pr-4">
+        <div class="font-bold text-gray-800 mb-1">Declaration:</div>
+        <div>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. E. & O.E.</div>
+        <div class="mt-3 text-[10px] text-gray-500">
+          Created by: <a href="mailto:samples.pearl@gmail.com" class="hover:underline">samples.pearl@gmail.com</a><br>
+          This is an Auto-Generated Document.
+        </div>
+      </div>
+
+      <!-- Signature Block -->
+      <div class="text-center">
+        <div class="border-t border-gray-400 w-48 mb-1"></div>
+        <div class="font-semibold text-sm text-gray-800">Authorised Signatory</div>
+        <div class="text-xs text-gray-600">for PRISTINE PEARL PHARMA PVT LTD</div>
+      </div>
+    </div>
+
+  </div>`;
+}
+
+function printInvoiceSameTab(){
+  // Custom print function uses basic print styles for clean paper output
+  if(!lastSelectedSupply) return console.error('Select a Supply ID first');
+  
+  const {supplyId,emp,rows}=lastSelectedSupply;
+  
+  // Replicating the modern invoice structure with print-friendly classes
+  const getPrintPreview = (id, emp, rows) => {
+    const name=emp['Employee Name']||rows[0].empName||'';
+    const code=emp['Employee Code']||rows[0].empCode||'';
+    const addr=emp['Address']||''; const city=emp['City']||''; const pin=emp['Pincode']||'';
+    const mob=emp['MobileNo']||''; const mail=emp['New Mail Id']||'';
+    const date=new Date().toLocaleDateString('en-GB');
+    let tot=0; let itemRows='';
+    
+    rows.forEach((r,i)=>{
+      const qty = Number(r.qty) || 0;
+      const mrp = Number(r.mrp) || 0;
+      const amt = qty * mrp;
+      tot+=amt;
+      itemRows+=`
+      <tr>
+        <td style="text-align:center;">${i+1}</td>
+        <td>${escapeHtml(r.item||'')}</td>
+        <td style="text-align:right;">${to2(mrp)}</td>
+        <td style="text-align:right;">${qty}</td>
+        <td style="text-align:right;">${to2(amt)}</td>
+      </tr>`
+    });
+    const words=numberToWords(Math.round(tot))+" Only";
+    
+    // Watermark HTML injection and content wrapping
+    return `
+    <div style="padding: 20px; position: relative; min-height: 280mm;">
+        <!-- Watermark Element for Print -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; 
+                    display: flex; justify-content: center; align-items: center;">
+            <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" 
+                 alt="Watermark" 
+                 style="width: 300px; height: auto; opacity: 0.1;" 
+                 onerror="this.style.display='none';">
+        </div>
+        
+        <!-- Wrapper for Z-index above watermark -->
+        <div style="position: relative; z-index: 1;"> 
+            <!-- Header Section (Logo removed) -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px;">
+                <div>
+                    <!-- Logo image removed from header -->
+                    <div style="font-size: 16pt; font-weight: bold; color: #059669;">PRISTINE PEARL PHARMA PVT LTD</div>
+                    <div style="font-size: 8pt; color: #555;">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+                    <div style="font-size: 8pt; color: #555;">Perur Village, Coimbatore - 641010</div>
+<div style="font-size: 8pt; color: #555;">samples.pearl@gmail.com | +91 8838001387</div>
+                    <div style="font-size: 8pt; color: #555;">GSTIN/UIN: 33AAGCB2183C1Z6 | DL NO - TN-10-20B-00354, TN-10-21B-00354</div>
+                </div>
+                <div style="text-align: right;">
+                    <h1 style="font-size: 24pt; font-weight: bold; margin: 0; color: #333;">INVOICE</h1>
+                    <div style="font-size: 9pt; margin-top: 5px;">
+                        <span style="font-weight: bold; color: #555;">Invoice No:</span> <span style="font-weight: bold; color: #059669;">${escapeHtml(id)}</span><br>
+                        <span style="font-weight: bold; color: #555;">Date:</span> ${escapeHtml(date)}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Details -->
+            <div style="display: flex; justify-content: space-between; font-size: 10pt; background-color: #f3f4f6; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+                <div>
+                    <div style="font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 8pt;">Bill/Ship To:</div>
+                    <div style="font-weight: bold;">${escapeHtml(name)} (${escapeHtml(code)})</div>
+                    <div>${escapeHtml(addr)}</div>
+                    <div>${escapeHtml(city)} - ${escapeHtml(pin)}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 8pt;">Contact:</div>
+                    <div>Mobile: ${escapeHtml(mob)}</div>
+                    <div>Email: ${escapeHtml(mail)}</div>
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <table class="print-invoice-table">
+              <thead>
+                <tr style="background-color: #059669; color: white;">
+                  <th style="width: 5%; text-align:center; border-color: #059669;">Sl</th>
+                  <th style="width: auto; border-color: #059669;">Description of Goods</th>
+                  <th style="width: 15%; text-align:right; border-color: #059669;">Rate (₹)</th>
+                  <th style="width: 10%; text-align:right; border-color: #059669;">Qty</th>
+                  <th style="width: 15%; text-align:right; border-color: #059669;">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>${itemRows}</tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="4" style="text-align:right; background-color: #f3f4f6; font-weight: bold;">Total ₹</td>
+                  <td style="text-align:right; background-color: #f3f4f6; font-weight: bold; color: #059669; font-size: 12pt;">${to2(tot)}</td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <!-- Amount in Words & Totals Box -->
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <div style="width: 60%;">
+                    <div style="font-weight: bold; font-size: 9pt; text-transform: uppercase; color: #555; margin-bottom: 3px;">Amount Chargeable (in words):</div>
+                    <div style="border: 1px solid #ccc; padding: 5px; background-color: #f9f9f9; font-weight: 500;">${escapeHtml(words)}</div>
+                </div>
+            </div>
+
+            <!-- Declaration and Signature -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px;">
+                <div style="width: 50%; font-size: 8pt; color: #666;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 5px;">Declaration:</div>
+                    <div>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. E. & O.E.</div>
+                    <div style="margin-top: 10px; font-size: 7pt; color: #999;">Created By : SAMPLE DEPARTMENT
+This is an Auto-Generated Document.</div>
+                </div>
+                <div style="text-align: center; font-size: 10pt;">
+                    <div style="border-top: 1px solid #333; width: 150px; margin-bottom: 5px;"></div>
+                    <div style="font-weight: bold;">Authorised Signatory</div>
+                    <div style="font-size: 9pt; color: #666;">for PRISTINE PEARL PHARMA PVT LTD</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+  };
+
+  const printHtml = `<html><head><meta charset='utf-8'><title>Invoice: ${supplyId}</title>
+  <style>
+    /* Use the same print styles defined in the main document's style block */
+    body { font-family: 'Inter', sans-serif; font-size: 10pt; padding: 0; color: #1f2937; margin: 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #e5e7eb; padding: 6px 8px; }
+    th { background-color: #f3f4f6; font-weight: 600; color: #1f2937; }
+    tfoot td { background-color: #f3f4f6; font-weight: 700; color: #059669 !important; font-size: 12pt;}
+    @page { size: A4; margin: 10mm; }
+  </style></head><body>${getPrintPreview(supplyId,emp,rows)}</body></html>`;
+  
+  const win=window.open('','_blank'); 
+  win.document.write(printHtml); 
+  win.document.close(); 
+  
+  // Wait a short moment for the content to render before printing
+  setTimeout(() => win.print(), 300);
+}
+
+</script>
+</body>
+</html>
