@@ -111,8 +111,8 @@
   <div class="max-w-7xl mx-auto bg-white border border-gray-200 rounded-lg p-4 shadow-sm no-print">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
       <div>
-        <h2 class="text-lg font-semibold">Supply Invoice</h2>
-        <p class="text-sm text-slate-500">Select a saved Supply ID and click Print Invoice</p>
+        <h2 class="text-lg font-semibold">Delivery Challan / Supply Invoice</h2>
+        <p class="text-sm text-slate-500">Select a saved Supply ID and configure transport details below.</p>
       </div>
       <div class="flex items-center gap-2">
         <label class="text-sm">Supply ID</label>
@@ -122,22 +122,96 @@
         <button id="printSupplyBtn" onclick="printInvoiceSameTab()" class="hidden px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors duration-150">Print Invoice</button>
       </div>
     </div>
+    
+    <!-- START: INTERACTIVE TRANSPORT INPUTS -->
+    <div class="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label for="modeOfTransportSelect" class="block text-xs font-semibold uppercase text-gray-700 mb-1">Mode of Transport</label>
+            <select id="modeOfTransportSelect" class="w-full border rounded-md px-2 py-1.5 text-sm focus:ring-emerald-500 focus:border-emerald-500" onchange="handleTransportChange()">
+                <option value="Road (Lorry)">Road (Lorry)</option>
+                <option value="Self-Pickup">Self-Pickup</option>
+                <option value="Courier/Parcel">Courier/Parcel</option>
+                <option value="Air Freight">Air Freight</option>
+            </select>
+        </div>
+        <div>
+            <label for="vehicleNoInput" class="block text-xs font-semibold uppercase text-gray-700 mb-1">Vehicle No</label>
+            <input type="text" id="vehicleNoInput" class="w-full border rounded-md px-2 py-1.5 text-sm focus:ring-emerald-500 focus:border-emerald-500" placeholder="Enter Vehicle No or N/A" oninput="handleTransportChange()">
+        </div>
+        <div class="md:col-span-1">
+            <label class="block text-xs font-semibold uppercase text-gray-700 mb-1">Transport Details (Auto-Derived)</label>
+            <div id="transportDetailsAuto" class="text-xs italic text-gray-600 p-2 border border-gray-300 rounded-md h-full bg-white"></div>
+        </div>
+    </div>
+    <!-- END: INTERACTIVE TRANSPORT INPUTS -->
 
     <!-- This area uses the new modernized style -->
     <div id="supplyPreviewArea" class="mt-5"></div>
   </div>
 </main>
 
+<!-- Loading Spinner -->
 <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/25 no-print">
   <div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div>
 </div>
 
+<!-- E-Way Bill Warning Modal (New Feature) -->
+<div id="eWayBillModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm transform transition-all duration-300 scale-100">
+    <div class="flex items-center space-x-3 mb-4 border-b pb-3 border-yellow-200">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 text-yellow-500">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.375c-.832 1.266-.832 2.845 0 4.111.776 1.173 1.954 1.849 3.177 1.849h1.968a5.5 5.5 0 005.5-5.5v-1.968a5.5 5.5 0 00-5.5-5.5H5.875C4.652 4.125 3.474 4.79 2.7 6.012c-.832 1.266-.832 2.845 0 4.111.776 1.173 1.954 1.849 3.177 1.849h1.968a5.5 5.5 0 005.5-5.5v-1.968a5.5 5.5 0 00-5.5-5.5H5.875zM12 18h.01" />
+      </svg>
+      <h3 class="text-xl font-bold text-gray-800">Compliance Alert</h3>
+    </div>
+    <p class="text-gray-600 mb-6 font-medium text-lg">E-Way Bill Necessary</p>
+    <div class="text-sm text-gray-500 mb-6">The total invoice value is over ₹50,000. Please ensure the required **E-Way Bill is generated** for transportation of these goods.</div>
+    <button onclick="showEWayBillPopup(false)" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-md transition-colors duration-150">Acknowledge</button>
+  </div>
+</div>
+
+
 <script>
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzMDxxpb7Q2gCwUl0nDgo8iMBMfHJTx-YGK93eYugjncbknWHSc3EfzxyPE6y-a-xW2/exec";
+const E_WAY_BILL_LIMIT = 50000; // Constant for the E-Way Bill threshold
+
+// Map for auto-deriving transport details based on mode
+const TRANSPORT_MODES_MAP = {
+  "Road (Lorry)": "Shipment dispatched via third-party road carrier.",
+  "Self-Pickup": "Goods picked up directly by the consignee or their authorized agent.",
+  "Courier/Parcel": "Parcel shipment handled by a third-party courier service.",
+  "Air Freight": "Shipment dispatched via air transportation."
+};
 
 let employees = [], lastSelectedSupply=null;
+
+// Global state for transport details
+let __transportState = {
+  mode: 'Road (Lorry)',
+  vehicleNo: 'N/A',
+  details: TRANSPORT_MODES_MAP["Road (Lorry)"]
+};
+
 function showLoading(){document.getElementById('loading').style.display='flex'}
 function hideLoading(){document.getElementById('loading').style.display='none'}
+
+/**
+ * Shows or hides the E-Way Bill compliance modal.
+ * @param {boolean} show - True to show the modal, false to hide it.
+ */
+function showEWayBillPopup(show) {
+    const modal = document.getElementById('eWayBillModal');
+    if (modal) {
+        if (show) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        } else {
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+    }
+}
+
 
 async function post(action,payload={}) {
   showLoading();
@@ -184,8 +258,42 @@ async function post(action,payload={}) {
 
 
 document.addEventListener('DOMContentLoaded',async()=>{
-  await loadEmployees(); await loadSupplyList();
+  await loadEmployees(); 
+  await loadSupplyList();
+  // Initialize transport inputs and details display on load
+  initTransportInputs(); 
 });
+
+function initTransportInputs() {
+    // Set initial/default state on UI elements
+    document.getElementById('modeOfTransportSelect').value = __transportState.mode;
+    document.getElementById('vehicleNoInput').value = __transportState.vehicleNo;
+    document.getElementById('transportDetailsAuto').textContent = __transportState.details;
+}
+
+function handleTransportChange() {
+    const modeSelect = document.getElementById('modeOfTransportSelect');
+    const vehicleInput = document.getElementById('vehicleNoInput');
+    const detailsDiv = document.getElementById('transportDetailsAuto');
+
+    const newMode = modeSelect.value;
+    const newVehicleNo = vehicleInput.value.trim() || 'N/A';
+    const newDetails = TRANSPORT_MODES_MAP[newMode] || 'Transport mode details not available.';
+
+    // Update global state
+    __transportState.mode = newMode;
+    __transportState.vehicleNo = newVehicleNo;
+    __transportState.details = newDetails;
+    
+    // Update the auto-derived text box in the UI
+    detailsDiv.textContent = newDetails;
+
+    // If an invoice is currently loaded, re-render the preview using the new state
+    if(lastSelectedSupply) {
+        const {supplyId, emp, rows} = lastSelectedSupply;
+        document.getElementById('supplyPreviewArea').innerHTML = buildPreview(supplyId, emp, rows);
+    }
+}
 
 async function loadEmployees(){
   const r=await post('getEmployeeList'); if(r.success) employees=r.employees;
@@ -201,13 +309,36 @@ async function loadSupplyList(){
 async function onSupplySelect(){
   const id=document.getElementById('supplyIdSelect').value;
   const area=document.getElementById('supplyPreviewArea');
-  if(!id){area.innerHTML='';document.getElementById('printSupplyBtn').classList.add('hidden');return;}
+  if(!id){
+    area.innerHTML='';
+    document.getElementById('printSupplyBtn').classList.add('hidden');
+    showEWayBillPopup(false); // Ensure popup is hidden if selection is cleared
+    return;
+  }
+  
   const r=await post('getSupplyReport'); if(!r.success)return;
   const rows=r.rows.filter(x=>x.supplyId==id); if(!rows.length)return;
   const emp=employees.find(e=>e['Employee Code']==rows[0].empCode)||{};
+  
+  // Calculate total amount for E-Way Bill check
+  let totalAmount = 0;
+  rows.forEach(r => {
+    const qty = Number(r.qty) || 0;
+    const mrp = Number(r.mrp) || 0;
+    totalAmount += qty * mrp;
+  });
+
+  // RENDER PREVIEW using the live __transportState
   area.innerHTML=buildPreview(id,emp,rows);
   lastSelectedSupply={supplyId:id,emp,rows};
   document.getElementById('printSupplyBtn').classList.remove('hidden');
+  
+  // Check for E-Way Bill requirement: totalAmount must be >= ₹50,000 (higher than 49,999)
+  if (totalAmount >= E_WAY_BILL_LIMIT) {
+    showEWayBillPopup(true);
+  } else {
+    showEWayBillPopup(false);
+  }
 }
 
 function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -222,6 +353,12 @@ function buildPreview(id,emp,rows){
   const mob=emp['MobileNo']||''; const mail=emp['New Mail Id']||'';
   const date=new Date().toLocaleDateString('en-GB');
   let tot=0; let itemRows='';
+
+  // --- START: USE LIVE TRANSPORT DATA FROM STATE ---
+  const transportDetails = __transportState.details;
+  const modeOfTransport = __transportState.mode;
+  const vehicleNo = __transportState.vehicleNo;
+  // --- END: USE LIVE TRANSPORT DATA FROM STATE ---
   
   rows.forEach((r,i)=>{
     const qty = Number(r.qty) || 0;
@@ -260,9 +397,9 @@ function buildPreview(id,emp,rows){
 
       <!-- Invoice Metadata -->
       <div class="text-right">
-        <h1 class="text-3xl font-extrabold text-gray-800 mb-2">INVOICE</h1>
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-2">DELVERY CHALLAN / SAMPLE INVOICE</h1>
         <div class="space-y-1">
-          <div class="text-sm"><span class="font-semibold text-gray-600">Invoice No:</span> <span class="font-bold accent-text">${escapeHtml(id)}</span></div>
+          <div class="text-sm"><span class="font-semibold text-gray-600">DC / Inv No:</span> <span class="font-bold accent-text">${escapeHtml(id)}</span></div>
           <div class="text-sm"><span class="font-semibold text-gray-600">Date:</span> ${escapeHtml(date)}</div>
           <div class="text-sm"><span class="font-semibold text-gray-600">Reference:</span> Supply-ID-${escapeHtml(id)}</div>
         </div>
@@ -270,7 +407,7 @@ function buildPreview(id,emp,rows){
     </div>
 
     <!-- Client / Consignee Details -->
-    <div class="flex justify-between gap-6 mb-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+    <div class="flex justify-between gap-6 mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
       <div>
         <div class="text-xs font-semibold uppercase text-gray-500 mb-1">Bill/Ship To:</div>
         <div class="font-semibold text-gray-800">${escapeHtml(name)} (${escapeHtml(code)})</div>
@@ -283,6 +420,24 @@ function buildPreview(id,emp,rows){
         <div class="text-gray-600">Email: ${escapeHtml(mail)}</div>
       </div>
     </div>
+
+    <!-- START: TRANSPORT DETAILS SECTION -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6 p-3 bg-white border border-dashed border-gray-300 rounded-lg">
+        <div>
+            <div class="text-xs font-semibold uppercase text-gray-500 mb-0.5">Mode of transport:</div>
+            <div class="text-gray-800 font-medium">${escapeHtml(modeOfTransport)}</div>
+        </div>
+        <div>
+            <div class="text-xs font-semibold uppercase text-gray-500 mb-0.5">Vehicle No:</div>
+            <div class="text-gray-800 font-medium">${escapeHtml(vehicleNo)}</div>
+        </div>
+        <div class="md:col-span-1">
+            <div class="text-xs font-semibold uppercase text-gray-500 mb-0.5">Transport Details:</div>
+            <div class="text-gray-800 text-xs italic">${escapeHtml(transportDetails)}</div>
+        </div>
+    </div>
+    <!-- END: TRANSPORT DETAILS SECTION -->
+
 
     <!-- Items Table -->
     <table class="w-full text-left">
@@ -325,8 +480,9 @@ function buildPreview(id,emp,rows){
     <div class="mt-8 flex justify-between items-end">
       <!-- Declaration & Footer Left -->
       <div class="w-1/2 text-xs text-gray-600 pr-4">
-        <div class="font-bold text-gray-800 mb-1">Declaration:</div>
-        <div>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. E. & O.E.</div>
+        <div class="font-bold text-gray-800 mb-1">Note:</div>
+        <div>1. Not for Sale, Only for Sample Purpose.<br>
+2. Goods sent for sample purpose (No sale involved. No GST applicable.)</div>
         <div class="mt-3 text-[10px] text-gray-500">
           Created by: <a href="mailto:samples.pearl@gmail.com" class="hover:underline">samples.pearl@gmail.com</a><br>
           This is an Auto-Generated Document.
@@ -358,6 +514,12 @@ function printInvoiceSameTab(){
     const mob=emp['MobileNo']||''; const mail=emp['New Mail Id']||'';
     const date=new Date().toLocaleDateString('en-GB');
     let tot=0; let itemRows='';
+
+    // --- START: USE LIVE TRANSPORT DATA FROM STATE (Print) ---
+    const transportDetails = __transportState.details;
+    const modeOfTransport = __transportState.mode;
+    const vehicleNo = __transportState.vehicleNo;
+    // --- END: USE LIVE TRANSPORT DATA FROM STATE (Print) ---
     
     rows.forEach((r,i)=>{
       const qty = Number(r.qty) || 0;
@@ -400,16 +562,16 @@ function printInvoiceSameTab(){
                     <div style="font-size: 8pt; color: #555;">GSTIN/UIN: 33AAGCB2183C1Z6 | DL NO - TN-10-20B-00354, TN-10-21B-00354</div>
                 </div>
                 <div style="text-align: right;">
-                    <h1 style="font-size: 24pt; font-weight: bold; margin: 0; color: #333;">INVOICE</h1>
+                    <h1 style="font-size: 24pt; font-weight: bold; margin: 0; color: #333;">DELIVERY CHALLAN / SAMPLE INVOICE</h1>
                     <div style="font-size: 9pt; margin-top: 5px;">
-                        <span style="font-weight: bold; color: #555;">Invoice No:</span> <span style="font-weight: bold; color: #059669;">${escapeHtml(id)}</span><br>
+                        <span style="font-weight: bold; color: #555;">DC / Inv No:</span> <span style="font-weight: bold; color: #059669;">${escapeHtml(id)}</span><br>
                         <span style="font-weight: bold; color: #555;">Date:</span> ${escapeHtml(date)}
                     </div>
                 </div>
             </div>
 
             <!-- Client Details -->
-            <div style="display: flex; justify-content: space-between; font-size: 10pt; background-color: #f3f4f6; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 10pt; background-color: #f3f4f6; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
                 <div>
                     <div style="font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 8pt;">Bill/Ship To:</div>
                     <div style="font-weight: bold;">${escapeHtml(name)} (${escapeHtml(code)})</div>
@@ -422,6 +584,24 @@ function printInvoiceSameTab(){
                     <div>Email: ${escapeHtml(mail)}</div>
                 </div>
             </div>
+
+            <!-- START: TRANSPORT DETAILS SECTION (Print) -->
+            <div style="font-size: 8pt; background-color: #ffffff; border: 1px dashed #ccc; padding: 8px; margin-bottom: 15px; display: flex; justify-content: space-between;">
+                <div style="width: 30%;">
+                    <div style="font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 7pt;">Mode of transport:</div>
+                    <div style="font-weight: 500;">${escapeHtml(modeOfTransport)}</div>
+                </div>
+                <div style="width: 30%;">
+                    <div style="font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 7pt;">Vehicle No:</div>
+                    <div style="font-weight: 500;">${escapeHtml(vehicleNo)}</div>
+                </div>
+                <div style="width: 35%;">
+                    <div style="font-weight: bold; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 7pt;">Transport Details:</div>
+                    <div style="font-style: italic;">${escapeHtml(transportDetails)}</div>
+                </div>
+            </div>
+            <!-- END: TRANSPORT DETAILS SECTION (Print) -->
+
 
             <!-- Items Table -->
             <table class="print-invoice-table">
@@ -454,8 +634,9 @@ function printInvoiceSameTab(){
             <!-- Declaration and Signature -->
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 30px;">
                 <div style="width: 50%; font-size: 8pt; color: #666;">
-                    <div style="font-weight: bold; color: #333; margin-bottom: 5px;">Declaration:</div>
-                    <div>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct. E. & O.E.</div>
+                    <div style="font-weight: bold; color: #333; margin-bottom: 5px;">Note:</div>
+                    <div>1. Not for Sale, Only for Sample Purpose.<br>
+2. Goods sent for sample purpose (No sale involved. No GST applicable.) </div>
                     <div style="margin-top: 10px; font-size: 7pt; color: #999;">Created By : SAMPLE DEPARTMENT
 This is an Auto-Generated Document.</div>
                 </div>
