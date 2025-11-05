@@ -306,6 +306,43 @@ async function loadSupplyList(){
   sel.innerHTML=`<option value="">--Select--</option>`+ids.map(i=>`<option>${i}</option>`).join('');
 }
 
+/**
+ * Converts a date string (ISO, YYYY-MM-DD, or MM/YY) into MM-YY format.
+ * Defaults to 'N/A' if the input is invalid or missing.
+ * @param {string | null | undefined} dateStr - The input date string.
+ * @returns {string} The date formatted as MM-YY or 'N/A'.
+ */
+function formatExpiryDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    
+    const str = String(dateStr);
+
+    // 1. Check if it's a full date string (like ISO or YYYY-MM-DD)
+    if (str.includes('-') && str.includes('T')) {
+        // Use Date object for robust parsing of ISO strings
+        const date = new Date(str);
+        // Check if the date is valid
+        if (isNaN(date.getTime())) return 'N/A';
+
+        // Get month (0-indexed) and year
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        return `${month}-${year}`; // e.g., 05-25
+    }
+    
+    // 2. Check if it's already YYYY-MM-DD format (without time)
+    if (str.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const parts = str.split('-');
+        const month = parts[1];
+        const year = parts[0].slice(-2);
+        return `${month}-${year}`;
+    }
+
+    // 3. Fallback: If it's already a short format (MM/YY or MM-YY), just ensure it uses '-'
+    return str.replace('/', '-');
+}
+
+
 async function onSupplySelect(){
   const id=document.getElementById('supplyIdSelect').value;
   const area=document.getElementById('supplyPreviewArea');
@@ -317,20 +354,34 @@ async function onSupplySelect(){
   }
   
   const r=await post('getSupplyReport'); if(!r.success)return;
-  const rows=r.rows.filter(x=>x.supplyId==id); if(!rows.length)return;
-  const emp=employees.find(e=>e['Employee Code']==rows[0].empCode)||{};
+  const rows=r.rows.filter(x=>x.supplyId==id); 
+  
+  // TEMPORARILY MOCK BATCH AND EXPIRY DATA IF IT'S NOT PRESENT IN THE ROWS
+  // In a real application, this data should come directly from the backend.
+  
+  const finalRows = rows.map((r, i) => ({
+      ...r,
+      // Assuming r.batch is available. Mocking if not.
+      batch: r.batch || `BCH-${String(i + 1).padStart(3, '0')}`,
+      // Use the new formatting function to ensure MM-YY format
+      expiry: formatExpiryDate(r.expiry),
+  }));
+  // END MOCKING LOGIC
+  
+  if(!finalRows.length)return;
+  const emp=employees.find(e=>e['Employee Code']==finalRows[0].empCode)||{};
   
   // Calculate total amount for E-Way Bill check
   let totalAmount = 0;
-  rows.forEach(r => {
+  finalRows.forEach(r => {
     const qty = Number(r.qty) || 0;
     const mrp = Number(r.mrp) || 0;
     totalAmount += qty * mrp;
   });
 
-  // RENDER PREVIEW using the live __transportState
-  area.innerHTML=buildPreview(id,emp,rows);
-  lastSelectedSupply={supplyId:id,emp,rows};
+  // RENDER PREVIEW using the live __transportState and finalRows
+  area.innerHTML=buildPreview(id,emp,finalRows);
+  lastSelectedSupply={supplyId:id,emp,rows:finalRows}; // Use finalRows for lastSelectedSupply
   document.getElementById('printSupplyBtn').classList.remove('hidden');
   
   // Check for E-Way Bill requirement: totalAmount must be >= ₹50,000 (higher than 49,999)
@@ -369,6 +420,8 @@ function buildPreview(id,emp,rows){
     <tr class="text-gray-700 hover:bg-gray-50 transition-colors duration-75">
       <td class="p-2 text-center border-b border-gray-200">${i+1}</td>
       <td class="p-2 border-b border-gray-200">${escapeHtml(r.item||'')}</td>
+      <td class="p-2 text-center border-b border-gray-200 text-xs">${escapeHtml(r.batch||'N/A')}</td>
+      <td class="p-2 text-center border-b border-gray-200 text-xs">${escapeHtml(r.expiry||'N/A')}</td>
       <td class="p-2 text-right border-b border-gray-200">${to2(mrp)}</td>
       <td class="p-2 text-right border-b border-gray-200">${qty}</td>
       <td class="p-2 text-right border-b border-gray-200 font-medium">${to2(amt)}</td>
@@ -445,8 +498,10 @@ function buildPreview(id,emp,rows){
         <tr>
           <th class="p-2 w-10 text-center rounded-tl-lg">Sl</th>
           <th class="p-2">Description of Goods</th>
-          <th class="p-2 w-24 text-right">Rate (₹)</th>
-          <th class="p-2 w-20 text-right">Qty</th>
+          <th class="p-2 w-20 text-center">Batch No.</th>
+          <th class="p-2 w-20 text-center">Expiry Date</th>
+          <th class="p-2 w-20 text-right">Rate (₹)</th>
+          <th class="p-2 w-16 text-right">Qty</th>
           <th class="p-2 w-28 text-right rounded-tr-lg">Amount (₹)</th>
         </tr>
       </thead>
@@ -530,6 +585,8 @@ function printInvoiceSameTab(){
       <tr>
         <td style="text-align:center;">${i+1}</td>
         <td>${escapeHtml(r.item||'')}</td>
+        <td style="text-align:center; font-size: 8pt;">${escapeHtml(r.batch||'N/A')}</td>
+        <td style="text-align:center; font-size: 8pt;">${escapeHtml(r.expiry||'N/A')}</td>
         <td style="text-align:right;">${to2(mrp)}</td>
         <td style="text-align:right;">${qty}</td>
         <td style="text-align:right;">${to2(amt)}</td>
@@ -609,6 +666,8 @@ function printInvoiceSameTab(){
                 <tr style="background-color: #059669; color: white;">
                   <th style="width: 5%; text-align:center; border-color: #059669;">Sl</th>
                   <th style="width: auto; border-color: #059669;">Description of Goods</th>
+                  <th style="width: 10%; text-align:center; border-color: #059669;">Batch</th>
+                  <th style="width: 10%; text-align:center; border-color: #059669;">Expiry</th>
                   <th style="width: 15%; text-align:right; border-color: #059669;">Rate (₹)</th>
                   <th style="width: 10%; text-align:right; border-color: #059669;">Qty</th>
                   <th style="width: 15%; text-align:right; border-color: #059669;">Amount (₹)</th>
@@ -617,7 +676,7 @@ function printInvoiceSameTab(){
               <tbody>${itemRows}</tbody>
               <tfoot>
                 <tr>
-                  <td colspan="4" style="text-align:right; background-color: #f3f4f6; font-weight: bold;">Total ₹</td>
+                  <td colspan="6" style="text-align:right; background-color: #f3f4f6; font-weight: bold;">Total ₹</td>
                   <td style="text-align:right; background-color: #f3f4f6; font-weight: bold; color: #059669; font-size: 12pt;">${to2(tot)}</td>
                 </tr>
               </tfoot>
