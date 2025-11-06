@@ -429,7 +429,7 @@
   async function loadProducts(){ const r = await post('getProducts',{}); products = (r && r.success) ? r.products : []; }
   async function loadEmployees(){ 
     const r = await post('getEmployeeList',{}); 
-    employees = (r && r.success) ? r.employees : []; 
+    employees = (r && r.success) ? r.employees.sort((a,b)=>a["Employee Name"].localeCompare(b["Employee Name"])) : []; 
     const supSel = document.getElementById('supTo'); 
     const reqSel = document.getElementById('reqFor');
     const options = `<option value="">-- Select Employee (optional) --</option>` + employees.map(e=>`<option value="${escapeHtml(e["Employee Code"])}">${escapeHtml(e["Employee Code"])} - ${escapeHtml(e["Employee Name"])}</option>`).join('');
@@ -508,8 +508,8 @@
       const val = typeSel.value;
       if(!val){ prodSel.disabled=true; prodSel.innerHTML='<option>-- Product --</option>'; return; }
       prodSel.disabled=false;
-      const list = products.filter(p=>p.Type===val);
-      prodSel.innerHTML = '<option>-- Product --</option>' + list.map(p=>`<option>${escapeHtml(p.Product)}</option>`).join('');
+      const list = products.filter(p=>p.Type===val).sort((a,b)=>a.Product.localeCompare(b.Product));
+prodSel.innerHTML = '<option>-- Product --</option>' + list.map(p=>`<option>${escapeHtml(p.Product)}</option>`).join('');
     });
 
     prodSel.addEventListener('change', () => {
@@ -741,8 +741,15 @@ async function saveRequest() {
 
   function addSupplyRow(){
     const type = document.getElementById('sType').value;
-    const list = inventory.filter(r=> Number(r.Qty) > 0 && ( type ? r.Type === type : true ));
-    const opts = list.map(r=>`<option value='${encodeURIComponent(JSON.stringify(r))}'>${escapeHtml(r.Product)} (Batch:${escapeHtml(r.Batch||'-')}|Exp:${escapeHtml(r.Expiry||'') }|Avl:${escapeHtml(r.Qty||'0')})</option>`).join('');
+    const list = inventory
+  .filter(r => Number(r.Qty) > 0 && (type ? r.Type === type : true))
+  .sort((a, b) => a.Product.localeCompare(b.Product));
+
+const opts = list
+  .map(r => `<option value='${encodeURIComponent(JSON.stringify(r))}'>
+      ${escapeHtml(r.Product)} (Batch:${escapeHtml(r.Batch||'-')} | Exp:${escapeHtml(r.Expiry||'')} | Avl:${escapeHtml(r.Qty||'0')})
+    </option>`)
+  .join('');
     const tb = document.querySelector('#supTable tbody');
     const tr = document.createElement('tr');
     tr.innerHTML = `<td class="p-2"><select class="s-prod border border-gray-200 rounded-md px-2 py-1"><option value="">--select--</option>${opts}</select></td>
@@ -1284,5 +1291,4 @@ function toggleDoctorInput() {
 </body>
 
 </html>
-
 
