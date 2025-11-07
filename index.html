@@ -972,6 +972,8 @@ const opts = list
     updatePoTotals();
     document.getElementById('printPoBtn').classList.add('hidden');
     lastSavedPo = null;
+ document.getElementById("savePoBtn").classList.remove("hidden");
+  document.getElementById("printPoBtn").classList.add("hidden");
   }
 
   async function savePo(){
@@ -1392,7 +1394,18 @@ async function viewPoDetails(poNum) {
   tbody.innerHTML = "";
   data.rows.forEach(row => addPoRow(row));
   updatePoTotals();
+lastSavedPo = {
+  poNum: data.poNumber,
+  supplier: data.supplier,
+  rows: data.rows,
+  gst: data.gst,
+  taxType: data.taxType,
+  poDate: data.poDate
+};
+document.getElementById("savePoBtn").classList.add("hidden");
+    document.getElementById("printPoBtn").classList.remove("hidden");
 }
+
 // 🔹 Switch between manual and fetch modes
 function toggleReceiptMode() {
   const mode = document.getElementById('receiptMode').value;
@@ -1438,8 +1451,23 @@ function addReceiptRow() {
   qty.addEventListener('input', recalc);
 }
 
+function printPo() {
+  const html = buildPoHtmlForPrint(); // already defined in your file
+  const win = window.open("", "_blank", "width=900,height=700");
+  win.document.write(`
+    <html>
+      <head><title>Print PO</title></head>
+      <body onload="window.print();window.close();">
+        ${html}
+      </body>
+    </html>
+  `);
+  win.document.close();
+}
   </script>
 
 </body>
 
 </html>
+
+
