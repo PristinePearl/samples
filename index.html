@@ -106,12 +106,19 @@
             <h2 class="text-lg font-semibold">Receipt Entry</h2>
             <p class="text-sm text-slate-500">Fetch request by Request ID to record received qty and batch/expiry.</p>
           </div>
-
+<div class="mt-2">
+  <label class="text-sm font-semibold text-slate-700">Receipt Mode:</label>
+  <select id="receiptMode" class="border border-gray-200 rounded-md px-2 py-1 text-sm ml-2" onchange="toggleReceiptMode()">
+    <option value="fetch">Fetch from Request</option>
+    <option value="manual">Manual Entry</option>
+  </select>
+</div>
           <div class="flex items-center gap-2 flex-wrap">
             <label class="text-sm text-slate-500">Date</label>
             <input id="recDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
             <button class="px-3 py-2 rounded-md border border-gray-200 text-sm" onclick="fetchRequestDetails()">Fetch</button>
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveReceipt()">Save</button>
+<button id="addReceiptRowBtn" class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold hidden" onclick="addReceiptRow()">+ Add Item</button>
           </div>
         </div>
 
@@ -273,7 +280,36 @@
             <div class="text-sm text-slate-500"> (Fetches Product, Qty, and MRP as Rate)</div>
           </div>
         </div>
+<!-- SMART VIEW BUTTON + MODAL -->
+<div class="mt-3">
+  <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-md shadow-sm" onclick="openPoViewer()">📄 View Saved POs</button>
+</div>
 
+<!-- Modal for Saved POs -->
+<div id="poViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-xl w-11/12 md:w-3/4 max-h-[90vh] overflow-auto p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-slate-700">Saved Purchase Orders</h2>
+      <button onclick="closePoViewer()" class="text-red-500 text-lg font-bold">✕</button>
+    </div>
+
+    <input id="poSearch" onkeyup="filterPoList()" placeholder="Search PO / Supplier / Date" 
+      class="border rounded-md px-3 py-2 w-full mb-3" />
+
+    <table id="poListTable" class="w-full border-collapse text-sm">
+      <thead class="bg-slate-100">
+        <tr>
+          <th class="border px-2 py-1">PO Number</th>
+          <th class="border px-2 py-1">Date</th>
+          <th class="border px-2 py-1">Supplier</th>
+          <th class="border px-2 py-1 text-right">Total</th>
+          <th class="border px-2 py-1 text-center">Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
         <div class="mt-4 bg-white border border-gray-100 rounded-lg p-4">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             <div class="md:col-span-2">
@@ -360,7 +396,7 @@
 
   <script>
   /* ----------------- CONFIG ----------------- */
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxfMGtpEi9JJGCTXh4itkc0CY5WND8GC8tAAkTVCWYSutcW7II5lUPn11CaVRTMbxGD/exec";
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxvvaomXCiaA_PqXiWDzBcGrxVqGzdfICEBk6yyngzeIEMkK6IOVifQRTm82ZD_mucA/exec";
   /* ------------------------------------------ */
 
   let products = [], employees = [], inventory = [], vendors = [];
@@ -662,7 +698,8 @@ async function saveRequest() {
   }
 
   async function saveReceipt(){
-    const reqId = document.getElementById('recReqId').value || '';
+    const mode = document.getElementById('receiptMode')?.value || 'fetch';
+const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqId').value || '');
     const purchasedFrom = document.getElementById('recPurchasedFrom').value || '';
     const remarksOverall = document.getElementById('recRemarks').value || '';
     const receiptType = document.querySelector('input[name="receiptType"]:checked').value || 'Medicine';
@@ -1286,11 +1323,123 @@ function toggleDoctorInput() {
   }
 }
 
+/* ===================== SMART PO VIEW ===================== */
+function openPoViewer() {
+  document.getElementById("poViewerModal").classList.remove("hidden");
+  loadSavedPoList();
+}
+
+function closePoViewer() {
+  document.getElementById("poViewerModal").classList.add("hidden");
+}
+
+async function loadSavedPoList() {
+  const r = await post("getPOReport", {});
+  const tbody = document.querySelector("#poListTable tbody");
+  tbody.innerHTML = "";
+
+  if (!r || !r.success || !r.rows?.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center p-2 text-slate-500">No saved POs</td></tr>`;
+    return;
+  }
+
+  // 🔹 Remove duplicate PO numbers (keep only the first entry of each PO)
+  const unique = {};
+  r.rows.forEach(po => {
+    if (!unique[po.poNum]) unique[po.poNum] = po;
+  });
+
+  Object.values(unique).forEach(po => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="border px-2 py-1">${po.poNum}</td>
+      <td class="border px-2 py-1">${po.date}</td>
+      <td class="border px-2 py-1">${po.supplier}</td>
+      <td class="border px-2 py-1 text-right">${po.total}</td>
+      <td class="border px-2 py-1 text-center">
+        <button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm"
+          onclick="viewPoDetails('${po.poNum}')">View</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+function filterPoList() {
+  const val = document.getElementById("poSearch").value.toLowerCase();
+  const rows = document.querySelectorAll("#poListTable tbody tr");
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(val) ? "" : "none";
+  });
+}
+
+async function viewPoDetails(poNum) {
+  const r = await post("getSavedPO", { poNumber: poNum });
+  if (!r.success) return alert("Failed to load PO details");
+  const data = r.po;
+
+  closePoViewer();
+  alert("Loaded PO: " + poNum);
+
+  // Fill the same form
+  document.getElementById("poNumber").value = data.poNumber;
+  document.getElementById("poDate").value = data.poDate;
+  document.getElementById("poGstPercent").value = data.gst;
+  document.querySelector(`input[name='taxType'][value='${data.taxType}']`).checked = true;
+
+  const supplierIndex = vendors.findIndex(v => v["Supplier Name"] === data.supplier["Supplier Name"]);
+  if (supplierIndex >= 0) document.getElementById("poSupplier").value = supplierIndex;
+
+  const tbody = document.querySelector("#poTable tbody");
+  tbody.innerHTML = "";
+  data.rows.forEach(row => addPoRow(row));
+  updatePoTotals();
+}
+// 🔹 Switch between manual and fetch modes
+function toggleReceiptMode() {
+  const mode = document.getElementById('receiptMode').value;
+  const fetchControls = ['pendingRequests', 'recReqId'];
+  const addBtn = document.getElementById('addReceiptRowBtn');
+  const recTableBody = document.querySelector('#recTable tbody');
+
+  if (mode === 'manual') {
+    fetchControls.forEach(id => document.getElementById(id).disabled = true);
+    addBtn.classList.remove('hidden');
+    recTableBody.innerHTML = ''; // clear existing
+    addReceiptRow(); // add empty row
+  } else {
+    fetchControls.forEach(id => document.getElementById(id).disabled = false);
+    addBtn.classList.add('hidden');
+    recTableBody.innerHTML = ''; // clear manual entries
+  }
+}
+
+// 🔹 Add a new manual receipt row
+function addReceiptRow() {
+  const tb = document.querySelector('#recTable tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="p-2"><input class="r-item border border-gray-200 rounded-md px-2 py-1" placeholder="Item Name" /></td>
+    <td class="p-2"><input class="r-req border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Req Qty" /></td>
+    <td class="p-2"><input class="r-mrp border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="MRP" /></td>
+    <td class="p-2"><input class="r-total border border-gray-200 rounded-md px-2 py-1" readonly /></td>
+    <td class="p-2"><input class="r-remreq border border-gray-200 rounded-md px-2 py-1" placeholder="Req Remarks" /></td>
+    <td class="p-2"><input class="r-batch border border-gray-200 rounded-md px-2 py-1" placeholder="Batch No" /></td>
+    <td class="p-2"><input class="r-exp border border-gray-200 rounded-md px-2 py-1" type="month" /></td>
+    <td class="p-2"><input class="r-rec border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Received Qty" /></td>
+    <td class="p-2"><input class="r-rem border border-gray-200 rounded-md px-2 py-1" placeholder="Remarks" /></td>
+    <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+  tb.appendChild(tr);
+
+  const mrp = tr.querySelector('.r-mrp');
+  const qty = tr.querySelector('.r-rec');
+  function recalc() {
+    tr.querySelector('.r-total').value = to2(num(mrp.value) * num(qty.value));
+  }
+  mrp.addEventListener('input', recalc);
+  qty.addEventListener('input', recalc);
+}
+
   </script>
 
 </body>
 
 </html>
-
-
-
