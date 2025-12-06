@@ -869,12 +869,19 @@ async function exportExcelCurrent(){
     const summaryTable = document.getElementById('teamSummaryTable');
     const summarySheet = XLSX.utils.table_to_sheet(summaryTable, { raw:true });
 
-    const details = allRows.map(r => ({
-      Date: r.Date || '', Team: r.Team || '', 'Employee Code': r['Employee Code'] || '',
-      'Employee Name': r['Employee Name'] || '', Designation: r.Designation || '',
-      Product: r.Product || '', Batch: r.Batch || '', Expiry: r.Expiry || '',
-      Qty: r.Qty || 0, 'Total Value': r['Total Value'] || 0, Remarks: r.Remarks || ''
-    }));
+const details = allRows.map(r => ({
+    Date: r.Date || '',
+    Team: r.Team || '',
+    'Employee Code': r['Employee Code'] || '',
+    'Employee Name': r['Employee Name'] || '',
+    Designation: r.Designation || '',
+    Product: r.Product || r['Item Supplied'] || r['Item Name'] || '',
+    Batch: r.Batch || r['Batch No'] || '',
+    Expiry: r.Expiry || '',
+    Qty: r.Qty || 0,
+    'Total Value': r['Total Value'] || 0,
+    Remarks: r.Remarks || ''
+}));
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
