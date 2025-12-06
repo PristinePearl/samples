@@ -868,6 +868,12 @@ async function exportExcelCurrent(){
 
     const summaryTable = document.getElementById('teamSummaryTable');
     const summarySheet = XLSX.utils.table_to_sheet(summaryTable, { raw:true });
+Object.keys(summarySheet).forEach(key => {
+    if (key[0] === '!') return;
+    if (summarySheet[key].v && /^\d{2}-\d{2}-\d{4}$/.test(summarySheet[key].v)) {
+        summarySheet[key].t = 's';
+    }
+});
 
 const details = allRows.map(r => ({
     Date: r.Date || '',
@@ -888,6 +894,12 @@ const details = allRows.map(r => ({
 
     if(details.length){
       const detSheet = XLSX.utils.json_to_sheet(details);
+Object.keys(detSheet).forEach(key => {
+    if (key[0] === '!') return;
+    if (detSheet[key].v && /^\d{2}-\d{2}-\d{4}$/.test(detSheet[key].v)) {
+        detSheet[key].t = 's'; // force Excel to treat as text
+    }
+});
       XLSX.utils.book_append_sheet(wb, detSheet, 'Details');
     } else {
       const empty = XLSX.utils.json_to_sheet([{Info:'No data found for selected filters'}]);
@@ -907,7 +919,17 @@ const details = allRows.map(r => ({
   else if(currentTab === 'employeeLedger') tableId = 'empLedgerTable';
 
   const table = document.getElementById(tableId);
-  const wb = XLSX.utils.table_to_book(table, { sheet: "Report" });
+  const sheet = XLSX.utils.table_to_sheet(table, { raw: false });
+
+Object.keys(sheet).forEach(key => {
+    if (key[0] === '!') return; // skip metadata
+    if (sheet[key].v && /^\d{2}-\d{2}-\d{4}$/.test(sheet[key].v)) {
+        sheet[key].t = 's'; // force text
+    }
+});
+
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, sheet, "Report");
   XLSX.writeFile(wb, `${currentTab}_report_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
