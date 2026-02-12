@@ -378,6 +378,34 @@ async function post(action, payload = {}) {
 
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function num(v){ return Number(v)||0; }
+function getFilteredData(data, dateField = 'Date') {
+  const type = document.getElementById('filterType').value;
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+  const search = (document.getElementById('filterSearch').value || '').toLowerCase();
+
+  return data.filter(r => {
+
+    // Product Type filter
+    if (type && r.Type !== type) return false;
+
+    // Date filter
+    if (from || to) {
+      const rawDate = r[dateField] || r['Receipt Date'] || r['Supply Date'] || r['Last Updated'];
+      const d = new Date(rawDate);
+      if (from && new Date(from) > d) return false;
+      if (to && new Date(to) < d) return false;
+    }
+
+    // Search filter
+    if (search) {
+      const rowText = JSON.stringify(r).toLowerCase();
+      if (!rowText.includes(search)) return false;
+    }
+
+    return true;
+  });
+}
 
 /* Date/expiry format utility */
 function fmtDDMMYYYY(d){
@@ -401,6 +429,19 @@ function fmtExpiryMMYYYY(v){
   const parts = s.split(/[-\/]/);
   if(parts.length===3) return parts[1].padStart(2,'0') + '-' + (parts[2].length===2? '20'+parts[2] : parts[2]);
   return s;
+}
+function parseDDMMYYYY(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+
+  // If format is DD-MM-YYYY
+  if (/^\d{2}-\d{2}-\d{4}$/.test(s)) {
+    const [dd, mm, yyyy] = s.split('-').map(Number);
+    return new Date(yyyy, mm - 1, dd);
+  }
+
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
 }
 
 /* Generic Chart Helper - Updated for stability */
@@ -511,7 +552,8 @@ function renderStock(){
   let lowStockCount = 0;
   let count = 0;
 
-  inventory.forEach(r => {
+  const filtered = getFilteredData(inventory, 'Last Updated');
+filtered.forEach(r => {
     const value = num(r.Qty) * num(r.MRP);
     totalValue += value;
 
@@ -558,7 +600,9 @@ function renderMinStock(){
   const th = Number(document.getElementById('minThreshold').value || 20);
   const tbody = document.querySelector('#minTable tbody'); tbody.innerHTML = '';
   
-  const lowStock = inventory
+const filtered = getFilteredData(inventory, 'Last Updated');
+
+const lowStock = filtered
     .filter(i => num(i.Qty) < th)
     .sort((a,b) => num(a.Qty) - num(b.Qty)); // Sort by lowest quantity
 
@@ -602,7 +646,9 @@ function renderExpiry(){
   const expiryMonthMap = {};
   const monthOrder = []; // To keep months in chronological order
 
-  inventory.forEach(r => {
+  const filtered = getFilteredData(inventory, 'Last Updated');
+
+filtered.forEach(r => {
     if(!r.Expiry) return;
     let expDate = null;
     let expiryStr = String(r.Expiry).trim();
@@ -673,7 +719,9 @@ function renderExpiry(){
 
 function renderReceipts(){
   const tbody = document.querySelector('#receiptsTable tbody'); tbody.innerHTML = '';
-  receipts.forEach(r => {
+  const filtered = getFilteredData(receipts, 'Date');
+
+filtered.forEach(r => {
     const tr = document.createElement('tr');
     // Updated 'Amount' column to include ₹
     tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Received Date']||''))}</td><td class="p-3">${escapeHtml(r['Receipt ID']||'')}</td><td class="p-3">${escapeHtml(r['Item Name']||r['Item']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r['Received Qty']||r.Qty||0}</td><td class="p-3">${escapeHtml(r['Supplier Name']||'')}</td><td class="p-3 text-right font-medium text-emerald-600">₹${num(r['Total Value']||r.Amount||0).toFixed(2)}</td>`;
@@ -729,10 +777,14 @@ function renderTeamSupply(){
   const t = document.getElementById('teamTo').value;
   const tbody = document.querySelector('#teamSupplyTable tbody'); tbody.innerHTML = '';
 
-  const rows = supplies.filter(s => {
+  const baseFiltered = supplies;
+
+const rows = baseFiltered.filter(s => {
     if(team && s.Team !== team) return false;
     if(f || t){
-      const d = new Date(s.Date || s['Supply Date'] || s.DateRaw || s['Date']);
+      const rawDate = s.Date || s['Supply Date'] || s.DateRaw || s['Date'];
+const d = parseDDMMYYYY(rawDate);
+if (!d) return false;
       if(f && new Date(f) > d) return false;
       if(t && new Date(t) < d) return false;
     }
@@ -859,12 +911,26 @@ function exportCsvCurrent(){
 /* Export current visible report as Excel (.xlsx) */
 async function exportExcelCurrent(){
   if(currentTab === 'teamSupply'){
-    const team = document.getElementById('filterTeam').value;
-    const from = document.getElementById('teamFrom').value;
-    const to = document.getElementById('teamTo').value;
 
-    const res = await post('getReportData', { reportType: 'teamSupply', team, from, to });
-    const allRows = (res && res.success && res.rows) ? res.rows : [];
+// Use already filtered frontend data
+const team = document.getElementById('filterTeam').value;
+const f = document.getElementById('teamFrom').value;
+const t = document.getElementById('teamTo').value;
+
+const allRows = supplies.filter(s => {
+  if(team && s.Team !== team) return false;
+
+  if(f || t){
+    const rawDate = s.Date || s['Supply Date'] || s.DateRaw || s['Date'];
+    const d = parseDDMMYYYY(rawDate);
+    if(!d) return false;
+
+    if(f && new Date(f) > d) return false;
+    if(t && new Date(t) < d) return false;
+  }
+
+  return true;
+});
 
     const summaryTable = document.getElementById('teamSummaryTable');
     const summarySheet = XLSX.utils.table_to_sheet(summaryTable, { raw:true });
@@ -875,19 +941,30 @@ Object.keys(summarySheet).forEach(key => {
     }
 });
 
-const details = allRows.map(r => ({
+const details = allRows.map(r => {
+
+  const code = r['Supply to (Emp ID)'] || 
+               r['Supply to'] || 
+               r['Employee Code'] || '';
+
+  const st = staff.find(x =>
+      String(x['Employee Code']).trim() === String(code).trim()
+  ) || {};
+
+  return {
     Date: r.Date || '',
     Team: r.Team || '',
-    'Employee Code': r['Employee Code'] || '',
-    'Employee Name': r['Employee Name'] || '',
-    Designation: r.Designation || '',
+    'Employee Code': code,
+    'Employee Name': st['Employee Name'] || r['Emp Name'] || '',
+    Designation: st['Designation'] || r.Designation || '',
     Product: r.Product || r['Item Supplied'] || r['Item Name'] || '',
     Batch: r.Batch || r['Batch No'] || '',
     Expiry: r.Expiry || '',
     Qty: r.Qty || 0,
     'Total Value': r['Total Value'] || 0,
     Remarks: r.Remarks || ''
-}));
+  };
+});
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
