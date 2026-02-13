@@ -698,6 +698,7 @@ async function saveRequest() {
   }
 
   async function saveReceipt(){
+const date = document.getElementById('recDate').value || '';
     const mode = document.getElementById('receiptMode')?.value || 'fetch';
 const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqId').value || '');
     const purchasedFrom = document.getElementById('recPurchasedFrom').value || '';
@@ -730,6 +731,7 @@ const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqI
     }
 
     const payload = {
+date,
       reqId,
       purchasedFrom,
       remarksOverall,
@@ -821,6 +823,7 @@ const opts = list
   }
 
   async function saveSupply(){
+const date = document.getElementById('supDate').value || '';
     const emp = document.getElementById('supTo').value;
     if(!emp) return alert('Select Employee');
     const rows = [...document.querySelectorAll('#supTable tbody tr')].map(tr=>{
@@ -829,7 +832,7 @@ const opts = list
       return { item: o.Product, batchNo: o.Batch||'', expiry: o.Expiry||'', qty: tr.querySelector('.s-qty').value, mrp: o.MRP||0, total: tr.querySelector('.s-total').value };
     }).filter(r=> r && num(r.qty) > 0);
     if(!rows.length) return alert('No rows');
-    const res = await post('saveSupply',{ supTo: emp, rows });
+    const res = await post('saveSupply',{ date, supTo: emp, rows });
     if(res && res.success) alert(res.message || 'Saved'); else alert('Save failed: '+(res.message||''));
     document.querySelector('#supTable tbody').innerHTML = '';
     loadInventory();
@@ -1469,6 +1472,3 @@ function printPo() {
 </body>
 
 </html>
-
-
-
