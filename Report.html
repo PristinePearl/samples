@@ -90,7 +90,9 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
 <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
   <!-- Sidebar (full text) -->
-  <aside id="sidebar" class="col-span-1 bg-white border rounded-xl p-4 shadow-lg sidebar-wrapper md:sticky md:top-20 md:h-fit">
+  <aside id="sidebar"
+  class="col-span-1 bg-white border rounded-xl p-4 shadow-lg sidebar-wrapper
+         md:sticky md:top-20 md:h-[calc(100vh-80px)] md:flex md:flex-col">
     <div class="text-lg font-bold text-slate-700 mb-4">Reports & Ledgers</div>
     <div class="flex flex-col gap-2">
       <button class="sidebtn px-3 py-2 rounded-lg text-left tab-active hover:bg-gray-50" data-target="stock" onclick="switchTab(event)">Stock Summary</button>
@@ -101,10 +103,26 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productLedger" onclick="switchTab(event)">Product Ledger</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeLedger" onclick="switchTab(event)">Employee Ledger</button>
     </div>
+<button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors"
+        data-target="employeeDistribution"
+        onclick="switchTab(event)">
+  Distribution - Staffwise
+</button>
+<button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors"
+        data-target="productDistribution"
+        onclick="switchTab(event)">
+  Distribution - Productwise
+</button>
 
     <hr class="my-4 border-gray-200" />
-    <div class="text-sm font-semibold text-slate-600 mb-3">Filters</div>
-    <div class="mt-2 space-y-3 text-sm">
+
+<div class="flex-1 overflow-hidden flex flex-col">
+  
+  <div class="text-sm font-semibold text-slate-600 mb-3">
+    Filters
+  </div>
+
+  <div class="mt-2 space-y-3 text-sm overflow-y-auto pr-2">
       <div>
         <label class="block text-xs font-medium text-slate-500">Product Type</label>
         <select id="filterType" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"></select>
@@ -251,7 +269,23 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
       <!-- RECEIPTS -->
       <div id="receipts" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-        <div class="mb-6"><h3 class="text-2xl font-bold text-slate-700">Receipts Summary</h3><div class="text-sm text-slate-500">All received inventory items.</div></div>
+        <div class="mb-6"><h3 class="text-2xl font-bold text-slate-700">Receipts Summary</h3>
+<!-- Receipts Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-indigo-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Receipts Count</div>
+    <div id="rsCount" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-emerald-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Quantity Received</div>
+    <div id="rsQty" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-purple-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Receipt Value</div>
+    <div id="rsValue" class="text-xl font-bold">₹0</div>
+  </div>
+</div>
+<div class="text-sm text-slate-500">All received inventory items.</div></div>
         <div class="overflow-x-auto rounded-lg border shadow-md">
           <table id="receiptsTable" class="min-w-full text-sm">
             <thead class="table-header-bg border-b"><tr>
@@ -308,8 +342,36 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
       <!-- PRODUCT LEDGER -->
       <div id="productLedger" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+<!-- Product Ledger Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+  <div class="bg-indigo-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Products</div>
+    <div id="plProducts" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-blue-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Batches</div>
+    <div id="plBatches" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-emerald-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Received</div>
+    <div id="plReceived" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-red-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Supplied</div>
+    <div id="plSupplied" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-amber-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Remaining</div>
+    <div id="plRemaining" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-purple-50 p-4 rounded-xl border">
+    <div class="text-xs">Current Stock Value</div>
+    <div id="plValue" class="text-xl font-bold">₹0</div>
+  </div>
+</div>
         <div class="flex justify-between items-center mb-6">
-          <div><h3 class="text-2xl font-bold text-slate-700">Product Ledger (Batch-wise)</h3><div class="text-sm text-slate-500">View detailed in/out summary for a specific product.</div></div>
+          <div><h3 class="text-2xl font-bold text-slate-700">Product Ledger (Batch-wise)</h3>
+<div class="text-sm text-slate-500">View detailed in/out summary for a specific product.</div></div>
           <div><label class="text-sm font-medium mr-2">Product</label><select id="ledgerProduct" class="border rounded-lg px-3 py-1 min-w-[260px] focus:border-indigo-500" onchange="renderProductLedger()"></select></div>
         </div>
         <div class="overflow-x-auto rounded-lg border shadow-md">
@@ -324,6 +386,22 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
       <!-- EMPLOYEE LEDGER -->
       <div id="employeeLedger" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+<!-- Employee Ledger Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-indigo-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Transactions</div>
+    <div id="elTrans" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-emerald-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Quantity Supplied</div>
+    <div id="elQty" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-purple-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Supply Value</div>
+    <div id="elValue" class="text-xl font-bold">₹0</div>
+  </div>
+</div>
+
         <div class="flex justify-between items-center mb-6">
           <div><h3 class="text-2xl font-bold text-slate-700">Employee Ledger</h3><div class="text-sm text-slate-500">View all supplies distributed to a specific employee.</div></div>
           <div><label class="text-sm font-medium mr-2">Employee</label><select id="ledgerEmployee" class="border rounded-lg px-3 py-1 min-w-[260px] focus:border-indigo-500" onchange="renderEmployeeLedger()"></select></div>
@@ -337,8 +415,84 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
           </table>
         </div>
       </div>
-
     </div>
+
+<!-- EMPLOYEE DISTRIBUTION -->
+<div id="employeeDistribution" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+<!-- Staffwise Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-indigo-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Employees</div>
+    <div id="edTotalEmp" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-emerald-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Qty Distributed</div>
+    <div id="edTotalQty" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-purple-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Distribution Value</div>
+    <div id="edTotalValue" class="text-xl font-bold">₹0</div>
+  </div>
+</div>
+  <div class="mb-6">
+    <h3 class="text-2xl font-bold text-slate-700">Employee Distribution</h3>
+    <div class="text-sm text-slate-500">Consolidated staff-wise supply summary.</div>
+  </div>
+
+  <div class="overflow-x-auto rounded-lg border shadow-md mb-6">
+    <table id="empDistSummaryTable" class="min-w-full text-sm">
+      <thead class="table-header-bg border-b">
+        <tr>
+  <th class="p-3 text-left">Emp Code</th>
+  <th class="p-3 text-left">Emp Name</th>
+  <th class="p-3 text-right">Total Distribution</th>
+  <th class="p-3 text-right">Total Qty</th>
+  <th class="p-3 text-right">Total Value (₹)</th>
+</tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</div>
+</div>
+<!-- PRODUCT DISTRIBUTION -->
+<div id="productDistribution" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+<!-- Productwise Summary Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  <div class="bg-indigo-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Products</div>
+    <div id="pdTotalProducts" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-emerald-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Qty Distributed</div>
+    <div id="pdTotalQty" class="text-xl font-bold">0</div>
+  </div>
+  <div class="bg-purple-50 p-4 rounded-xl border">
+    <div class="text-xs">Total Distribution Value</div>
+    <div id="pdTotalValue" class="text-xl font-bold">₹0</div>
+  </div>
+</div>
+
+  <div class="mb-6">
+    <h3 class="text-2xl font-bold text-slate-700">Product Distribution</h3>
+    <div class="text-sm text-slate-500">Consolidated product-wise supply summary.</div>
+  </div>
+
+  <div class="overflow-x-auto rounded-lg border shadow-md">
+    <table id="prodDistSummaryTable" class="min-w-full text-sm">
+      <thead class="table-header-bg border-b">
+        <tr>
+          <th class="p-3 text-left">Product Name</th>
+          <th class="p-3 text-right">Total Distribution</th>
+          <th class="p-3 text-right">Total Qty</th>
+          <th class="p-3 text-right">Total Value (₹)</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</div>
+
   </section>
 </main>
 
@@ -444,6 +598,35 @@ function parseDDMMYYYY(str) {
   return isNaN(d) ? null : d;
 }
 
+function getExpiryStatusClass(expiryValue) {
+  if (!expiryValue) return '';
+
+  const expiryStr = String(expiryValue).trim();
+  if (!/^\d{2}-\d{4}$/.test(expiryStr)) return '';
+
+  const [mm, yyyy] = expiryStr.split('-').map(Number);
+
+  // Expiry = LAST DAY of month
+  const expDate = new Date(yyyy, mm, 0); 
+  expDate.setHours(23,59,59,999);
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const sixMonthsLater = new Date();
+  sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+
+  if (expDate < today) {
+    return 'text-red-600 font-bold';       // 🔴 Expired
+  }
+
+  if (expDate >= today && expDate <= sixMonthsLater) {
+    return 'text-orange-500 font-semibold'; // 🟠 Short Expiry
+  }
+
+  return '';
+}
+
 /* Generic Chart Helper - Updated for stability */
 function createChart(chartId, type, data, options = {}) {
   if (chartInstances[chartId]) {
@@ -501,7 +684,10 @@ function populateSelectors(){
   ft.innerHTML = '<option value="">All</option>' + typeSet.map(t => `<option>${escapeHtml(t)}</option>`).join('');
 
   const pSel = document.getElementById('ledgerProduct');
-  pSel.innerHTML = '<option value="">-- Select Product --</option>' + products.map(p => `<option>${escapeHtml(p.Product || p['Item Name'] || '')}</option>`).join('');
+  pSel.innerHTML =
+  '<option value="">-- Select Product --</option>' +
+  '<option value="ALL">All Products</option>' +
+  products.map(p => `<option>${escapeHtml(p.Product || p['Item Name'] || '')}</option>`).join('');
 
   const eSel = document.getElementById('ledgerEmployee');
   eSel.innerHTML = '<option value="">-- Select Employee --</option>' + staff.map(s => `<option value="${escapeHtml(s['Employee Code'])}">${escapeHtml(s['Employee Code'])} - ${escapeHtml(s['Employee Name'])}</option>`).join('');
@@ -526,7 +712,7 @@ function switchTab(e, force){
   currentTab = target;
   document.getElementById('activeLabel').textContent = ({
     stock:'Stock Summary', minStock:'Minimum Stock', expiry:'Expiry Tracker', receipts:'Receipts Summary',
-    teamSupply:'Team Supply Report', productLedger:'Product Ledger', employeeLedger:'Employee Ledger'
+    teamSupply:'Team Supply Report', productLedger:'Product Ledger', employeeLedger:'Employee Ledger', employeeDistribution:'Employee Distribution', productDistribution:'Product Distribution'
   })[target] || target;
   
   document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden', 'shadow-lg'));
@@ -553,7 +739,10 @@ function renderStock(){
   let count = 0;
 
   const filtered = getFilteredData(inventory, 'Last Updated');
-filtered.forEach(r => {
+
+filtered
+  .filter(r => num(r.Qty) > 0)   // 🔥 Hide zero stock
+  .forEach(r => {
     const value = num(r.Qty) * num(r.MRP);
     totalValue += value;
 
@@ -566,7 +755,9 @@ filtered.forEach(r => {
     // Table rendering
     const tr = document.createElement('tr');
     // Updated 'Value' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Type||'')}</td><td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right font-medium">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${value.toFixed(2)||''}</td><td class="p-3 text-left text-xs text-slate-500">${escapeHtml(fmtDDMMYYYY(r['Last Updated']||r['Receipt Date']||''))}</td>`;
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Type||'')}</td><td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+</td><td class="p-3 text-right font-medium">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${value.toFixed(2)||''}</td><td class="p-3 text-left text-xs text-slate-500">${escapeHtml(fmtDDMMYYYY(r['Last Updated']||r['Receipt Date']||''))}</td>`;
     tbody.appendChild(tr);
     count++;
   });
@@ -631,7 +822,9 @@ const lowStock = filtered
     const val = num(r.Qty) * num(r.MRP);
     const tr = document.createElement('tr');
     // Updated 'Value' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right font-semibold text-red-600">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right">₹${val.toFixed(2)||''}</td><td class="p-3">${escapeHtml(r.Type||'')}</td>`;
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+</td><td class="p-3 text-right font-semibold text-red-600">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right">₹${val.toFixed(2)||''}</td><td class="p-3">${escapeHtml(r.Type||'')}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -712,7 +905,9 @@ filtered.forEach(r => {
   // Table rendering
   expiringItems.forEach(r => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-semibold text-amber-700">${r.diff}</td>`;
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-semibold text-amber-700">${r.diff}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -724,9 +919,23 @@ function renderReceipts(){
 filtered.forEach(r => {
     const tr = document.createElement('tr');
     // Updated 'Amount' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Received Date']||''))}</td><td class="p-3">${escapeHtml(r['Receipt ID']||'')}</td><td class="p-3">${escapeHtml(r['Item Name']||r['Item']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r['Received Qty']||r.Qty||0}</td><td class="p-3">${escapeHtml(r['Supplier Name']||'')}</td><td class="p-3 text-right font-medium text-emerald-600">₹${num(r['Total Value']||r.Amount||0).toFixed(2)}</td>`;
+    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Received Date']||''))}</td><td class="p-3">${escapeHtml(r['Receipt ID']||'')}</td><td class="p-3">${escapeHtml(r['Item Name']||r['Item']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+</td><td class="p-3 text-right">${r['Received Qty']||r.Qty||0}</td><td class="p-3">${escapeHtml(r['Supplier Name']||'')}</td><td class="p-3 text-right font-medium text-emerald-600">₹${num(r['Total Value']||r.Amount||0).toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
+// ✅ Receipts Summary
+let totalCount = 0, totalQty = 0, totalValue = 0;
+
+filtered.forEach(r=>{
+  totalCount++;
+  totalQty += num(r['Received Qty'] || r.Qty);
+  totalValue += num(r['Total Value'] || r.Amount);
+});
+
+document.getElementById('rsCount').textContent = totalCount;
+document.getElementById('rsQty').textContent = totalQty;
+document.getElementById('rsValue').textContent = '₹'+totalValue.toFixed(2);
 }
 
 /* Team summary + pie chart + table */
@@ -796,7 +1005,9 @@ if (!d) return false;
     const st = staff.find(x => String(x['Employee Code']).trim() === String(code).trim()) || {};
     const tr = document.createElement('tr');
     // Updated 'Total Value' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(r.Team||'')}</td><td class="p-3">${escapeHtml(code)}</td><td class="p-3">${escapeHtml(st['Employee Name']||r['Emp Name']||'')}</td><td class="p-3">${escapeHtml(st['Designation']||r.Designation||'')}</td><td class="p-3">${escapeHtml(r['Item Supplied']||r['Item Name']||r.Product||'')}</td><td class="p-3">${escapeHtml(r['Batch No']||r.Batch||'')}</td><td class="p-3">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']||0).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
+    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(r.Team||'')}</td><td class="p-3">${escapeHtml(code)}</td><td class="p-3">${escapeHtml(st['Employee Name']||r['Emp Name']||'')}</td><td class="p-3">${escapeHtml(st['Designation']||r.Designation||'')}</td><td class="p-3">${escapeHtml(r['Item Supplied']||r['Item Name']||r.Product||'')}</td><td class="p-3">${escapeHtml(r['Batch No']||r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']||0).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -804,34 +1015,115 @@ if (!d) return false;
 /* Product ledger - FIXED: MRP lookup added */
 async function renderProductLedger(){
   const product = document.getElementById('ledgerProduct').value;
-  const tbody = document.querySelector('#prodLedgerTable tbody'); tbody.innerHTML = '';
-  if(!product) { tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">Please select a product from the dropdown above.</td></tr>`; return; }
-  
-  const res = await post('getReportData', { reportType: 'productLedger', product });
-  if(!res || !res.success || (res.rows || []).length === 0){ 
-    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">${escapeHtml(res.message || 'No ledger data found for this product.')}</td></tr>`; return; 
+  const tbody = document.querySelector('#prodLedgerTable tbody');
+  tbody.innerHTML = '';
+
+  if(!product){
+    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">
+      Please select a product from the dropdown above.
+    </td></tr>`;
+    return;
   }
-  
-  (res.rows || []).forEach(r => {
-    const remainingQty = num(r.Balance || 0);
-    let mrp = num(r.MRP || 0);
 
-    // FIX: Fallback MRP lookup if the backend didn't provide it (which is common)
-    if (mrp === 0) {
-        const inventoryItem = inventory.find(i => 
-            String(i.Product).trim() === String(product).trim() && 
-            String(i.Batch).trim() === String(r.Batch).trim()
-        );
-        if (inventoryItem) {
-            mrp = num(inventoryItem.MRP);
-        }
-    }
+  let rows = [];
 
-    const totalValue = remainingQty * mrp;
+// Build ledger from receipts & supplies (Correct Logic)
+let ledgerMap = {};
+
+const filteredReceipts = receipts;
+const filteredSupplies = supplies;
+
+// RECEIVED
+filteredReceipts.forEach(r => {
+  const p = r['Item Name'] || r.Product || '';
+  const b = r.Batch || '';
+  if(product !== "ALL" && p !== product) return;
+
+  const key = p + '||' + b;
+
+  if(!ledgerMap[key]){
+    ledgerMap[key] = {
+      ProductName: p,
+      Batch: b,
+      Expiry: r.Expiry || '',
+      Received: 0,
+      Supplied: 0,
+      MRP: num(r.MRP || 0)
+    };
+  }
+
+  ledgerMap[key].Received += num(r['Received Qty'] || r.Qty || 0);
+});
+
+// SUPPLIED
+filteredSupplies.forEach(r => {
+  const p = r.Product || r['Item Supplied'] || r['Item Name'] || '';
+  const b = r.Batch || r['Batch No'] || '';
+  if(product !== "ALL" && p !== product) return;
+
+  const key = p + '||' + b;
+
+  if(!ledgerMap[key]){
+    ledgerMap[key] = {
+      ProductName: p,
+      Batch: b,
+      Expiry: r.Expiry || '',
+      Received: 0,
+      Supplied: 0,
+      MRP: 0
+    };
+  }
+
+  ledgerMap[key].Supplied += num(r.Qty || 0);
+});
+
+rows = Object.values(ledgerMap).map(r => {
+  r.Balance = r.Received - r.Supplied;
+  return r;
+});
+
+
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">
+      No ledger data found.
+    </td></tr>`;
+    return;
+  }
+// ✅ Product Ledger Summary
+let totalReceived = 0, totalSupplied = 0, totalRemaining = 0, totalValue = 0;
+
+rows.forEach(r=>{
+  totalReceived += num(r.Received);
+  totalSupplied += num(r.Supplied);
+  totalRemaining += num(r.Balance);
+  totalValue += num(r.Balance) * num(r.MRP);
+});
+
+document.getElementById('plProducts').textContent =
+  product === "ALL" ? new Set(rows.map(r=>r.ProductName)).size : 1;
+
+document.getElementById('plBatches').textContent = rows.length;
+document.getElementById('plReceived').textContent = totalReceived;
+document.getElementById('plSupplied').textContent = totalSupplied;
+document.getElementById('plRemaining').textContent = totalRemaining;
+document.getElementById('plValue').textContent = '₹'+totalValue.toFixed(2);
+
+  rows.forEach(r => {
+    const remainingQty = num(r.Balance);
+    const totalValue = remainingQty * num(r.MRP);
 
     const tr = document.createElement('tr');
-    // Updated Total Value to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(product)}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(r.Expiry||'')}</td><td class="p-3 text-right text-emerald-600 font-medium">${r.Received||0}</td><td class="p-3 text-right text-red-600 font-medium">${r.Supplied||0}</td><td class="p-3 text-right font-bold">${remainingQty}</td><td class="p-3 text-right font-bold text-indigo-600">₹${totalValue.toFixed(2)}</td>`;
+    tr.innerHTML = `
+      <td class="p-3">${escapeHtml(r.ProductName||'')}</td>
+      <td class="p-3">${escapeHtml(r.Batch||'')}</td>
+      <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+        ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+      </td>
+      <td class="p-3 text-right text-emerald-600 font-medium">${r.Received||0}</td>
+      <td class="p-3 text-right text-red-600 font-medium">${r.Supplied||0}</td>
+      <td class="p-3 text-right font-bold">${remainingQty}</td>
+      <td class="p-3 text-right font-bold text-indigo-600">₹${totalValue.toFixed(2)}</td>
+    `;
     tbody.appendChild(tr);
   });
 }
@@ -862,6 +1154,7 @@ async function renderEmployeeLedger(){
         if (inventoryItem) {
             mrp = num(inventoryItem.MRP);
         }
+
     }
 
     // Calculate total value using the fetched/looked-up MRP
@@ -871,6 +1164,309 @@ async function renderEmployeeLedger(){
     // Updated Total Value to include ₹
     tr.innerHTML = `<td class="p-3">${escapeHtml(r.Date||'')}</td><td class="p-3">${escapeHtml(r['Employee Code']||'')}</td><td class="p-3">${escapeHtml(r['Employee Name']||'')}</td><td class="p-3">${escapeHtml(r['Designation']||'')}</td><td class="p-3">${escapeHtml(r.Product||r['Item Supplied']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(r.Expiry||'')}</td><td class="p-3 text-right font-medium">${qty}</td><td class="p-3 text-right font-medium text-red-600">₹${totalValue.toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
     tbody.appendChild(tr);
+  });
+// ✅ Employee Ledger Summary (Correct Placement)
+let totalTrans = 0, totalQty = 0, totalValue = 0;
+
+(res.rows || []).forEach(r=>{
+  totalTrans++;
+  totalQty += num(r.Qty || 0);
+  const qty = num(r.Qty || 0);
+let mrp = num(r.MRP || 0);
+
+// fallback MRP lookup (same logic used above)
+if (mrp === 0 && r.Product && r.Batch) {
+  const inventoryItem = inventory.find(i =>
+    String(i.Product).trim() === String(r.Product).trim() &&
+    String(i.Batch).trim() === String(r.Batch).trim()
+  );
+  if (inventoryItem) {
+    mrp = num(inventoryItem.MRP);
+  }
+}
+
+const rowValue = num(r['Total Value'] || (qty * mrp));
+totalValue += rowValue;
+});
+
+document.getElementById('elTrans').textContent = totalTrans;
+document.getElementById('elQty').textContent = totalQty;
+document.getElementById('elValue').textContent = '₹'+totalValue.toFixed(2);
+}
+
+function renderEmployeeDistribution(){
+  const summaryBody = document.querySelector('#empDistSummaryTable tbody');
+  const detailBody = document.querySelector('#empDistDetailTable tbody');
+  summaryBody.innerHTML = '';
+  detailBody.innerHTML = '';
+
+  if(!supplies || supplies.length === 0){
+    summaryBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="p-4 text-center text-slate-500">
+          No distribution data found.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  const empMap = {};
+const filtered = getFilteredData(supplies, 'Date');
+
+filtered.forEach(r => {
+
+    const empCode =
+      r['Supply to (Emp ID)'] ||
+      r['Supply to'] ||
+      r['Employee Code'] ||
+      '';
+
+    const empName =
+      r['Emp Name'] ||
+      r['Employee Name'] ||
+      '';
+
+    if(!empCode) return;
+
+    if(!empMap[empCode]){
+      empMap[empCode] = {
+        name: empName,
+        supIds: new Set(),
+        totalQty: 0,
+        totalValue: 0
+      };
+    }
+
+    const supId =
+      r['Supply ID'] ||
+      r['SUP ID'] ||
+      r['Distribution ID'] ||
+      '';
+
+    if(supId) empMap[empCode].supIds.add(supId);
+
+    empMap[empCode].totalQty += num(r.Qty);
+    empMap[empCode].totalValue += num(r['Total Value']);
+  });
+
+Object.entries(empMap)
+  .sort((a, b) => b[1].totalValue - a[1].totalValue) // 🔥 DESCENDING VALUE
+  .forEach(([empCode, data]) => {
+
+    const tr = document.createElement('tr');
+    tr.classList.add('cursor-pointer','hover:bg-indigo-50');
+
+    tr.innerHTML = `
+      <td class="p-3 font-medium">${empCode}</td>
+      <td class="p-3">${escapeHtml(data.name || '')}</td>
+      <td class="p-3 text-right">${data.supIds.size}</td>
+      <td class="p-3 text-right">${data.totalQty}</td>
+      <td class="p-3 text-right font-semibold text-indigo-600">₹${data.totalValue.toFixed(2)}</td>
+    `;
+
+    tr.onclick = () => {
+      renderEmployeeDistributionDetail(empCode);
+      openEmpDistModal();
+    };
+
+    summaryBody.appendChild(tr);
+});
+// ✅ Staffwise Summary
+let totalQty = 0, totalValue = 0;
+
+Object.values(empMap).forEach(d=>{
+  totalQty += d.totalQty;
+  totalValue += d.totalValue;
+});
+
+document.getElementById('edTotalEmp').textContent = Object.keys(empMap).length;
+document.getElementById('edTotalQty').textContent = totalQty;
+document.getElementById('edTotalValue').textContent = '₹'+totalValue.toFixed(2);
+}
+
+
+
+function renderEmployeeDistributionDetail(empCode){
+
+  const detailBody = document.querySelector('#empDistDetailTable tbody');
+  detailBody.innerHTML = '';
+
+  if(!supplies || supplies.length === 0) return;
+
+  const filtered = getFilteredData(supplies, 'Date');
+
+const rows = filtered.filter(r => {
+    const code =
+      r['Supply to (Emp ID)'] ||
+      r['Supply to'] ||
+      r['Employee Code'] ||
+      '';
+
+    return String(code).trim() === String(empCode).trim();
+  });
+
+  if(rows.length === 0){
+    detailBody.innerHTML = `
+      <tr>
+        <td colspan="10" class="p-4 text-center text-slate-500">
+          No detailed records found.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  rows.forEach(r => {
+
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date || r['Supply Date'] || ''))}</td>
+      <td class="p-3">${escapeHtml(empCode)}</td>
+      <td class="p-3">${escapeHtml(r['Emp Name'] || r['Employee Name'] || '')}</td>
+      <td class="p-3">${escapeHtml(r.Designation || '')}</td>
+      <td class="p-3">${escapeHtml(r.Product || r['Item Supplied'] || r['Item Name'] || '')}</td>
+      <td class="p-3">${escapeHtml(r.Batch || r['Batch No'] || '')}</td>
+      <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+        ${escapeHtml(fmtExpiryMMYYYY(r.Expiry || ''))}
+      </td>
+      <td class="p-3 text-right">${num(r.Qty)}</td>
+      <td class="p-3 text-right font-medium text-red-600">
+        ₹${num(r['Total Value']).toFixed(2)}
+      </td>
+      <td class="p-3">${escapeHtml(r.Remarks || '')}</td>
+    `;
+
+    detailBody.appendChild(tr);
+  });
+}
+
+
+function renderProductDistribution(){
+
+  const summaryBody = document.querySelector('#prodDistSummaryTable tbody');
+  summaryBody.innerHTML = '';
+
+  if(!supplies || supplies.length === 0){
+    summaryBody.innerHTML = `
+      <tr>
+        <td colspan="4" class="p-4 text-center text-slate-500">
+          No distribution data found.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  const productMap = {};
+  const filtered = getFilteredData(supplies, 'Date');
+
+  filtered.forEach(r => {
+
+    const product =
+      r.Product ||
+      r['Item Supplied'] ||
+      r['Item Name'] ||
+      '';
+
+    if(!product) return;
+
+    if(!productMap[product]){
+      productMap[product] = {
+        supIds: new Set(),
+        totalQty: 0,
+        totalValue: 0
+      };
+    }
+
+    const supId =
+      r['Supply ID'] ||
+      r['SUP ID'] ||
+      r['Distribution ID'] ||
+      '';
+
+    if(supId) productMap[product].supIds.add(supId);
+
+    productMap[product].totalQty += num(r.Qty);
+    productMap[product].totalValue += num(r['Total Value']);
+  });
+
+  Object.entries(productMap)
+    .sort((a,b)=> b[1].totalValue - a[1].totalValue) // Descending value
+    .forEach(([product,data])=>{
+
+      const tr = document.createElement('tr');
+      tr.classList.add('cursor-pointer','hover:bg-indigo-50');
+
+      tr.innerHTML = `
+        <td class="p-3 font-medium">${escapeHtml(product)}</td>
+        <td class="p-3 text-right">${data.supIds.size}</td>
+        <td class="p-3 text-right">${data.totalQty}</td>
+        <td class="p-3 text-right font-semibold text-indigo-600">₹${data.totalValue.toFixed(2)}</td>
+      `;
+
+      tr.onclick = ()=>{
+        renderProductDistributionDetail(product);
+        openProdDistModal();
+      };
+
+      summaryBody.appendChild(tr);
+    });
+
+// ✅ Productwise Summary
+let totalQty = 0, totalValue = 0;
+
+Object.values(productMap).forEach(d=>{
+  totalQty += d.totalQty;
+  totalValue += d.totalValue;
+});
+
+document.getElementById('pdTotalProducts').textContent = Object.keys(productMap).length;
+document.getElementById('pdTotalQty').textContent = totalQty;
+document.getElementById('pdTotalValue').textContent = '₹'+totalValue.toFixed(2);
+}
+
+function renderProductDistributionDetail(product){
+
+  const detailBody = document.querySelector('#prodDistDetailTable tbody');
+  detailBody.innerHTML = '';
+
+  const filtered = getFilteredData(supplies, 'Date');
+
+  const rows = filtered.filter(r=>{
+    const p = r.Product || r['Item Supplied'] || r['Item Name'] || '';
+    return String(p).trim() === String(product).trim();
+  });
+
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+
+  const empCode =
+  r['Supply to (Emp ID)'] ||
+  r['Supply to'] ||
+  r['Employee Code'] ||
+  '';
+
+const empName =
+  r['Emp Name'] ||
+  r['Employee Name'] ||
+  '';
+
+tr.innerHTML = `
+  <td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Supply Date']||''))}</td>
+  <td class="p-3">${escapeHtml(empCode)}</td>
+  <td class="p-3">${escapeHtml(empName)}</td>
+  <td class="p-3">${escapeHtml(product)}</td>
+  <td class="p-3">${escapeHtml(r.Batch||r['Batch No']||'')}</td>
+  <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+    ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+  </td>
+  <td class="p-3 text-right">${num(r.Qty)}</td>
+  <td class="p-3 text-right font-medium text-red-600">
+    ₹${num(r['Total Value']).toFixed(2)}
+  </td>
+  <td class="p-3">${escapeHtml(r.Remarks||'')}</td>
+`;
+
+    detailBody.appendChild(tr);
   });
 }
 
@@ -1029,6 +1625,32 @@ async function renderForCurrentTab(){
   else if(currentTab === 'teamSupply') { renderTeamSummary(); renderTeamSupply(); }
   else if(currentTab === 'productLedger') renderProductLedger();
   else if(currentTab === 'employeeLedger') renderEmployeeLedger();
+else if(currentTab === 'employeeDistribution') renderEmployeeDistribution();
+else if(currentTab === 'productDistribution') renderProductDistribution();
+}
+
+function openEmpDistModal(){
+  const modal = document.getElementById('empDistModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeEmpDistModal(){
+  const modal = document.getElementById('empDistModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function openProdDistModal(){
+  const modal = document.getElementById('prodDistModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function closeProdDistModal(){
+  const modal = document.getElementById('prodDistModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
 }
 
 /* ---------- Initial load ---------- */
@@ -1037,6 +1659,75 @@ async function renderForCurrentTab(){
   switchTab(null, 'stock');
 })();
 </script>
+
+<!-- Employee Distribution Modal -->
+<div id="empDistModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+  <div class="bg-white w-[95%] max-w-6xl rounded-xl shadow-2xl p-6 relative animate-fadeIn">
+
+    <button onclick="closeEmpDistModal()" 
+      class="absolute top-3 right-3 text-slate-500 hover:text-red-600 text-xl font-bold">
+      ✕
+    </button>
+
+    <h3 class="text-xl font-bold text-slate-700 mb-4">
+      Detailed Distribution
+    </h3>
+
+    <div class="overflow-x-auto rounded-lg border shadow-md max-h-[60vh] overflow-y-auto">
+      <table id="empDistDetailTable" class="min-w-full text-sm">
+        <thead class="table-header-bg border-b">
+          <tr>
+            <th class="p-3">Date</th>
+            <th class="p-3">Emp Code</th>
+            <th class="p-3">Emp Name</th>
+            <th class="p-3">Designation</th>
+            <th class="p-3">Product</th>
+            <th class="p-3">Batch</th>
+            <th class="p-3">Expiry</th>
+            <th class="p-3 text-right">Qty</th>
+            <th class="p-3 text-right">Total Value (₹)</th>
+            <th class="p-3">Remarks</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Product Distribution Modal -->
+<div id="prodDistModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+  <div class="bg-white w-[95%] max-w-5xl rounded-xl shadow-2xl p-6 relative">
+
+    <button onclick="closeProdDistModal()" 
+      class="absolute top-3 right-3 text-slate-500 hover:text-red-600 text-xl font-bold">
+      ✕
+    </button>
+
+    <h3 class="text-xl font-bold text-slate-700 mb-4">
+      Product Distribution Details
+    </h3>
+
+    <div class="overflow-x-auto rounded-lg border shadow-md max-h-[60vh] overflow-y-auto">
+      <table id="prodDistDetailTable" class="min-w-full text-sm">
+        <thead class="table-header-bg border-b">
+          <tr>
+            <th class="p-3">Date</th>
+<th class="p-3">Emp Code</th>
+  <th class="p-3">Emp Name</th>
+            <th class="p-3">Product</th>
+            <th class="p-3">Batch</th>
+            <th class="p-3">Expiry</th>
+            <th class="p-3 text-right">Qty</th>
+            <th class="p-3 text-right">Total Value (₹)</th>
+            <th class="p-3">Remarks</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
