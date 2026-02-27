@@ -95,7 +95,13 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
          md:sticky md:top-20 md:h-[calc(100vh-80px)] md:flex md:flex-col">
     <div class="text-lg font-bold text-slate-700 mb-4">Reports & Ledgers</div>
     <div class="flex flex-col gap-2">
-      <button class="sidebtn px-3 py-2 rounded-lg text-left tab-active hover:bg-gray-50" data-target="stock" onclick="switchTab(event)">Stock Summary</button>
+<button class="sidebtn px-3 py-2 rounded-lg text-left tab-active hover:bg-gray-50 transition-colors"
+        data-target="dashboard"
+        onclick="switchTab(event)">
+  Home
+</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50"
+        data-target="stock" onclick="switchTab(event)">Stock Summary</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="minStock" onclick="switchTab(event)">Minimum Stock</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="expiry" onclick="switchTab(event)">Expiry Tracker</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="receipts" onclick="switchTab(event)">Receipts Summary</button>
@@ -147,7 +153,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
     <!-- Active label -->
     <div class="bg-white p-4 rounded-xl border shadow-sm">
       <div class="flex items-center justify-between">
-        <div class="text-base text-slate-600 font-medium">Active Report: <strong id="activeLabel" class="text-indigo-600">Stock Summary</strong></div>
+        <div class="text-base text-slate-600 font-medium">Active Report: <strong id="activeLabel" class="text-indigo-600">Home</strong></div>
         <div class="text-xs text-slate-500">Click the <strong class="text-indigo-600">Go</strong> button to apply filters.</div>
       </div>
     </div>
@@ -155,8 +161,127 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
     <!-- Panels -->
     <div id="panels" class="space-y-6">
 
+<!-- DASHBOARD -->
+<div id="dashboard" class="panel bg-white p-4 rounded-xl border shadow-lg">
+
+  <div class="mb-6">
+    <h3 class="text-2xl font-bold text-slate-700">Inventory Dashboard</h3>
+    <div class="text-sm text-slate-500">Complete inventory overview.</div>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+    <div class="bg-indigo-50 p-4 rounded-xl border">
+      <div class="text-xs">Total Products</div>
+      <div id="dbTotalProducts" class="text-xl font-bold">0</div>
+    </div>
+
+    <div class="bg-emerald-50 p-4 rounded-xl border">
+      <div class="text-xs">Total Inventory Value</div>
+      <div id="dbTotalValue" class="text-xl font-bold">₹0</div>
+    </div>
+
+    <div class="bg-red-50 p-4 rounded-xl border">
+      <div class="text-xs">Total Expired Qty / Value</div>
+      <div id="dbExpired" class="text-xl font-bold">0 / ₹0</div>
+    </div>
+
+    <div class="bg-amber-50 p-4 rounded-xl border">
+      <div class="text-xs">Total Short Expiry Qty / Value</div>
+      <div id="dbShortExpiry" class="text-xl font-bold">0 / ₹0</div>
+    </div>
+
+    <div class="bg-blue-50 p-4 rounded-xl border">
+      <div class="text-xs">Total Receipts</div>
+      <div id="dbReceipts" class="text-xl font-bold">0</div>
+    </div>
+
+    <div class="bg-purple-50 p-4 rounded-xl border">
+      <div class="text-xs">Total Supplies</div>
+      <div id="dbSupplies" class="text-xl font-bold">0</div>
+    </div>
+
+  </div>
+
+  <!-- CHARTS -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <div class="bg-white p-4 rounded-xl border shadow-sm">
+      <h4 class="font-semibold mb-3">Product Chart</h4>
+      <div class="chart-container">
+        <canvas id="dbProductChart"></canvas>
+      </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border shadow-sm">
+      <h4 class="font-semibold mb-3">Product Type Chart</h4>
+      <div class="chart-container">
+        <canvas id="dbTypeChart"></canvas>
+      </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border shadow-sm">
+      <h4 class="font-semibold mb-3">Team Supply Value Distribution</h4>
+      <div class="chart-container">
+        <canvas id="dbTeamChart"></canvas>
+      </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-xl border shadow-sm">
+      <h4 class="font-semibold mb-3">Product Distribution</h4>
+      <div class="chart-container">
+        <canvas id="dbDistributionChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+<!-- TOP 10 DISTRIBUTION TABLES -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+
+  <!-- Top 10 Employees -->
+  <div class="bg-white p-4 rounded-xl border shadow-sm">
+    <h4 class="text-lg font-semibold mb-3 text-slate-700">
+      Top 10 Employees - Distribution Value
+    </h4>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="p-3 text-left">Employee</th>
+            <th class="p-3 text-right">Total Value (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="dbTopEmployees" class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Top 10 Products -->
+  <div class="bg-white p-4 rounded-xl border shadow-sm">
+    <h4 class="text-lg font-semibold mb-3 text-slate-700">
+      Top 10 Products - Distribution Value
+    </h4>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="p-3 text-left">Product</th>
+            <th class="p-3 text-right">Total Value (₹)</th>
+          </tr>
+        </thead>
+        <tbody id="dbTopProducts" class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
       <!-- STOCK -->
-      <div id="stock" class="panel bg-white p-4 rounded-xl border shadow-lg">
+      <div id="stock" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
         <div class="flex justify-between items-center mb-6">
           <div>
             <h3 class="text-2xl font-bold text-slate-700">Stock Summary</h3>
@@ -181,13 +306,29 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
           </div>
         </div>
 
-        <!-- NEW Chart -->
-        <div class="bg-white p-4 rounded-xl border shadow-sm mb-6">
-          <h4 class="text-lg font-semibold mb-3 text-slate-700">Inventory Value by Product Type</h4>
-          <div class="chart-container">
-            <canvas id="stockValueByTypeChart" class="w-full"></canvas>
-          </div>
-        </div>
+        <!-- Product-wise Consolidated Chart -->
+<div class="bg-white p-4 rounded-xl border shadow-sm mb-6">
+  <div class="flex justify-between items-center mb-3">
+    <h4 class="text-lg font-semibold text-slate-700">
+      Product Chart
+    </h4>
+
+    <div class="flex gap-2 text-xs">
+      <button id="toggleValue"
+        class="px-3 py-1 rounded bg-indigo-600 text-white">
+        Value
+      </button>
+      <button id="toggleQty"
+        class="px-3 py-1 rounded border">
+        Qty
+      </button>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="productConsolidatedChart"></canvas>
+  </div>
+</div>
 
         <!-- Table (Existing, slightly styled) -->
         <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Inventory Snapshot</h4>
@@ -211,14 +352,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
           </div>
         </div>
         
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <!-- NEW Chart -->
-          <div class="bg-white p-4 rounded-xl border shadow-sm">
-            <h4 class="text-lg font-semibold mb-3 text-slate-700">Top 5 Critical Batches (Lowest Qty)</h4>
-            <div class="chart-container">
-              <canvas id="minStockTop5Chart" class="w-full"></canvas>
-            </div>
-          </div>
+       
 
           <!-- Table Container -->
           <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm">
@@ -237,21 +371,11 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
       <!-- EXPIRY -->
       <div id="expiry" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
         <div class="flex justify-between items-center mb-6">
-          <div><h3 class="text-2xl font-bold text-slate-700">Expiry Tracker</h3><div class="text-sm text-slate-500">Items expiring within the next specified period.</div></div>
-          <div>
-            <label class="text-sm text-slate-600 font-medium mr-2">Next (Days):</label>
-            <input id="expiryDays" type="number" value="30" class="w-20 border px-3 py-1 rounded-lg focus:border-indigo-500" onchange="renderExpiry()"/>
-          </div>
+          <div><h3 class="text-2xl font-bold text-slate-700">Expiry Tracker</h3><div class="text-sm text-slate-500">Qty & Value of Expired / Short Expiry Stock.</div></div>
+          
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <!-- NEW Chart -->
-          <div class="bg-white p-4 rounded-xl border shadow-sm">
-            <h4 class="text-lg font-semibold mb-3 text-slate-700">Expiring Items Count by Month</h4>
-            <div class="chart-container">
-              <canvas id="expiryByMonthChart" class="w-full"></canvas>
-            </div>
-          </div>
+        
 
           <!-- Table Container -->
           <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm">
@@ -259,7 +383,11 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
             <div class="overflow-x-auto rounded-lg border shadow-md">
               <table id="expiryTable" class="min-w-full text-sm">
                 <thead class="bg-amber-50 border-b"><tr>
-                  <th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry (MM-YYYY)</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">Days Left</th></tr></thead>
+                  <th class="p-3 text-left font-semibold text-gray-600">Product</th>
+<th class="p-3 text-left font-semibold text-gray-600">Expired</th>
+<th class="p-3 text-left font-semibold text-gray-600">Short Expiry</th>
+<th class="p-3 text-right font-semibold text-gray-600">MRP</th>
+<th class="p-3 text-right font-semibold text-gray-600">Total Value</th></tr></thead>
                 <tbody class="divide-y divide-gray-100"></tbody>
               </table>
             </div>
@@ -503,7 +631,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 const API = WEB_APP_URL;
 
 let inventory = [], products = [], staff = [], receipts = [], supplies = [], teams = [];
-let currentTab = 'stock';
+let currentTab = 'dashboard';
 let chartInstances = {}; // Global map to store Chart.js instances
 
 /* ---------- Helpers ---------- */
@@ -532,6 +660,16 @@ async function post(action, payload = {}) {
 
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function num(v){ return Number(v)||0; }
+function formatIndianNumber(value, withCurrency = false) {
+  const n = Number(value) || 0;
+
+  const formatted = n.toLocaleString('en-IN', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0
+  });
+
+  return withCurrency ? '₹' + formatted : formatted;
+}
 function getFilteredData(data, dateField = 'Date') {
   const type = document.getElementById('filterType').value;
   const from = document.getElementById('filterFrom').value;
@@ -656,7 +794,10 @@ function createChart(chartId, type, data, options = {}) {
   chartInstances[chartId] = new Chart(ctx, { 
     type, 
     data, 
-    options: Chart.helpers.merge(defaultOptions, options)
+    options: {
+  ...defaultOptions,
+  ...options
+}
   });
 }
 
@@ -768,23 +909,92 @@ filtered
   document.getElementById('uniqueProductsCount').textContent = uniqueProducts.size;
   document.getElementById('minStockBatches').textContent = lowStockCount;
 
-  // Render Chart
-  const labels = Object.keys(typeValueMap);
-  const values = labels.map(label => typeValueMap[label]);
-  const backgroundColors = labels.map((_, i) => `hsl(${i * 45 % 360} 70% 55%)`);
+}
 
-  createChart('stockValueByTypeChart', 'bar', {
-    labels: labels,
-    datasets: [{
-      label: 'Stock Value (₹)',
-      data: values,
-      backgroundColor: backgroundColors,
-      borderRadius: 6
-    }]
-  }, {
-    scales: { y: { beginAtZero: true, ticks: { callback: (v) => '₹' + v.toLocaleString() } } },
-    indexAxis: 'y', // Horizontal bars
+let consolidatedMode = 'value';
+
+function renderProductConsolidatedChart(){
+
+  if(!inventory || inventory.length === 0) return;
+
+  const canvas = document.getElementById('productConsolidatedChart');
+  if(!canvas) return;
+
+  const filtered = getFilteredData(inventory, 'Last Updated')
+    .filter(r => num(r.Qty) > 0);
+
+  const map = {};
+
+  filtered.forEach(r => {
+    const product = r.Product || 'Unknown';
+
+    if(!map[product]){
+      map[product] = { qty:0, value:0 };
+    }
+
+    map[product].qty += num(r.Qty);
+    map[product].value += num(r.Qty) * num(r.MRP);
   });
+
+  // Convert to array & SORT descending
+  let dataArray = Object.keys(map).map(p => ({
+    product: p,
+    qty: map[p].qty,
+    value: map[p].value
+  }));
+
+  dataArray.sort((a,b) => 
+    consolidatedMode === 'value'
+      ? b.value - a.value
+      : b.qty - a.qty
+  );
+
+  // Show only Top 10
+  dataArray = dataArray.slice(0, 10);
+
+  const labels = dataArray.map(d => d.product);
+  const values = dataArray.map(d =>
+    consolidatedMode === 'value' ? d.value : d.qty
+  );
+
+  const colors = labels.map((_, i) =>
+    `hsl(${(i*35)%360} 70% 55%)`
+  );
+
+  createChart('productConsolidatedChart','bar',{
+  labels: labels,
+  datasets: [{
+    label: consolidatedMode === 'value'
+      ? 'Top 10 Products - Stock Value (₹)'
+      : 'Top 10 Products - Quantity',
+    data: values,
+    backgroundColor: colors,
+    borderRadius: 6
+  }]
+},{
+  indexAxis: 'y',
+  onClick: function(evt, elements){
+    if(elements.length > 0){
+      const index = elements[0].index;
+      const productName = labels[index];
+      openProductDetailPopup(productName);
+    }
+  },
+  scales: {
+    x: {
+      ticks: {
+        callback: function(value){
+          return consolidatedMode === 'value'
+            ? '₹' + Number(value).toLocaleString()
+            : value;
+        }
+      }
+    }
+  },
+  plugins:{
+    legend:{ display:false }
+  }
+});
 }
 
 function renderMinStock(){
@@ -942,12 +1152,43 @@ document.getElementById('rsValue').textContent = '₹'+totalValue.toFixed(2);
 let teamPieChart = null; 
 
 function renderTeamSummary(){
+
+  const team = document.getElementById('filterTeam').value;
+  const f = document.getElementById('teamFrom').value;
+  const t = document.getElementById('teamTo').value;
+
+  const filtered = supplies.filter(s => {
+
+    if(team && s.Team !== team) return false;
+
+    if(f || t){
+      const rawDate = s.Date || s['Supply Date'] || s.DateRaw || s['Date'];
+      const d = parseDDMMYYYY(rawDate);
+      if(!d) return false;
+
+      if(f && new Date(f) > d) return false;
+      if(t && new Date(t) < d) return false;
+    }
+
+    return true;
+  });
+
   const map = {};
-  supplies.forEach(s => {
-    const t = s.Team || '(Unassigned)';
-    if(!map[t]) map[t] = { count:0, value:0 };
-    map[t].count += 1;
-    map[t].value += num(s['Total Value']||0);
+
+filtered.forEach(s => {
+
+    const teamName = s.Team || 'Unknown';
+
+    if(!map[teamName]){
+      map[teamName] = {
+        count: 0,
+        value: 0
+      };
+    }
+
+    map[teamName].count += 1;
+    map[teamName].value += num(s['Total Value'] || 0);
+
   });
 
   const tbody = document.querySelector('#teamSummaryTable tbody'); tbody.innerHTML = '';
@@ -961,23 +1202,63 @@ function renderTeamSummary(){
     tbody.appendChild(tr);
   });
 
-  // pie chart (using createChart for standardization)
-  const backgroundColors = labels.map((_,i)=>`hsl(${i*40 % 360} 70% 55%)`);
-  
-  if(teamPieChart) teamPieChart.destroy();
-  
-  createChart('teamPie', 'pie', {
-    labels: labels,
-    datasets: [{ 
-      data: values, 
-      backgroundColor: backgroundColors,
-      hoverOffset: 4
-    }]
-  }, {
-    scales: { x: { display: false }, y: { display: false } } // Hide scales for pie chart
-  });
+// Sort descending
+const sorted = labels.map((l,i)=>({
+  label:l,
+  value:values[i]
+})).sort((a,b)=>b.value-a.value);
 
-  teamPieChart = chartInstances['teamPie']; // Update reference
+// 🔥 Show Top 6 only
+const top = sorted.slice(0,10);
+const others = sorted.slice(10);
+
+let finalLabels = top.map(x=>x.label);
+let finalValues = top.map(x=>x.value);
+
+if(others.length > 0){
+  const othersTotal = others.reduce((a,b)=>a+b.value,0);
+  finalLabels.push('Others');
+  finalValues.push(othersTotal);
+}
+
+const total = finalValues.reduce((a,b)=>a+b,0);
+
+const colors = finalLabels.map((_,i)=>
+  `hsl(${i*45 % 360} 70% 55%)`
+);
+
+if(teamPieChart) teamPieChart.destroy();
+
+createChart('teamPie', 'doughnut', {
+  labels: finalLabels,
+  datasets: [{
+    data: finalValues,
+    backgroundColor: colors,
+    borderWidth: 2
+  }]
+},{
+  cutout: '60%',
+  plugins:{
+    legend:{
+      position:'bottom',
+      labels:{
+        boxWidth:12,
+        padding:15
+      }
+    },
+    tooltip:{
+      callbacks:{
+        label:function(ctx){
+          const value = ctx.raw;
+          const percent = ((value/total)*100).toFixed(1);
+          return `${ctx.label}: ₹${value.toLocaleString()} (${percent}%)`;
+        }
+      }
+    }
+  }
+});
+
+teamPieChart = chartInstances['teamPie']; // Update reference
 }
 
 function renderTeamSupply(){
@@ -1618,15 +1899,20 @@ async function renderForCurrentTab(){
   // Apply date and product type filters to the main inventory/supplies lists if needed before rendering.
   // For this application, filtering is handled by the `post` calls in ledgers or is simple in-memory in other render functions.
   // For complex filtering, you'd call a new API function here. Since we don't have that, we render as is.
-  if(currentTab === 'stock') renderStock();
-  else if(currentTab === 'minStock') renderMinStock();
-  else if(currentTab === 'expiry') renderExpiry();
+if(currentTab === 'stock'){
+  renderStock();
+  renderProductConsolidatedChart();
+}
+else if(currentTab === 'dashboard') renderDashboard();  
+else if(currentTab === 'minStock') renderMinStock();
+  else if(currentTab === 'expiry') renderExpiredSummary();
   else if(currentTab === 'receipts') renderReceipts();
   else if(currentTab === 'teamSupply') { renderTeamSummary(); renderTeamSupply(); }
   else if(currentTab === 'productLedger') renderProductLedger();
   else if(currentTab === 'employeeLedger') renderEmployeeLedger();
 else if(currentTab === 'employeeDistribution') renderEmployeeDistribution();
 else if(currentTab === 'productDistribution') renderProductDistribution();
+autoFormatSummaryCards();
 }
 
 function openEmpDistModal(){
@@ -1656,9 +1942,510 @@ function closeProdDistModal(){
 /* ---------- Initial load ---------- */
 (async ()=>{
   await loadAll();
-  switchTab(null, 'stock');
+  switchTab(null, 'dashboard');
 })();
+
+
+document.addEventListener('DOMContentLoaded', function(){
+
+  const valBtn = document.getElementById('toggleValue');
+  const qtyBtn = document.getElementById('toggleQty');
+
+  if(valBtn && qtyBtn){
+
+    valBtn.onclick = () => {
+      consolidatedMode = 'value';
+      renderProductConsolidatedChart();
+    };
+
+    qtyBtn.onclick = () => {
+      consolidatedMode = 'qty';
+      renderProductConsolidatedChart();
+    };
+  }
+
+});
+
+
+document.addEventListener('DOMContentLoaded', function(){
+
+  const valBtn = document.getElementById('toggleValue');
+  const qtyBtn = document.getElementById('toggleQty');
+
+  if(!valBtn || !qtyBtn) return;
+
+  function updateToggleUI(){
+    if(consolidatedMode === 'value'){
+      valBtn.classList.add('bg-indigo-600','text-white');
+      valBtn.classList.remove('border');
+
+      qtyBtn.classList.remove('bg-indigo-600','text-white');
+      qtyBtn.classList.add('border');
+    } else {
+      qtyBtn.classList.add('bg-indigo-600','text-white');
+      qtyBtn.classList.remove('border');
+
+      valBtn.classList.remove('bg-indigo-600','text-white');
+      valBtn.classList.add('border');
+    }
+  }
+
+  valBtn.onclick = () => {
+    consolidatedMode = 'value';
+    updateToggleUI();
+    renderProductConsolidatedChart();
+  };
+
+  qtyBtn.onclick = () => {
+    consolidatedMode = 'qty';
+    updateToggleUI();
+    renderProductConsolidatedChart();
+  };
+
+});
+
+function openProductDetailPopup(productName){
+
+  const rows = inventory.filter(r =>
+    r.Product === productName && num(r.Qty) > 0
+  );
+
+  if(rows.length === 0) return;
+
+  let html = `
+  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" id="prodPopup">
+    <div class="bg-white w-[90%] max-w-4xl rounded-xl shadow-xl p-6 relative">
+      <button onclick="document.getElementById('prodPopup').remove()"
+        class="absolute top-3 right-3 text-red-600 font-bold text-lg">✕</button>
+
+      <h3 class="text-xl font-bold mb-4">${productName} - Batch Details</h3>
+
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="p-3 text-left">Product Name</th>
+              <th class="p-3 text-left">Batch</th>
+              <th class="p-3 text-left">Expiry</th>
+              <th class="p-3 text-right">Qty</th>
+              <th class="p-3 text-right">MRP</th>
+              <th class="p-3 text-right">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+  rows.forEach(r=>{
+    const value = num(r.Qty) * num(r.MRP);
+
+    html += `
+      <tr class="border-t">
+        <td class="p-3">${r.Product}</td>
+        <td class="p-3">${r.Batch}</td>
+        <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+</td>
+        <td class="p-3 text-right">${r.Qty}</td>
+        <td class="p-3 text-right">₹${num(r.MRP).toFixed(2)}</td>
+        <td class="p-3 text-right font-semibold text-indigo-600">
+          ₹${value.toFixed(2)}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function renderExpiredSummary(){
+
+  const tbody = document.querySelector('#expiryTable tbody');
+  tbody.innerHTML = '';
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const map = {};
+
+  inventory.forEach(r => {
+
+    if(!r.Expiry || num(r.Qty) <= 0) return;
+
+    const expiryStr = fmtExpiryMMYYYY(r.Expiry);
+    if(!/^\d{2}-\d{4}$/.test(expiryStr)) return;
+
+    const [mm, yyyy] = expiryStr.split('-').map(Number);
+    const expDate = new Date(yyyy, mm, 0);
+    expDate.setHours(23,59,59,999);
+
+    const sixMonthsLater = new Date();
+    sixMonthsLater.setMonth(sixMonthsLater.getMonth()+6);
+
+    const product = r.Product || 'Unknown';
+
+    if(!map[product]){
+      map[product] = {
+        expiredQty:0,
+        shortQty:0,
+        mrp:num(r.MRP),
+        value:0
+      };
+    }
+
+    if(expDate < today){
+  map[product].expiredQty += num(r.Qty);
+}
+
+if(expDate >= today && expDate <= sixMonthsLater){
+  map[product].shortQty += num(r.Qty);
+}
+
+  });
+
+  Object.keys(map)
+  .map(product => {
+
+    const d = map[product];
+    const totalQty = d.expiredQty + d.shortQty;
+    const totalValue = totalQty * d.mrp;
+
+    return {
+      product,
+      expiredQty: d.expiredQty,
+      shortQty: d.shortQty,
+      mrp: d.mrp,
+      totalValue
+    };
+
+  })
+  .filter(d => d.expiredQty > 0 || d.shortQty > 0)
+
+  // 🔥 SORT DESCENDING BY TOTAL VALUE
+  .sort((a, b) => b.totalValue - a.totalValue)
+
+  .forEach(d => {
+
+    const tr = document.createElement('tr');
+    tr.classList.add('cursor-pointer','hover:bg-red-50');
+
+    tr.innerHTML = `
+      <td class="p-3 font-semibold">${escapeHtml(d.product)}</td>
+      <td class="p-3 text-right text-red-600 font-bold">${d.expiredQty}</td>
+      <td class="p-3 text-right text-orange-500 font-semibold">${d.shortQty}</td>
+      <td class="p-3 text-right">${d.mrp.toFixed(2)}</td>
+      <td class="p-3 text-right font-bold text-indigo-600">
+        ₹${d.totalValue.toFixed(2)}
+      </td>
+    `;
+
+    tr.onclick = () => openExpiredDetailPopup(d.product);
+
+    tbody.appendChild(tr);
+  });
+
+}
+
+function openExpiredDetailPopup(productName){
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const rows = inventory.filter(r => 
+    r.Product === productName && num(r.Qty) > 0
+  );
+
+  if(rows.length === 0) return;
+
+  let html = `
+  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" id="expiredPopup">
+    <div class="bg-white w-[95%] max-w-5xl rounded-xl shadow-xl p-6 relative">
+      <button onclick="document.getElementById('expiredPopup').remove()"
+        class="absolute top-3 right-3 text-red-600 font-bold text-lg">✕</button>
+
+      <h3 class="text-xl font-bold mb-4">
+        ${escapeHtml(productName)} - Batch Expiry Details
+      </h3>
+
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="p-3 text-left">Batch</th>
+              <th class="p-3 text-left">Expiry</th>
+              <th class="p-3 text-right">Qty</th>
+              <th class="p-3 text-right">MRP</th>
+              <th class="p-3 text-right">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+  `;
+
+  rows.forEach(r => {
+
+    const value = num(r.Qty) * num(r.MRP);
+
+    html += `
+      <tr class="border-t">
+        <td class="p-3">${escapeHtml(r.Batch||'')}</td>
+        <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
+          ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
+        </td>
+        <td class="p-3 text-right">${r.Qty}</td>
+        <td class="p-3 text-right">₹${num(r.MRP).toFixed(2)}</td>
+        <td class="p-3 text-right font-semibold text-indigo-600">
+          ₹${value.toFixed(2)}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+
+function renderDashboard(){
+
+  const filteredInventory = inventory.filter(r => num(r.Qty) > 0);
+
+  // TOTAL PRODUCTS (consolidated)
+  const productSet = new Set(filteredInventory.map(r => r.Product));
+  document.getElementById('dbTotalProducts').textContent = productSet.size;
+
+  // TOTAL VALUE
+  let totalValue = 0;
+  filteredInventory.forEach(r=>{
+    totalValue += num(r.Qty) * num(r.MRP);
+  });
+  document.getElementById('dbTotalValue').textContent = '₹'+totalValue.toFixed(2);
+
+  // EXPIRY SUMMARY
+  let expiredQty=0, expiredVal=0, shortQty=0, shortVal=0;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sixMonths = new Date(); sixMonths.setMonth(sixMonths.getMonth()+6);
+
+  filteredInventory.forEach(r=>{
+    if(!r.Expiry) return;
+    const expiryStr = fmtExpiryMMYYYY(r.Expiry);
+    if(!/^\d{2}-\d{4}$/.test(expiryStr)) return;
+
+    const [mm,yy] = expiryStr.split('-').map(Number);
+    const expDate = new Date(yy,mm,0);
+
+    const value = num(r.Qty)*num(r.MRP);
+
+    if(expDate < today){
+      expiredQty += num(r.Qty);
+      expiredVal += value;
+    } else if(expDate <= sixMonths){
+      shortQty += num(r.Qty);
+      shortVal += value;
+    }
+  });
+
+  document.getElementById('dbExpired').textContent =
+    expiredQty+' / ₹'+expiredVal.toFixed(2);
+
+  document.getElementById('dbShortExpiry').textContent =
+    shortQty+' / ₹'+shortVal.toFixed(2);
+
+  document.getElementById('dbReceipts').textContent = receipts.length;
+  document.getElementById('dbSupplies').textContent = supplies.length;
+
+  // PRODUCT CHART (Top 10 by value)
+  const productMap = {};
+  filteredInventory.forEach(r=>{
+    productMap[r.Product] =
+      (productMap[r.Product]||0) + num(r.Qty)*num(r.MRP);
+  });
+
+  const sortedProducts = Object.entries(productMap)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,10);
+
+  createChart('dbProductChart','bar',{
+    labels: sortedProducts.map(x=>x[0]),
+    datasets:[{
+      label:'Stock Value',
+      data: sortedProducts.map(x=>x[1]),
+      backgroundColor:'rgba(79,70,229,0.7)',
+      borderRadius:6
+    }]
+  });
+
+  // PRODUCT TYPE CHART
+  const typeMap = {};
+  filteredInventory.forEach(r=>{
+    typeMap[r.Type] =
+      (typeMap[r.Type]||0) + num(r.Qty)*num(r.MRP);
+  });
+
+  createChart('dbTypeChart','pie',{
+    labels:Object.keys(typeMap),
+    datasets:[{
+      data:Object.values(typeMap)
+    }]
+  });
+
+  // TEAM SUPPLY CHART
+  const teamMap = {};
+  supplies.forEach(s=>{
+    teamMap[s.Team] =
+      (teamMap[s.Team]||0) + num(s['Total Value']);
+  });
+
+  createChart('dbTeamChart','doughnut',{
+    labels:Object.keys(teamMap),
+    datasets:[{
+      data:Object.values(teamMap)
+    }]
+  });
+
+  // PRODUCT DISTRIBUTION
+  const distMap = {};
+  supplies.forEach(s=>{
+    const p = s.Product || s['Item Supplied'];
+    distMap[p] = (distMap[p]||0) + num(s.Qty);
+  });
+
+  const sortedDist = Object.entries(distMap)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,10);
+
+  createChart('dbDistributionChart','bar',{
+    labels: sortedDist.map(x=>x[0]),
+    datasets:[{
+      label:'Qty Distributed',
+      data: sortedDist.map(x=>x[1]),
+      backgroundColor:'rgba(16,185,129,0.7)',
+      borderRadius:6
+    }]
+  });
+// TOP 10 EMPLOYEES BY VALUE
+const empMap = {};
+
+supplies.forEach(s=>{
+  const empCode = s['Supply to (Emp ID)'] || s['Employee Code'] || '';
+  const empName = s['Employee Name'] || s['Emp Name'] || empCode;
+
+  if(!empName) return;
+
+  empMap[empName] =
+    (empMap[empName] || 0) + num(s['Total Value'] || 0);
+});
+
+const topEmployees = Object.entries(empMap)
+  .sort((a,b)=>b[1]-a[1])
+  .slice(0,10);
+
+const empTbody = document.getElementById('dbTopEmployees');
+empTbody.innerHTML = '';
+
+topEmployees.forEach(e=>{
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="p-3 font-medium">${escapeHtml(e[0])}</td>
+    <td class="p-3 text-right font-semibold text-indigo-600">
+      ₹${e[1].toFixed(2)}
+    </td>
+  `;
+  empTbody.appendChild(tr);
+});
+
+// TOP 10 PRODUCTS BY DISTRIBUTION VALUE
+const prodMap = {};
+
+supplies.forEach(s=>{
+  const product = s.Product || s['Item Supplied'] || '';
+  if(!product) return;
+
+  prodMap[product] =
+    (prodMap[product] || 0) + num(s['Total Value'] || 0);
+});
+
+const topProducts = Object.entries(prodMap)
+  .sort((a,b)=>b[1]-a[1])
+  .slice(0,10);
+
+const prodTbody = document.getElementById('dbTopProducts');
+prodTbody.innerHTML = '';
+
+topProducts.forEach(p=>{
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="p-3 font-medium">${escapeHtml(p[0])}</td>
+    <td class="p-3 text-right font-semibold text-emerald-600">
+      ₹${p[1].toFixed(2)}
+    </td>
+  `;
+  prodTbody.appendChild(tr);
+});
+}
+
+
+function autoFormatSummaryCards() {
+
+  const ids = [
+    'dbTotalProducts','dbTotalValue','dbExpired','dbShortExpiry',
+    'dbReceipts','dbSupplies',
+
+    'totalStockValue','uniqueProductsCount','minStockBatches',
+
+    'rsCount','rsQty','rsValue',
+
+    'plProducts','plBatches','plReceived','plSupplied',
+    'plRemaining','plValue',
+
+    'elTrans','elQty','elValue',
+
+    'edTotalEmp','edTotalQty','edTotalValue',
+
+    'pdTotalProducts','pdTotalQty','pdTotalValue'
+  ];
+
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    let text = el.textContent.replace(/₹|,/g,'').trim();
+
+    // Handle special cases like "0 / ₹0"
+    if (text.includes('/')) {
+      const parts = text.split('/').map(p => p.trim());
+      const left = formatIndianNumber(parts[0].replace(/₹|,/g,''), false);
+      const right = formatIndianNumber(parts[1].replace(/₹|,/g,''), true);
+      el.textContent = left + ' / ' + right;
+      return;
+    }
+
+    const isCurrency = el.textContent.includes('₹');
+
+    el.textContent = formatIndianNumber(text, isCurrency);
+  });
+
+}
+
+
+
+
 </script>
+
+
+
 
 <!-- Employee Distribution Modal -->
 <div id="empDistModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
