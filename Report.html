@@ -649,12 +649,32 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
     <h3 class="text-2xl font-bold text-slate-700">Employee Distribution</h3>
     <div class="text-sm text-slate-500 mt-1">Consolidated staff-wise supply summary.</div>
     <div class="flex flex-wrap items-center gap-3 text-sm mt-3">
+      <label class="font-medium">Team</label>
+      <select id="empDistTeam" class="border rounded-lg px-3 py-1" onchange="renderEmployeeDistribution()">
+        <option value="">All Teams</option>
+      </select>
       <label class="font-medium">Supply Date From</label>
       <input id="empDistFrom" type="date" class="border rounded-lg px-2 py-1" />
       <label class="font-medium">Supply Date To</label>
       <input id="empDistTo" type="date" class="border rounded-lg px-2 py-1" />
       <button onclick="renderEmployeeDistribution()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
       <button onclick="clearEmployeeDistributionFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
+    </div>
+  </div>
+
+  <!-- Team Summary Cards -->
+  <div id="teamSummaryCards" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" style="display:none;">
+    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm">
+      <div class="text-xs font-medium text-blue-700">Employees in Team</div>
+      <div id="edTeamEmpCount" class="text-2xl font-extrabold mt-1 text-blue-800">0</div>
+    </div>
+    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
+      <div class="text-xs font-medium text-emerald-700">Team Qty Distributed</div>
+      <div id="edTeamQty" class="text-2xl font-extrabold mt-1 text-emerald-800">0</div>
+    </div>
+    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
+      <div class="text-xs font-medium text-amber-700">Team Distribution Value</div>
+      <div id="edTeamValue" class="text-2xl font-extrabold mt-1 text-amber-800">₹0</div>
     </div>
   </div>
 
@@ -1749,10 +1769,12 @@ function renderEmployeeDistribution(){
   }
 
   const empMap = {};
+  const teamSet = new Set();
   
   // Get local date filters
   const f = document.getElementById('empDistFrom').value;
   const t = document.getElementById('empDistTo').value;
+  const selectedTeam = document.getElementById('empDistTeam').value;
   
   let filtered = supplies;
   if(f || t) {
@@ -1775,6 +1797,27 @@ function renderEmployeeDistribution(){
     });
   }
 
+  // Collect all teams for dropdown
+  filtered.forEach(r => {
+    const team = r.Team || r['Department'] || r['Designation'] || 'Unassigned';
+    teamSet.add(team);
+  });
+
+  // Populate team dropdown
+  const teamSelect = document.getElementById('empDistTeam');
+  const teamOptions = Array.from(teamSet).sort();
+  
+  // Update options if needed
+  if(teamSelect.options.length <= 1) {
+    teamSelect.innerHTML = '<option value="">All Teams</option>';
+    teamOptions.forEach(team => {
+      const opt = document.createElement('option');
+      opt.value = team;
+      opt.textContent = team;
+      teamSelect.appendChild(opt);
+    });
+  }
+
 filtered.forEach(r => {
 
     const empCode =
@@ -1787,12 +1830,18 @@ filtered.forEach(r => {
       r['Emp Name'] ||
       r['Employee Name'] ||
       '';
+      
+    const team = r.Team || r['Department'] || r['Designation'] || 'Unassigned';
+    
+    // Filter by selected team
+    if(selectedTeam && team !== selectedTeam) return;
 
     if(!empCode) return;
 
     if(!empMap[empCode]){
       empMap[empCode] = {
         name: empName,
+        team: team,
         supIds: new Set(),
         totalQty: 0,
         totalValue: 0
@@ -1812,7 +1861,7 @@ filtered.forEach(r => {
   });
 
 Object.entries(empMap)
-  .sort((a, b) => b[1].totalValue - a[1].totalValue) // 🔥 DESCENDING VALUE
+  .sort((a, b) => b[1].totalValue - a[1].totalValue)
   .forEach(([empCode, data]) => {
 
     const tr = document.createElement('tr');
@@ -1833,7 +1882,8 @@ Object.entries(empMap)
 
     summaryBody.appendChild(tr);
 });
-// ✅ Staffwise Summary
+
+// ✅ Overall Staffwise Summary
 let totalQty = 0, totalValue = 0;
 
 Object.values(empMap).forEach(d=>{
@@ -1844,6 +1894,28 @@ Object.values(empMap).forEach(d=>{
 document.getElementById('edTotalEmp').textContent = Object.keys(empMap).length;
 document.getElementById('edTotalQty').textContent = totalQty;
 document.getElementById('edTotalValue').textContent = '₹'+totalValue.toFixed(2);
+
+// ✅ Team Summary Cards (for selected team)
+if(selectedTeam) {
+  let teamEmpCount = 0;
+  let teamTotalQty = 0;
+  let teamTotalValue = 0;
+  
+  Object.values(empMap).forEach(emp => {
+    if(emp.team === selectedTeam) {
+      teamEmpCount++;
+      teamTotalQty += emp.totalQty;
+      teamTotalValue += emp.totalValue;
+    }
+  });
+  
+  document.getElementById('edTeamEmpCount').textContent = teamEmpCount;
+  document.getElementById('edTeamQty').textContent = teamTotalQty;
+  document.getElementById('edTeamValue').textContent = '₹'+teamTotalValue.toFixed(2);
+  document.getElementById('teamSummaryCards').style.display = 'grid';
+} else {
+  document.getElementById('teamSummaryCards').style.display = 'none';
+}
 }
 
 
@@ -2032,6 +2104,7 @@ function clearEmployeeLedgerFilters(){
 function clearEmployeeDistributionFilters(){
   document.getElementById('empDistFrom').value = '';
   document.getElementById('empDistTo').value = '';
+  document.getElementById('empDistTeam').value = '';
   renderEmployeeDistribution();
 }
 
@@ -2646,7 +2719,7 @@ function renderDashboard(){
   document.getElementById('dbReceipts').textContent = receipts.length;
   document.getElementById('dbSupplies').textContent = supplies.length;
 
-  // PRODUCT CHART (Top 10 by value)
+  // PRODUCT CHART (Top 15 by value with better styling)
   const productMap = {};
   filteredInventory.forEach(r=>{
     productMap[r.Product] =
@@ -2655,29 +2728,63 @@ function renderDashboard(){
 
   const sortedProducts = Object.entries(productMap)
     .sort((a,b)=>b[1]-a[1])
-    .slice(0,10);
+    .slice(0,15);
 
   createChart('dbProductChart','bar',{
-    labels: sortedProducts.map(x=>x[0]),
+    labels: sortedProducts.map(x=> {
+      // Truncate long labels to 30 chars
+      const name = x[0];
+      return name.length > 30 ? name.substring(0, 27) + '...' : name;
+    }),
     datasets:[{
-      label:'Stock Value',
+      label:'Stock Value (₹)',
       data: sortedProducts.map(x=>x[1]),
-      backgroundColor:'rgba(79,70,229,0.7)',
-      borderRadius:6
+      backgroundColor:[
+        'rgba(79,70,229,0.8)',
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(249, 115, 22, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(168, 85, 247, 0.8)',
+        'rgba(236, 72, 153, 0.8)',
+        'rgba(14, 165, 233, 0.8)',
+        'rgba(251, 146, 60, 0.8)',
+        'rgba(244, 63, 94, 0.8)',
+        'rgba(107, 114, 128, 0.8)',
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(139, 92, 246, 0.8)',
+        'rgba(217, 119, 6, 0.8)',
+        'rgba(30, 41, 59, 0.8)'
+      ],
+      borderRadius:6,
+      borderWidth: 1,
+      borderColor: '#fff'
     }]
   });
 
-  // PRODUCT TYPE CHART
+  // PRODUCT TYPE CHART (QTY based)
   const typeMap = {};
   filteredInventory.forEach(r=>{
     typeMap[r.Type] =
-      (typeMap[r.Type]||0) + num(r.Qty)*num(r.MRP);
+      (typeMap[r.Type]||0) + num(r.Qty);
   });
 
   createChart('dbTypeChart','pie',{
     labels:Object.keys(typeMap),
     datasets:[{
-      data:Object.values(typeMap)
+      data:Object.values(typeMap),
+      backgroundColor:[
+        'rgba(59, 130, 246, 0.7)',   // blue
+        'rgba(16, 185, 129, 0.7)',   // emerald
+        'rgba(249, 115, 22, 0.7)',   // orange
+        'rgba(168, 85, 247, 0.7)',   // purple
+        'rgba(236, 72, 153, 0.7)',   // pink
+        'rgba(14, 165, 233, 0.7)',   // sky
+        'rgba(251, 146, 60, 0.7)',   // orange-400
+        'rgba(244, 63, 94, 0.7)'     // rose
+      ],
+      borderWidth: 2,
+      borderColor: '#fff'
     }]
   });
 
@@ -2691,11 +2798,25 @@ function renderDashboard(){
   createChart('dbTeamChart','doughnut',{
     labels:Object.keys(teamMap),
     datasets:[{
-      data:Object.values(teamMap)
+      data:Object.values(teamMap),
+      backgroundColor:[
+        'rgba(79, 70, 229, 0.8)',    // indigo
+        'rgba(59, 130, 246, 0.8)',   // blue
+        'rgba(16, 185, 129, 0.8)',   // emerald
+        'rgba(249, 115, 22, 0.8)',   // orange
+        'rgba(168, 85, 247, 0.8)',   // purple
+        'rgba(236, 72, 153, 0.8)',   // pink
+        'rgba(14, 165, 233, 0.8)',   // sky
+        'rgba(251, 146, 60, 0.8)',   // orange-400
+        'rgba(244, 63, 94, 0.8)',    // rose
+        'rgba(107, 114, 128, 0.8)'   // slate
+      ],
+      borderWidth: 2,
+      borderColor: '#fff'
     }]
   });
 
-  // PRODUCT DISTRIBUTION
+  // PRODUCT DISTRIBUTION (Top 15 with better styling)
   const distMap = {};
   supplies.forEach(s=>{
     const p = s.Product || s['Item Supplied'];
@@ -2704,15 +2825,37 @@ function renderDashboard(){
 
   const sortedDist = Object.entries(distMap)
     .sort((a,b)=>b[1]-a[1])
-    .slice(0,10);
+    .slice(0,15);
 
   createChart('dbDistributionChart','bar',{
-    labels: sortedDist.map(x=>x[0]),
+    labels: sortedDist.map(x=> {
+      // Truncate long labels to 30 chars
+      const name = x[0];
+      return name.length > 30 ? name.substring(0, 27) + '...' : name;
+    }),
     datasets:[{
       label:'Qty Distributed',
       data: sortedDist.map(x=>x[1]),
-      backgroundColor:'rgba(16,185,129,0.7)',
-      borderRadius:6
+      backgroundColor:[
+        'rgba(16, 185, 129, 0.8)',
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(74, 222, 128, 0.8)',
+        'rgba(132, 204, 22, 0.8)',
+        'rgba(191, 144, 0, 0.8)',
+        'rgba(234, 179, 8, 0.8)',
+        'rgba(239, 68, 68, 0.8)',
+        'rgba(244, 63, 94, 0.8)',
+        'rgba(168, 85, 247, 0.8)',
+        'rgba(139, 92, 246, 0.8)',
+        'rgba(99, 102, 241, 0.8)',
+        'rgba(59, 130, 246, 0.8)',
+        'rgba(14, 165, 233, 0.8)',
+        'rgba(6, 182, 212, 0.8)',
+        'rgba(20, 184, 166, 0.8)'
+      ],
+      borderRadius:6,
+      borderWidth: 1,
+      borderColor: '#fff'
     }]
   });
 // TOP 10 EMPLOYEES BY VALUE
