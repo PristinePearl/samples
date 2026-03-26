@@ -7,46 +7,67 @@
   <link rel="icon" type="image/png" href="https://www.pristinepearlpharma.in/images/alt-logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- SheetJS for Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- Chart.js for all charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
   <style>
     body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
-    .sidebar-wrapper {
-      transition: transform 0.3s ease-in-out;
-    }
+    .sidebar-wrapper { transition: transform 0.3s ease-in-out; }
     .tab-active { background:#10b981; color:#fff; font-weight: 600; }
     .no-print { display: block; }
-    /* Ensure the chart container is stable */
-    .chart-container {
-        position: relative;
-        height: 320px; /* Fixed height for consistency */
+    .chart-container { position: relative; height: 320px; }
+
+    /* Sidebar nav scroll */
+    .sidebar-nav {
+      overflow-y: auto;
+      max-height: 220px;
+      padding-right: 4px;
+    }
+    .sidebar-nav::-webkit-scrollbar {
+      width: 5px;
+    }
+    .sidebar-nav::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 999px;
+    }
+    .sidebar-nav::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 999px;
+    }
+    .sidebar-nav::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Type filter pill styles */
+    .type-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 14px; border-radius: 999px; cursor: pointer;
+      font-size: 13px; font-weight: 600; border: 2px solid transparent;
+      transition: all .18s;
+      user-select: none;
+    }
+    .type-pill input[type=checkbox] { display: none; }
+    .type-pill.sample-pill { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; }
+    .type-pill.sample-pill.active { background: #0ea5e9; color: #fff; border-color: #0284c7; }
+    .type-pill.gift-pill   { background: #fce7f3; color: #be185d; border-color: #fbcfe8; }
+    .type-pill.gift-pill.active   { background: #ec4899; color: #fff; border-color: #db2777; }
+    .type-pill .pill-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .6; }
+
+    /* Active pill counter badge */
+    .filter-badge {
+      display: inline-block; background: #f59e0b; color: #fff;
+      border-radius: 999px; font-size: 10px; font-weight: 800;
+      padding: 1px 6px; margin-left: 4px; vertical-align: middle;
     }
 
     @media (max-width: 768px) {
       .sidebar-wrapper {
-        position: fixed;
-        z-index: 40;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        overflow-y: auto;
-        padding-top: 5rem;
-        transform: translateX(-100%);
-        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        position: fixed; z-index: 40; top: 0; left: 0;
+        height: 100vh; overflow-y: auto; padding-top: 5rem;
+        transform: translateX(-100%); box-shadow: 2px 0 5px rgba(0,0,0,0.1);
       }
-      .sidebar-wrapper.open {
-        transform: translateX(0);
-      }
-      .sidebar-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.4);
-        z-index: 35;
-      }
+      .sidebar-wrapper.open { transform: translateX(0); }
+      .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 35; }
+      .sidebar-nav { max-height: none; overflow-y: visible; }
     }
     .table-header-bg { background-color: #f7fafc; }
     @media print { .no-print { display: none } }
@@ -55,7 +76,6 @@
 <body class="bg-gray-100 text-slate-800">
 
 <script>
-/* IMPORTANT: The WEB_APP_URL is assumed to be defined by the user in the environment */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qrP12pYxhDsg5cG2zielynHmGDStg8TRyyi9oYGVnS-9_mbD4q/exec";
 </script>
 
@@ -63,293 +83,201 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 <header class="bg-white border-b px-4 py-3 sticky top-0 z-40 no-print shadow-md">
   <div class="max-w-7xl mx-auto flex items-center justify-between">
     <div class="flex items-center gap-3">
- <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" alt="Pristine Pearl Pharma Logo" class="w-20 h-20 object-contain rounded-lg" onerror="this.onerror=null;this.src='https://placehold.co/40x40/059669/ffffff?text=PP'">
+      <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" alt="Logo" class="w-20 h-20 object-contain rounded-lg" onerror="this.onerror=null;this.src='https://placehold.co/40x40/059669/ffffff?text=PP'">
       <div>
         <div class="text-xl font-bold">Inventory Reports</div>
         <div class="text-xs text-slate-500">Pristine Pearl Pharma</div>
       </div>
     </div>
-
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 flex-wrap">
       <button id="menuToggle" class="md:hidden p-2 rounded-lg border bg-gray-100 hover:bg-gray-200 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <button id="refreshBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 transition-colors text-sm">Refresh</button>
-      <button id="goBtn" class="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-sm">Go</button>
-      <button id="exportExcelBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 transition-colors text-sm">Export Excel</button>
-      <button id="exportCsvBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 transition-colors text-sm">Export CSV</button>
-      <a href="index.html" class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 transition-colors text-sm">Back</a>
+      <button id="refreshBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm">Refresh</button>
+      <button id="goBtn" class="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm">Go</button>
+      <button id="exportExcelBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm">Export Excel</button>
+      <button id="exportCsvBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm">Export CSV</button>
+      <a href="index.html" class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 text-sm">Back</a>
     </div>
   </div>
 </header>
 
-<!-- Sidebar Backdrop (for mobile) -->
 <div id="sidebarBackdrop" class="sidebar-backdrop hidden md:hidden" onclick="toggleSidebar()"></div>
 
 <main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-  <!-- Sidebar (full text) -->
-  <aside id="sidebar"
-  class="col-span-1 bg-white border rounded-xl p-4 shadow-lg sidebar-wrapper
-         md:sticky md:top-20 md:h-[calc(100vh-80px)] md:flex md:flex-col">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="col-span-1 bg-white border rounded-xl p-4 shadow-lg sidebar-wrapper md:sticky md:top-20 md:h-[calc(100vh-80px)] md:flex md:flex-col">
     <div class="text-lg font-bold text-slate-700 mb-4">Reports & Ledgers</div>
-    <div class="flex flex-col gap-2">
-<button class="sidebtn px-3 py-2 rounded-lg text-left tab-active hover:bg-gray-50 transition-colors"
-        data-target="dashboard"
-        onclick="switchTab(event)">
-  Home
-</button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50"
-        data-target="stock" onclick="switchTab(event)">Stock Summary</button>
+
+    <!-- Scrollable nav buttons -->
+    <div class="sidebar-nav flex flex-col gap-2 mb-2">
+      <button class="sidebtn px-3 py-2 rounded-lg text-left tab-active hover:bg-gray-50 transition-colors" data-target="dashboard" onclick="switchTab(event)">Home</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50" data-target="stock" onclick="switchTab(event)">Stock Summary</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="minStock" onclick="switchTab(event)">Minimum Stock</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="expiry" onclick="switchTab(event)">Expiry Tracker</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="receipts" onclick="switchTab(event)">Receipts Summary</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="teamSupply" onclick="switchTab(event)">Team Supply Report</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productLedger" onclick="switchTab(event)">Product Ledger</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeLedger" onclick="switchTab(event)">Employee Ledger</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeDistribution" onclick="switchTab(event)">Distribution - Staffwise</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productDistribution" onclick="switchTab(event)">Distribution - Productwise</button>
     </div>
-<button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors"
-        data-target="employeeDistribution"
-        onclick="switchTab(event)">
-  Distribution - Staffwise
-</button>
-<button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors"
-        data-target="productDistribution"
-        onclick="switchTab(event)">
-  Distribution - Productwise
-</button>
 
     <hr class="my-4 border-gray-200" />
 
-<div class="flex-1 overflow-hidden flex flex-col">
-  
-  <div class="text-sm font-semibold text-slate-600 mb-3">
-    Filters
-  </div>
+    <div class="flex-1 overflow-hidden flex flex-col">
+      <div class="text-sm font-semibold text-slate-600 mb-3">Filters</div>
 
-  <div class="mt-2 space-y-3 text-sm overflow-y-auto pr-2">
-      <div>
-        <label class="block text-xs font-medium text-slate-500">Product Type</label>
-        <select id="filterType" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"></select>
+      <!-- ===================== TYPE FILTER PILLS ===================== -->
+      <div class="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+          Inventory Type <span id="typeFilterBadge" class="filter-badge hidden">All</span>
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="type-pill sample-pill active" id="pillSample">
+            <input type="checkbox" id="chkSample" value="Sample" checked onchange="onTypePillChange()">
+            <span class="pill-dot"></span> Sample
+          </label>
+          <label class="type-pill gift-pill active" id="pillGift">
+            <input type="checkbox" id="chkGift" value="Gift" checked onchange="onTypePillChange()">
+            <span class="pill-dot"></span> Gift
+          </label>
+        </div>
+        <div id="typeFilterHint" class="text-xs text-slate-400 mt-2">Showing: All types</div>
       </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-500">Date From</label>
-        <input id="filterFrom" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-500">Date To</label>
-        <input id="filterTo" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-500">Search</label>
-        <input id="filterSearch" placeholder="Product, batch, employee..." class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+      <!-- ============================================================= -->
+
+      <div class="mt-1 space-y-3 text-sm overflow-y-auto pr-2">
+        <div>
+          <label class="block text-xs font-medium text-slate-500">Date From</label>
+          <input id="filterFrom" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500">Date To</label>
+          <input id="filterTo" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-500">Search</label>
+          <input id="filterSearch" placeholder="Product, batch, employee..." class="w-full border border-gray-300 rounded-lg px-3 py-2 mt-1 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+        </div>
       </div>
     </div>
   </aside>
 
   <!-- Content -->
   <section class="col-span-3 space-y-6">
-    <!-- Active label -->
     <div class="bg-white p-4 rounded-xl border shadow-sm">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="text-base text-slate-600 font-medium">Active Report: <strong id="activeLabel" class="text-indigo-600">Home</strong></div>
-        <div class="text-xs text-slate-500">Click the <strong class="text-indigo-600">Go</strong> button to apply filters.</div>
+        <!-- Live type filter badge in content area -->
+        <div id="activeTypeTag" class="hidden items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700">
+          <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.553.894l-4 2A1 1 0 016 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/></svg>
+          <span id="activeTypeText">All Types</span>
+        </div>
+        <div class="text-xs text-slate-500">Click <strong class="text-indigo-600">Go</strong> to apply filters.</div>
       </div>
     </div>
 
-    <!-- Panels -->
     <div id="panels" class="space-y-6">
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="panel bg-white p-4 rounded-xl border shadow-lg">
+      <!-- DASHBOARD -->
+      <div id="dashboard" class="panel bg-white p-4 rounded-xl border shadow-lg">
+        <div class="mb-6">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 class="text-2xl font-bold text-slate-700">Inventory Dashboard</h3>
+              <div id="dashboardDateRange" class="text-sm text-slate-500 mt-1">All period</div>
+            </div>
+            <div id="dbTypeIndicator" class="hidden px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200"></div>
+          </div>
+          <div class="text-sm text-slate-500 mt-2">Complete inventory overview.</div>
+        </div>
 
-  <div class="mb-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h3 class="text-2xl font-bold text-slate-700">Inventory Dashboard</h3>
-        <div id="dashboardDateRange" class="text-sm text-slate-500 mt-1">All period</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Products</div><div id="dbTotalProducts" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Inventory Value</div><div id="dbTotalValue" class="text-xl font-bold">₹0</div></div>
+          <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Total Expired Qty / Value</div><div id="dbExpired" class="text-xl font-bold">0 / ₹0</div></div>
+          <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Total Short Expiry Qty / Value</div><div id="dbShortExpiry" class="text-xl font-bold">0 / ₹0</div></div>
+          <div class="bg-blue-50 p-4 rounded-xl border"><div class="text-xs">Total Receipts</div><div id="dbReceipts" class="text-xl font-bold">0</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Total Supplies</div><div id="dbSupplies" class="text-xl font-bold">0</div></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-4 rounded-xl border shadow-sm"><h4 class="font-semibold mb-3">Product Chart</h4><div class="chart-container"><canvas id="dbProductChart"></canvas></div></div>
+          <div class="bg-white p-4 rounded-xl border shadow-sm"><h4 class="font-semibold mb-3">Product Type Chart</h4><div class="chart-container"><canvas id="dbTypeChart"></canvas></div></div>
+          <div class="bg-white p-4 rounded-xl border shadow-sm"><h4 class="font-semibold mb-3">Team Supply Value Distribution</h4><div class="chart-container"><canvas id="dbTeamChart"></canvas></div></div>
+          <div class="bg-white p-4 rounded-xl border shadow-sm"><h4 class="font-semibold mb-3">Product Distribution</h4><div class="chart-container"><canvas id="dbDistributionChart"></canvas></div></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+          <div class="bg-white p-4 rounded-xl border shadow-sm">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Top 10 Employees - Distribution Value</h4>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm"><thead class="bg-gray-50 border-b"><tr><th class="p-3 text-left">Employee</th><th class="p-3 text-right">Total Value (₹)</th></tr></thead><tbody id="dbTopEmployees" class="divide-y divide-gray-100"></tbody></table>
+            </div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border shadow-sm">
+            <h4 class="text-lg font-semibold mb-3 text-slate-700">Top 10 Products - Distribution Value</h4>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm"><thead class="bg-gray-50 border-b"><tr><th class="p-3 text-left">Product</th><th class="p-3 text-right">Total Value (₹)</th></tr></thead><tbody id="dbTopProducts" class="divide-y divide-gray-100"></tbody></table>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="text-sm text-slate-500 mt-2">Complete inventory overview.</div>
-  </div>
-
-  <!-- SUMMARY CARDS -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-
-    <div class="bg-indigo-50 p-4 rounded-xl border">
-      <div class="text-xs">Total Products</div>
-      <div id="dbTotalProducts" class="text-xl font-bold">0</div>
-    </div>
-
-    <div class="bg-emerald-50 p-4 rounded-xl border">
-      <div class="text-xs">Total Inventory Value</div>
-      <div id="dbTotalValue" class="text-xl font-bold">₹0</div>
-    </div>
-
-    <div class="bg-red-50 p-4 rounded-xl border">
-      <div class="text-xs">Total Expired Qty / Value</div>
-      <div id="dbExpired" class="text-xl font-bold">0 / ₹0</div>
-    </div>
-
-    <div class="bg-amber-50 p-4 rounded-xl border">
-      <div class="text-xs">Total Short Expiry Qty / Value</div>
-      <div id="dbShortExpiry" class="text-xl font-bold">0 / ₹0</div>
-    </div>
-
-    <div class="bg-blue-50 p-4 rounded-xl border">
-      <div class="text-xs">Total Receipts</div>
-      <div id="dbReceipts" class="text-xl font-bold">0</div>
-    </div>
-
-    <div class="bg-purple-50 p-4 rounded-xl border">
-      <div class="text-xs">Total Supplies</div>
-      <div id="dbSupplies" class="text-xl font-bold">0</div>
-    </div>
-
-  </div>
-
-  <!-- CHARTS -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-    <div class="bg-white p-4 rounded-xl border shadow-sm">
-      <h4 class="font-semibold mb-3">Product Chart</h4>
-      <div class="chart-container">
-        <canvas id="dbProductChart"></canvas>
-      </div>
-    </div>
-
-    <div class="bg-white p-4 rounded-xl border shadow-sm">
-      <h4 class="font-semibold mb-3">Product Type Chart</h4>
-      <div class="chart-container">
-        <canvas id="dbTypeChart"></canvas>
-      </div>
-    </div>
-
-    <div class="bg-white p-4 rounded-xl border shadow-sm">
-      <h4 class="font-semibold mb-3">Team Supply Value Distribution</h4>
-      <div class="chart-container">
-        <canvas id="dbTeamChart"></canvas>
-      </div>
-    </div>
-
-    <div class="bg-white p-4 rounded-xl border shadow-sm">
-      <h4 class="font-semibold mb-3">Product Distribution</h4>
-      <div class="chart-container">
-        <canvas id="dbDistributionChart"></canvas>
-      </div>
-    </div>
-
-  </div>
-
-<!-- TOP 10 DISTRIBUTION TABLES -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-
-  <!-- Top 10 Employees -->
-  <div class="bg-white p-4 rounded-xl border shadow-sm">
-    <h4 class="text-lg font-semibold mb-3 text-slate-700">
-      Top 10 Employees - Distribution Value
-    </h4>
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50 border-b">
-          <tr>
-            <th class="p-3 text-left">Employee</th>
-            <th class="p-3 text-right">Total Value (₹)</th>
-          </tr>
-        </thead>
-        <tbody id="dbTopEmployees" class="divide-y divide-gray-100"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- Top 10 Products -->
-  <div class="bg-white p-4 rounded-xl border shadow-sm">
-    <h4 class="text-lg font-semibold mb-3 text-slate-700">
-      Top 10 Products - Distribution Value
-    </h4>
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-50 border-b">
-          <tr>
-            <th class="p-3 text-left">Product</th>
-            <th class="p-3 text-right">Total Value (₹)</th>
-          </tr>
-        </thead>
-        <tbody id="dbTopProducts" class="divide-y divide-gray-100"></tbody>
-      </table>
-    </div>
-  </div>
-
-</div>
-
-</div>
 
       <!-- STOCK -->
       <div id="stock" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-start mb-4 gap-3">
           <div>
             <h3 class="text-2xl font-bold text-slate-700">Stock Summary</h3>
             <div class="text-sm text-slate-500 mt-1">Current inventory snapshot with key metrics.</div>
             <div id="stockDateRange" class="text-xs font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg inline-block mt-2">All period</div>
           </div>
-          <div class="text-sm text-slate-500">Total Batches: <span id="stockCount" class="font-bold text-slate-700">0</span></div>
+          <!-- Stock-specific date filters -->
+          <div class="flex flex-wrap items-center gap-2 text-sm bg-slate-50 border rounded-xl p-3">
+            <span class="font-semibold text-slate-600 mr-1">📅 Date Filter</span>
+            <label class="text-xs text-slate-500">From</label>
+            <input id="stockFrom" type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:border-indigo-500" />
+            <label class="text-xs text-slate-500">To</label>
+            <input id="stockTo" type="date" class="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:border-indigo-500" />
+            <button onclick="applyStockFilters()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
+            <button onclick="clearStockFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
+            <div class="text-right ml-2 text-xs text-slate-500">Batches: <span id="stockCount" class="font-bold text-slate-700">0</span></div>
+          </div>
         </div>
 
-        <!-- NEW Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
-            <div class="text-xs font-medium text-emerald-700">Total Inventory Value</div>
-            <div id="totalStockValue" class="text-2xl font-extrabold mt-1 text-emerald-800">N/A</div>
-          </div>
-          <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 shadow-sm">
-            <div class="text-xs font-medium text-indigo-700">Unique Products</div>
-            <div id="uniqueProductsCount" class="text-2xl font-extrabold mt-1 text-indigo-800">N/A</div>
-          </div>
-          <div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
-            <div class="text-xs font-medium text-red-700">Expired Stock</div>
-            <div id="expiredQtyValue" class="text-xl font-extrabold mt-1 text-red-800">0 / ₹0</div>
-          </div>
-          <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
-            <div class="text-xs font-medium text-amber-700">Short Expiry Stock</div>
-            <div id="shortExpiryQtyValue" class="text-xl font-extrabold mt-1 text-amber-800">0 / ₹0</div>
-          </div>
-          <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm">
-            <div class="text-xs font-medium text-blue-700">Regular Stock</div>
-            <div id="regularStockQtyValue" class="text-xl font-extrabold mt-1 text-blue-800">0 / ₹0</div>
-          </div>
+          <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm"><div class="text-xs font-medium text-emerald-700">Total Inventory Value</div><div id="totalStockValue" class="text-2xl font-extrabold mt-1 text-emerald-800">N/A</div></div>
+          <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-200 shadow-sm"><div class="text-xs font-medium text-indigo-700">Unique Products</div><div id="uniqueProductsCount" class="text-2xl font-extrabold mt-1 text-indigo-800">N/A</div></div>
+          <div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm"><div class="text-xs font-medium text-red-700">Expired Stock</div><div id="expiredQtyValue" class="text-xl font-extrabold mt-1 text-red-800">0 / ₹0</div></div>
+          <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm"><div class="text-xs font-medium text-amber-700">Short Expiry Stock</div><div id="shortExpiryQtyValue" class="text-xl font-extrabold mt-1 text-amber-800">0 / ₹0</div></div>
+          <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm"><div class="text-xs font-medium text-blue-700">Regular Stock</div><div id="regularStockQtyValue" class="text-xl font-extrabold mt-1 text-blue-800">0 / ₹0</div></div>
         </div>
 
-        <!-- Product-wise Consolidated Chart -->
-<div class="bg-white p-4 rounded-xl border shadow-sm mb-6">
-  <div class="flex justify-between items-center mb-3">
-    <h4 class="text-lg font-semibold text-slate-700">
-      Product Chart
-    </h4>
+        <div class="bg-white p-4 rounded-xl border shadow-sm mb-6">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="text-lg font-semibold text-slate-700">Product Chart</h4>
+            <div class="flex gap-2 text-xs">
+              <button id="toggleValue" class="px-3 py-1 rounded bg-indigo-600 text-white">Value</button>
+              <button id="toggleQty" class="px-3 py-1 rounded border">Qty</button>
+            </div>
+          </div>
+          <div class="chart-container"><canvas id="productConsolidatedChart"></canvas></div>
+        </div>
 
-    <div class="flex gap-2 text-xs">
-      <button id="toggleValue"
-        class="px-3 py-1 rounded bg-indigo-600 text-white">
-        Value
-      </button>
-      <button id="toggleQty"
-        class="px-3 py-1 rounded border">
-        Qty
-      </button>
-    </div>
-  </div>
-
-  <div class="chart-container">
-    <canvas id="productConsolidatedChart"></canvas>
-  </div>
-</div>
-
-        <!-- Table (Existing, slightly styled) -->
         <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Inventory Snapshot</h4>
         <div class="overflow-x-auto rounded-lg border shadow-md">
           <table id="stockTable" class="min-w-full text-sm">
             <thead class="bg-gray-50 border-b"><tr>
-              <th class="p-3 text-left font-semibold text-gray-600">Type</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">MRP (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Last Updated</th>
+              <th class="p-3 text-left font-semibold text-gray-600">Type</th>
+              <th class="p-3 text-left font-semibold text-gray-600">Product</th>
+              <th class="p-3 text-left font-semibold text-gray-600">Batch</th>
+              <th class="p-3 text-left font-semibold text-gray-600">Expiry</th>
+              <th class="p-3 text-right font-semibold text-gray-600">Qty</th>
+              <th class="p-3 text-right font-semibold text-gray-600">MRP (₹)</th>
+              <th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th>
+              <th class="p-3 text-left font-semibold text-gray-600">Last Updated</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-100"></tbody>
           </table>
@@ -358,48 +286,30 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
       <!-- MIN STOCK -->
       <div id="minStock" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-        <div class="mb-6">
-          <h3 class="text-2xl font-bold text-slate-700">Minimum Stock</h3>
-          <div class="text-sm text-slate-500">Products below minimum stock levels (excluding 0 qty).</div>
-        </div>
-
+        <div class="mb-6"><h3 class="text-2xl font-bold text-slate-700">Minimum Stock</h3><div class="text-sm text-slate-500">Products below minimum stock levels (excluding 0 qty).</div></div>
         <div class="mb-6 bg-slate-50 p-4 rounded-xl">
           <label class="block text-sm font-semibold text-slate-600 mb-4">Filter by Minimum Quantity</label>
           <div class="flex items-center gap-4">
             <input id="minStockSlider" type="range" min="1" max="100" value="1" class="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer" />
-            <div class="text-right">
-              <div class="text-sm text-slate-600">Selected Qty:</div>
-              <div id="minStockSliderValue" class="text-2xl font-bold text-indigo-600">1</div>
-            </div>
+            <div class="text-right"><div class="text-sm text-slate-600">Selected Qty:</div><div id="minStockSliderValue" class="text-2xl font-bold text-indigo-600">1</div></div>
           </div>
-          <div class="text-xs text-slate-500 mt-2">Slider set to <strong id="sliderQtyText">1</strong> - showing only stocks with this quantity or higher</div>
+          <div class="text-xs text-slate-500 mt-2">Slider set to <strong id="sliderQtyText">1</strong> — showing only stocks with this quantity or higher</div>
         </div>
-
         <div class="bg-slate-50 p-4 rounded-xl mb-4">
           <div class="text-xs font-semibold text-slate-600 mb-2">Stats</div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <div class="text-xs text-slate-500">Total Products Matching</div>
-              <div id="msMatchingCount" class="text-2xl font-bold text-red-600">0</div>
-            </div>
-            <div>
-              <div class="text-xs text-slate-500">Total Qty</div>
-              <div id="msMatchingQty" class="text-2xl font-bold text-orange-600">0</div>
-            </div>
-            <div>
-              <div class="text-xs text-slate-500">Total Value</div>
-              <div id="msMatchingValue" class="text-2xl font-bold text-amber-600">₹0</div>
-            </div>
+            <div><div class="text-xs text-slate-500">Total Products Matching</div><div id="msMatchingCount" class="text-2xl font-bold text-red-600">0</div></div>
+            <div><div class="text-xs text-slate-500">Total Qty</div><div id="msMatchingQty" class="text-2xl font-bold text-orange-600">0</div></div>
+            <div><div class="text-xs text-slate-500">Total Value</div><div id="msMatchingValue" class="text-2xl font-bold text-amber-600">₹0</div></div>
           </div>
         </div>
-
-        <!-- Table Container -->
-        <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm">
+        <div class="bg-white p-4 rounded-xl border shadow-sm">
           <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Low Stock List</h4>
           <div class="overflow-x-auto rounded-lg border shadow-md max-h-96 overflow-y-auto">
             <table id="minTable" class="min-w-full text-sm">
               <thead class="bg-red-50 border-b sticky top-0"><tr>
-                <th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">MRP (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Type</th></tr></thead>
+                <th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">MRP (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Type</th>
+              </tr></thead>
               <tbody class="divide-y divide-gray-100"></tbody>
             </table>
           </div>
@@ -410,39 +320,25 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
       <div id="expiry" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
         <div class="flex justify-between items-center mb-6">
           <div><h3 class="text-2xl font-bold text-slate-700">Expiry Tracker</h3><div class="text-sm text-slate-500">Qty & Value of Expired / Short Expiry Stock.</div></div>
-          
         </div>
-
-        <!-- Summary Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
-            <div class="text-xs font-medium text-red-700">Expired Stock</div>
-            <div id="expiryExpiredQtyValue" class="text-xl font-extrabold mt-1 text-red-800">0 / ₹0</div>
-          </div>
-          <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
-            <div class="text-xs font-medium text-amber-700">Short Expiry Stock</div>
-            <div id="expiryShortQtyValue" class="text-xl font-extrabold mt-1 text-amber-800">0 / ₹0</div>
-          </div>
-          <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm">
-            <div class="text-xs font-medium text-blue-700">Regular Stock</div>
-            <div id="expiryRegularQtyValue" class="text-xl font-extrabold mt-1 text-blue-800">0 / ₹0</div>
-          </div>
+          <div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm"><div class="text-xs font-medium text-red-700">Expired Stock</div><div id="expiryExpiredQtyValue" class="text-xl font-extrabold mt-1 text-red-800">0 / ₹0</div></div>
+          <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm"><div class="text-xs font-medium text-amber-700">Short Expiry Stock</div><div id="expiryShortQtyValue" class="text-xl font-extrabold mt-1 text-amber-800">0 / ₹0</div></div>
+          <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm"><div class="text-xs font-medium text-blue-700">Regular Stock</div><div id="expiryRegularQtyValue" class="text-xl font-extrabold mt-1 text-blue-800">0 / ₹0</div></div>
         </div>
-
-          <!-- Table Container -->
-          <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm">
-            <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Expiry List</h4>
-            <div class="overflow-x-auto rounded-lg border shadow-md">
-              <table id="expiryTable" class="min-w-full text-sm">
-                <thead class="bg-amber-50 border-b"><tr>
-                  <th class="p-3 text-left font-semibold text-gray-600">Product</th>
-<th class="p-3 text-left font-semibold text-gray-600">Expired</th>
-<th class="p-3 text-left font-semibold text-gray-600">Short Expiry</th>
-<th class="p-3 text-right font-semibold text-gray-600">MRP</th>
-<th class="p-3 text-right font-semibold text-gray-600">Total Value</th></tr></thead>
-                <tbody class="divide-y divide-gray-100"></tbody>
-              </table>
-            </div>
+        <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm">
+          <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Expiry List</h4>
+          <div class="overflow-x-auto rounded-lg border shadow-md">
+            <table id="expiryTable" class="min-w-full text-sm">
+              <thead class="bg-amber-50 border-b"><tr>
+                <th class="p-3 text-left font-semibold text-gray-600">Product</th>
+                <th class="p-3 text-left font-semibold text-gray-600">Expired</th>
+                <th class="p-3 text-left font-semibold text-gray-600">Short Expiry</th>
+                <th class="p-3 text-right font-semibold text-gray-600">MRP</th>
+                <th class="p-3 text-right font-semibold text-gray-600">Total Value</th>
+              </tr></thead>
+              <tbody class="divide-y divide-gray-100"></tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -452,46 +348,33 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
         <div class="mb-6">
           <h3 class="text-2xl font-bold text-slate-700">Receipts Summary</h3>
           <div class="flex flex-wrap items-center gap-3 text-sm mt-3 mb-3">
-            <label class="font-medium">Receipt Date From</label>
+            <label class="font-medium">From</label>
             <input id="receiptsFrom" type="date" class="border rounded-lg px-2 py-1" />
-            <label class="font-medium">Receipt Date To</label>
+            <label class="font-medium">To</label>
             <input id="receiptsTo" type="date" class="border rounded-lg px-2 py-1" />
             <button onclick="renderReceipts()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
             <button onclick="clearReceiptsFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
           </div>
         </div>
-<!-- Receipts Summary Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-  <div class="bg-indigo-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Receipts Count</div>
-    <div id="rsCount" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-emerald-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Quantity Received</div>
-    <div id="rsQty" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-purple-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Receipt Value</div>
-    <div id="rsValue" class="text-xl font-bold">₹0</div>
-  </div>
-</div>
-<div class="text-sm text-slate-500">All received inventory items.</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Receipts Count</div><div id="rsCount" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Quantity Received</div><div id="rsQty" class="text-xl font-bold">0</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Total Receipt Value</div><div id="rsValue" class="text-xl font-bold">₹0</div></div>
+        </div>
         <div class="overflow-x-auto rounded-lg border shadow-md">
           <table id="receiptsTable" class="min-w-full text-sm">
             <thead class="table-header-bg border-b"><tr>
-              <th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Receipt ID</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-left font-semibold text-gray-600">Supplier</th><th class="p-3 text-right font-semibold text-gray-600">Amount (₹)</th></tr></thead>
+              <th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Receipt ID</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-left font-semibold text-gray-600">Supplier</th><th class="p-3 text-right font-semibold text-gray-600">Amount (₹)</th>
+            </tr></thead>
             <tbody class="divide-y divide-gray-100"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- TEAM SUPPLY (Original, adapted for new style) -->
+      <!-- TEAM SUPPLY -->
       <div id="teamSupply" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
         <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
-          <div>
-            <h3 class="text-2xl font-bold text-slate-700">Team Supply Report</h3>
-            <div class="text-sm text-slate-500">Summary of inventory supplied by team.</div>
-          </div>
+          <div><h3 class="text-2xl font-bold text-slate-700">Team Supply Report</h3><div class="text-sm text-slate-500">Summary of inventory supplied by team.</div></div>
           <div class="flex flex-wrap items-center gap-3 text-sm">
             <label class="font-medium">Team</label>
             <select id="filterTeam" class="border rounded-lg px-2 py-1"></select>
@@ -499,10 +382,9 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
             <input id="teamFrom" type="date" class="border rounded-lg px-2 py-1" />
             <label class="font-medium">To</label>
             <input id="teamTo" type="date" class="border rounded-lg px-2 py-1" />
-            <button id="refreshTeam" class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 transition-colors text-sm">Refresh Team Data</button>
+            <button id="refreshTeam" class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 text-sm">Refresh</button>
           </div>
         </div>
-
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div class="lg:col-span-2 bg-white p-4 rounded-xl border shadow-sm">
             <h4 class="text-lg font-semibold mb-3 text-slate-700">Team Supply Value Summary</h4>
@@ -515,12 +397,9 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
           </div>
           <div class="lg:col-span-1 bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-center items-center">
             <h4 class="text-lg font-semibold mb-3 text-slate-700">Value Distribution</h4>
-            <div class="chart-container w-full h-[300px]">
-              <canvas id="teamPie" class="w-full"></canvas>
-            </div>
+            <div class="chart-container w-full h-[300px]"><canvas id="teamPie" class="w-full"></canvas></div>
           </div>
         </div>
-
         <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Supply Transactions</h4>
         <div class="overflow-x-auto rounded-lg border shadow-md">
           <table id="teamSupplyTable" class="min-w-full text-sm">
@@ -532,41 +411,22 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
       <!-- PRODUCT LEDGER -->
       <div id="productLedger" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-<!-- Product Ledger Summary Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-  <div class="bg-indigo-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Products</div>
-    <div id="plProducts" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-blue-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Batches</div>
-    <div id="plBatches" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-emerald-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Received</div>
-    <div id="plReceived" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-red-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Supplied</div>
-    <div id="plSupplied" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-amber-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Remaining</div>
-    <div id="plRemaining" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-purple-50 p-4 rounded-xl border">
-    <div class="text-xs">Current Stock Value</div>
-    <div id="plValue" class="text-xl font-bold">₹0</div>
-  </div>
-</div>
-        <div class="flex justify-between items-center mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Products</div><div id="plProducts" class="text-xl font-bold">0</div></div>
+          <div class="bg-blue-50 p-4 rounded-xl border"><div class="text-xs">Total Batches</div><div id="plBatches" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Received</div><div id="plReceived" class="text-xl font-bold">0</div></div>
+          <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Total Supplied</div><div id="plSupplied" class="text-xl font-bold">0</div></div>
+          <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Total Remaining</div><div id="plRemaining" class="text-xl font-bold">0</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Current Stock Value</div><div id="plValue" class="text-xl font-bold">₹0</div></div>
+        </div>
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
           <div>
             <h3 class="text-2xl font-bold text-slate-700">Product Ledger (Batch-wise)</h3>
             <div class="text-sm text-slate-500 mt-1">View detailed in/out summary for a specific product.</div>
             <div class="flex flex-wrap items-center gap-3 text-sm mt-3">
-              <label class="font-medium">Receipt/Supply Date From</label>
+              <label class="font-medium">From</label>
               <input id="prodLedgerFrom" type="date" class="border rounded-lg px-2 py-1" />
-              <label class="font-medium">Receipt/Supply Date To</label>
+              <label class="font-medium">To</label>
               <input id="prodLedgerTo" type="date" class="border rounded-lg px-2 py-1" />
               <button onclick="renderProductLedger()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
               <button onclick="clearProductLedgerFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
@@ -586,30 +446,19 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
       <!-- EMPLOYEE LEDGER -->
       <div id="employeeLedger" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-<!-- Employee Ledger Summary Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-  <div class="bg-indigo-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Transactions</div>
-    <div id="elTrans" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-emerald-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Quantity Supplied</div>
-    <div id="elQty" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-purple-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Supply Value</div>
-    <div id="elValue" class="text-xl font-bold">₹0</div>
-  </div>
-</div>
-
-        <div class="flex justify-between items-center mb-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Transactions</div><div id="elTrans" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Quantity Supplied</div><div id="elQty" class="text-xl font-bold">0</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Total Supply Value</div><div id="elValue" class="text-xl font-bold">₹0</div></div>
+        </div>
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
           <div>
             <h3 class="text-2xl font-bold text-slate-700">Employee Ledger</h3>
             <div class="text-sm text-slate-500 mt-1">View all supplies distributed to a specific employee.</div>
             <div class="flex flex-wrap items-center gap-3 text-sm mt-3">
-              <label class="font-medium">Supply Date From</label>
+              <label class="font-medium">From</label>
               <input id="empLedgerFrom" type="date" class="border rounded-lg px-2 py-1" />
-              <label class="font-medium">Supply Date To</label>
+              <label class="font-medium">To</label>
               <input id="empLedgerTo" type="date" class="border rounded-lg px-2 py-1" />
               <button onclick="renderEmployeeLedger()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
               <button onclick="clearEmployeeLedgerFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
@@ -626,134 +475,168 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
           </table>
         </div>
       </div>
-    </div>
 
-<!-- EMPLOYEE DISTRIBUTION -->
-<div id="employeeDistribution" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-<!-- Staffwise Summary Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-  <div class="bg-indigo-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Employees</div>
-    <div id="edTotalEmp" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-emerald-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Qty Distributed</div>
-    <div id="edTotalQty" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-purple-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Distribution Value</div>
-    <div id="edTotalValue" class="text-xl font-bold">₹0</div>
-  </div>
-</div>
-  <div class="mb-6">
-    <h3 class="text-2xl font-bold text-slate-700">Employee Distribution</h3>
-    <div class="text-sm text-slate-500 mt-1">Consolidated staff-wise supply summary.</div>
-    <div class="flex flex-wrap items-center gap-3 text-sm mt-3">
-      <label class="font-medium">Team</label>
-      <select id="empDistTeam" class="border rounded-lg px-3 py-1" onchange="renderEmployeeDistribution()">
-        <option value="">All Teams</option>
-      </select>
-      <label class="font-medium">Supply Date From</label>
-      <input id="empDistFrom" type="date" class="border rounded-lg px-2 py-1" />
-      <label class="font-medium">Supply Date To</label>
-      <input id="empDistTo" type="date" class="border rounded-lg px-2 py-1" />
-      <button onclick="renderEmployeeDistribution()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
-      <button onclick="clearEmployeeDistributionFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
-    </div>
-  </div>
+      <!-- EMPLOYEE DISTRIBUTION -->
+      <div id="employeeDistribution" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Employees</div><div id="edTotalEmp" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Qty Distributed</div><div id="edTotalQty" class="text-xl font-bold">0</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Total Distribution Value</div><div id="edTotalValue" class="text-xl font-bold">₹0</div></div>
+        </div>
+        <div class="mb-6">
+          <h3 class="text-2xl font-bold text-slate-700">Employee Distribution</h3>
+          <div class="text-sm text-slate-500 mt-1">Consolidated staff-wise supply summary.</div>
+          <div class="flex flex-wrap items-center gap-3 text-sm mt-3">
+            <label class="font-medium">Team</label>
+            <select id="empDistTeam" class="border rounded-lg px-3 py-1" onchange="renderEmployeeDistribution()"><option value="">All Teams</option></select>
+            <label class="font-medium">From</label>
+            <input id="empDistFrom" type="date" class="border rounded-lg px-2 py-1" />
+            <label class="font-medium">To</label>
+            <input id="empDistTo" type="date" class="border rounded-lg px-2 py-1" />
+            <button onclick="renderEmployeeDistribution()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
+            <button onclick="clearEmployeeDistributionFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
+          </div>
+        </div>
+        <div id="teamSummaryCards" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" style="display:none;">
+          <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm"><div class="text-xs font-medium text-blue-700">Employees in Team</div><div id="edTeamEmpCount" class="text-2xl font-extrabold mt-1 text-blue-800">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm"><div class="text-xs font-medium text-emerald-700">Team Qty Distributed</div><div id="edTeamQty" class="text-2xl font-extrabold mt-1 text-emerald-800">0</div></div>
+          <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm"><div class="text-xs font-medium text-amber-700">Team Distribution Value</div><div id="edTeamValue" class="text-2xl font-extrabold mt-1 text-amber-800">₹0</div></div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border shadow-md mb-6">
+          <table id="empDistSummaryTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr>
+              <th class="p-3 text-left">Emp Code</th><th class="p-3 text-left">Emp Name</th><th class="p-3 text-right">Total Distribution</th><th class="p-3 text-right">Total Qty</th><th class="p-3 text-right">Total Value (₹)</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
 
-  <!-- Team Summary Cards -->
-  <div id="teamSummaryCards" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" style="display:none;">
-    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm">
-      <div class="text-xs font-medium text-blue-700">Employees in Team</div>
-      <div id="edTeamEmpCount" class="text-2xl font-extrabold mt-1 text-blue-800">0</div>
-    </div>
-    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 shadow-sm">
-      <div class="text-xs font-medium text-emerald-700">Team Qty Distributed</div>
-      <div id="edTeamQty" class="text-2xl font-extrabold mt-1 text-emerald-800">0</div>
-    </div>
-    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 shadow-sm">
-      <div class="text-xs font-medium text-amber-700">Team Distribution Value</div>
-      <div id="edTeamValue" class="text-2xl font-extrabold mt-1 text-amber-800">₹0</div>
-    </div>
-  </div>
+      <!-- PRODUCT DISTRIBUTION -->
+      <div id="productDistribution" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Products</div><div id="pdTotalProducts" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Qty Distributed</div><div id="pdTotalQty" class="text-xl font-bold">0</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Total Distribution Value</div><div id="pdTotalValue" class="text-xl font-bold">₹0</div></div>
+        </div>
+        <div class="mb-6">
+          <h3 class="text-2xl font-bold text-slate-700">Product Distribution</h3>
+          <div class="text-sm text-slate-500 mt-1">Consolidated product-wise supply summary.</div>
+          <div class="flex flex-wrap items-center gap-3 text-sm mt-3">
+            <label class="font-medium">From</label>
+            <input id="prodDistFrom" type="date" class="border rounded-lg px-2 py-1" />
+            <label class="font-medium">To</label>
+            <input id="prodDistTo" type="date" class="border rounded-lg px-2 py-1" />
+            <button onclick="renderProductDistribution()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
+            <button onclick="clearProductDistributionFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="prodDistSummaryTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr>
+              <th class="p-3 text-left">Product Name</th><th class="p-3 text-right">Total Distribution</th><th class="p-3 text-right">Total Qty</th><th class="p-3 text-right">Total Value (₹)</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+      </div>
 
-  <div class="overflow-x-auto rounded-lg border shadow-md mb-6">
-    <table id="empDistSummaryTable" class="min-w-full text-sm">
-      <thead class="table-header-bg border-b">
-        <tr>
-  <th class="p-3 text-left">Emp Code</th>
-  <th class="p-3 text-left">Emp Name</th>
-  <th class="p-3 text-right">Total Distribution</th>
-  <th class="p-3 text-right">Total Qty</th>
-  <th class="p-3 text-right">Total Value (₹)</th>
-</tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100"></tbody>
-    </table>
-  </div>
-</div>
-</div>
-<!-- PRODUCT DISTRIBUTION -->
-<div id="productDistribution" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-<!-- Productwise Summary Cards -->
-<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-  <div class="bg-indigo-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Products</div>
-    <div id="pdTotalProducts" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-emerald-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Qty Distributed</div>
-    <div id="pdTotalQty" class="text-xl font-bold">0</div>
-  </div>
-  <div class="bg-purple-50 p-4 rounded-xl border">
-    <div class="text-xs">Total Distribution Value</div>
-    <div id="pdTotalValue" class="text-xl font-bold">₹0</div>
-  </div>
-</div>
-
-  <div class="mb-6">
-    <h3 class="text-2xl font-bold text-slate-700">Product Distribution</h3>
-    <div class="text-sm text-slate-500 mt-1">Consolidated product-wise supply summary.</div>
-    <div class="flex flex-wrap items-center gap-3 text-sm mt-3">
-      <label class="font-medium">Supply Date From</label>
-      <input id="prodDistFrom" type="date" class="border rounded-lg px-2 py-1" />
-      <label class="font-medium">Supply Date To</label>
-      <input id="prodDistTo" type="date" class="border rounded-lg px-2 py-1" />
-      <button onclick="renderProductDistribution()" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
-      <button onclick="clearProductDistributionFilters()" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
     </div>
-  </div>
-
-  <div class="overflow-x-auto rounded-lg border shadow-md">
-    <table id="prodDistSummaryTable" class="min-w-full text-sm">
-      <thead class="table-header-bg border-b">
-        <tr>
-          <th class="p-3 text-left">Product Name</th>
-          <th class="p-3 text-right">Total Distribution</th>
-          <th class="p-3 text-right">Total Qty</th>
-          <th class="p-3 text-right">Total Value (₹)</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100"></tbody>
-    </table>
-  </div>
-</div>
-
   </section>
 </main>
 
 <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/20"><div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div></div>
 
-<script>
-/* ---------- Config & State ---------- */
-const API = WEB_APP_URL;
+<!-- Employee Distribution Modal -->
+<div id="empDistModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+  <div class="bg-white w-[95%] max-w-6xl rounded-xl shadow-2xl p-6 relative">
+    <button onclick="closeEmpDistModal()" class="absolute top-3 right-3 text-slate-500 hover:text-red-600 text-xl font-bold">✕</button>
+    <h3 class="text-xl font-bold text-slate-700 mb-4">Detailed Distribution</h3>
+    <div class="overflow-x-auto rounded-lg border shadow-md max-h-[60vh] overflow-y-auto">
+      <table id="empDistDetailTable" class="min-w-full text-sm">
+        <thead class="table-header-bg border-b"><tr><th class="p-3">Date</th><th class="p-3">Emp Code</th><th class="p-3">Emp Name</th><th class="p-3">Designation</th><th class="p-3">Product</th><th class="p-3">Batch</th><th class="p-3">Expiry</th><th class="p-3 text-right">Qty</th><th class="p-3 text-right">Total Value (₹)</th><th class="p-3">Remarks</th></tr></thead>
+        <tbody class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
+<!-- Product Distribution Modal -->
+<div id="prodDistModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+  <div class="bg-white w-[95%] max-w-5xl rounded-xl shadow-2xl p-6 relative">
+    <button onclick="closeProdDistModal()" class="absolute top-3 right-3 text-slate-500 hover:text-red-600 text-xl font-bold">✕</button>
+    <h3 class="text-xl font-bold text-slate-700 mb-4">Product Distribution Details</h3>
+    <div class="overflow-x-auto rounded-lg border shadow-md max-h-[60vh] overflow-y-auto">
+      <table id="prodDistDetailTable" class="min-w-full text-sm">
+        <thead class="table-header-bg border-b"><tr><th class="p-3">Date</th><th class="p-3">Emp Code</th><th class="p-3">Emp Name</th><th class="p-3">Product</th><th class="p-3">Batch</th><th class="p-3">Expiry</th><th class="p-3 text-right">Qty</th><th class="p-3 text-right">Total Value (₹)</th><th class="p-3">Remarks</th></tr></thead>
+        <tbody class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== CONFIG & STATE ===================== */
+const API = WEB_APP_URL;
 let inventory = [], products = [], staff = [], receipts = [], supplies = [], teams = [];
 let currentTab = 'dashboard';
-let chartInstances = {}; // Global map to store Chart.js instances
+let chartInstances = {};
+let consolidatedMode = 'value';
+let teamPieChart = null;
 
-/* ---------- Helpers ---------- */
+/* ===================== TYPE FILTER HELPERS ===================== */
+
+function getSelectedTypes() {
+  const types = [];
+  if (document.getElementById('chkSample').checked) types.push(document.getElementById('chkSample').value);
+  if (document.getElementById('chkGift').checked) types.push(document.getElementById('chkGift').value);
+  return types;
+}
+
+function onTypePillChange() {
+  const sampleChecked = document.getElementById('chkSample').checked;
+  const giftChecked   = document.getElementById('chkGift').checked;
+
+  document.getElementById('pillSample').classList.toggle('active', sampleChecked);
+  document.getElementById('pillGift').classList.toggle('active', giftChecked);
+
+  const both = sampleChecked && giftChecked;
+  const none = !sampleChecked && !giftChecked;
+
+  const hintEl = document.getElementById('typeFilterHint');
+  const badgeEl = document.getElementById('typeFilterBadge');
+  const activeTagEl = document.getElementById('activeTypeTag');
+  const activeTextEl = document.getElementById('activeTypeText');
+
+  if (both || none) {
+    hintEl.textContent = 'Showing: All types';
+    badgeEl.textContent = 'All';
+    badgeEl.className = 'filter-badge hidden';
+    activeTagEl.classList.add('hidden');
+    activeTagEl.classList.remove('flex');
+  } else {
+    const selectedLabel = sampleChecked ? 'Sample' : 'Gift';
+    hintEl.textContent = `Showing: ${selectedLabel} only`;
+    badgeEl.textContent = selectedLabel;
+    badgeEl.className = 'filter-badge';
+    activeTagEl.classList.remove('hidden');
+    activeTagEl.classList.add('flex');
+    activeTextEl.textContent = `Filtered: ${selectedLabel} only`;
+  }
+
+  renderForCurrentTab();
+}
+
+function filterByType(data, matchField = 'Type') {
+  const selected = getSelectedTypes();
+  if (selected.length === 0 || selected.length >= 2) return data;
+  return data.filter(r => {
+    const val = (r[matchField] || '').toLowerCase().trim();
+    return selected.some(s => val === s.toLowerCase().trim());
+  });
+}
+
+/* ===================== UTILITY FUNCTIONS ===================== */
 function showLoading(){ document.getElementById('loading').style.display = 'flex'; }
 function hideLoading(){ document.getElementById('loading').style.display = 'none'; }
 
@@ -771,8 +654,7 @@ async function post(action, payload = {}) {
   } catch (e) {
     hideLoading();
     console.error(e);
-    // Use an error message box instead of alert()
-    alert('API error — check console and WEB_APP_URL'); 
+    alert('API error — check console and WEB_APP_URL');
     return { success:false, message: String(e) };
   }
 }
@@ -781,146 +663,101 @@ function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/
 function num(v){ return Number(v)||0; }
 function formatIndianNumber(value, withCurrency = false) {
   const n = Number(value) || 0;
-
-  const formatted = n.toLocaleString('en-IN', {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0
-  });
-
+  const formatted = n.toLocaleString('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 0 });
   return withCurrency ? '₹' + formatted : formatted;
 }
-function getFilteredData(data, dateField = 'Date') {
-  const type = document.getElementById('filterType').value;
+
+function getFilteredData(data, dateField = 'Date', matchField = 'Type') {
   const from = document.getElementById('filterFrom').value;
-  const to = document.getElementById('filterTo').value;
+  const to   = document.getElementById('filterTo').value;
   const search = (document.getElementById('filterSearch').value || '').toLowerCase();
 
-  return data.filter(r => {
+  let result = filterByType(data, matchField);
 
-    // Product Type filter
-    if (type && r.Type !== type) return false;
-
-    // Date filter
+  return result.filter(r => {
     if (from || to) {
       const rawDate = r[dateField] || r['Receipt Date'] || r['Supply Date'] || r['Last Updated'];
       const d = new Date(rawDate);
       if (from && new Date(from) > d) return false;
-      if (to && new Date(to) < d) return false;
+      if (to   && new Date(to)   < d) return false;
     }
-
-    // Search filter
     if (search) {
       const rowText = JSON.stringify(r).toLowerCase();
       if (!rowText.includes(search)) return false;
     }
-
     return true;
   });
 }
 
-/* Date/expiry format utility */
 function fmtDDMMYYYY(d){
   if(!d) return '';
   const s = String(d).trim();
   if(/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
-  if(/^\d{2}-\d{4}$/.test(s)) return '01-' + s; // treat as 1st day -> convert
   const dt = new Date(s);
   if(!isNaN(dt)){
-    const dd = String(dt.getDate()).padStart(2,'0'), mm = String(dt.getMonth()+1).padStart(2,'0'), yy = dt.getFullYear();
-    return dd + '-' + mm + '-' + yy;
+    const dd=String(dt.getDate()).padStart(2,'0'), mm=String(dt.getMonth()+1).padStart(2,'0'), yy=dt.getFullYear();
+    return dd+'-'+mm+'-'+yy;
   }
   return s;
 }
+
 function fmtExpiryMMYYYY(v){
   if(!v) return '';
   const s = String(v).trim();
   if(/^\d{2}-\d{4}$/.test(s)) return s;
   const dt = new Date(s);
-  if(!isNaN(dt)) return String(dt.getMonth()+1).padStart(2,'0') + '-' + dt.getFullYear();
+  if(!isNaN(dt)) return String(dt.getMonth()+1).padStart(2,'0')+'-'+dt.getFullYear();
   const parts = s.split(/[-\/]/);
-  if(parts.length===3) return parts[1].padStart(2,'0') + '-' + (parts[2].length===2? '20'+parts[2] : parts[2]);
+  if(parts.length===3) return parts[1].padStart(2,'0')+'-'+(parts[2].length===2?'20'+parts[2]:parts[2]);
   return s;
 }
+
 function parseDDMMYYYY(str) {
   if (!str) return null;
   const s = String(str).trim();
-
-  // If format is DD-MM-YYYY
   if (/^\d{2}-\d{2}-\d{4}$/.test(s)) {
     const [dd, mm, yyyy] = s.split('-').map(Number);
     return new Date(yyyy, mm - 1, dd);
   }
-
   const d = new Date(s);
   return isNaN(d) ? null : d;
 }
 
 function getExpiryStatusClass(expiryValue) {
   if (!expiryValue) return '';
-
   const expiryStr = String(expiryValue).trim();
   if (!/^\d{2}-\d{4}$/.test(expiryStr)) return '';
-
   const [mm, yyyy] = expiryStr.split('-').map(Number);
-
-  // Expiry = LAST DAY of month
-  const expDate = new Date(yyyy, mm, 0); 
+  const expDate = new Date(yyyy, mm, 0);
   expDate.setHours(23,59,59,999);
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  const sixMonthsLater = new Date();
-  sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
-
-  if (expDate < today) {
-    return 'text-red-600 font-bold';       // 🔴 Expired
-  }
-
-  if (expDate >= today && expDate <= sixMonthsLater) {
-    return 'text-orange-500 font-semibold'; // 🟠 Short Expiry
-  }
-
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sixMonthsLater = new Date(); sixMonthsLater.setMonth(sixMonthsLater.getMonth()+6);
+  if (expDate < today) return 'text-red-600 font-bold';
+  if (expDate >= today && expDate <= sixMonthsLater) return 'text-orange-500 font-semibold';
   return '';
 }
 
-/* Generic Chart Helper - Updated for stability */
 function createChart(chartId, type, data, options = {}) {
-  if (chartInstances[chartId]) {
-    chartInstances[chartId].destroy();
-  }
+  if (chartInstances[chartId]) { chartInstances[chartId].destroy(); }
   const canvas = document.getElementById(chartId);
-  if (!canvas) {
-    console.error('Canvas element not found for chartId:', chartId);
-    return;
-  }
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  
-  // Default options for cleaner modern look - maintainAspectRatio: false is key for fixed containers
   const defaultOptions = {
-      responsive: true,
-      maintainAspectRatio: false, // Prevents the chart from resizing wildly and causing scroll issues
-      plugins: {
-          legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6, padding: 20 } },
-          title: { display: false }
-      },
-      scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
-      }
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position:'bottom', labels:{usePointStyle:true, boxWidth:6, padding:20} },
+      title: { display: false }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { beginAtZero: true, grid: { color:'rgba(0,0,0,0.05)' } }
+    }
   };
-
-  chartInstances[chartId] = new Chart(ctx, { 
-    type, 
-    data, 
-    options: {
-  ...defaultOptions,
-  ...options
-}
-  });
+  chartInstances[chartId] = new Chart(ctx, { type, data, options: {...defaultOptions, ...options} });
 }
 
-/* ---------- Loaders & Selectors ---------- */
+/* ===================== LOADERS ===================== */
 async function loadAll(){
   const [invR, prodR, staffR, recR, supR] = await Promise.all([
     post('getInventory', {}),
@@ -930,2114 +767,777 @@ async function loadAll(){
     post('getAllSupplies', {})
   ]);
   inventory = (invR && invR.success) ? invR.rows : [];
-  products = (prodR && prodR.success) ? prodR.products : [];
-  staff = (staffR && staffR.success) ? staffR.employees : [];
-  receipts = (recR && recR.success) ? recR.receipts : [];
-  supplies = (supR && supR.success) ? supR.supplies : [];
-
+  products  = (prodR && prodR.success) ? prodR.products : [];
+  staff     = (staffR && staffR.success) ? staffR.employees : [];
+  receipts  = (recR && recR.success) ? recR.receipts : [];
+  supplies  = (supR && supR.success) ? supR.supplies : [];
   populateSelectors();
 }
 
 function populateSelectors(){
-  const typeSet = [...new Set(inventory.map(i => i.Type).filter(Boolean))].sort();
-  const ft = document.getElementById('filterType');
-  ft.innerHTML = '<option value="">All</option>' + typeSet.map(t => `<option>${escapeHtml(t)}</option>`).join('');
-
   const pSel = document.getElementById('ledgerProduct');
-  pSel.innerHTML =
-  '<option value="">-- Select Product --</option>' +
-  '<option value="ALL">All Products</option>' +
-  products.map(p => `<option>${escapeHtml(p.Product || p['Item Name'] || '')}</option>`).join('');
+  pSel.innerHTML = '<option value="">-- Select Product --</option><option value="ALL">All Products</option>' +
+    products.map(p=>`<option>${escapeHtml(p.Product||p['Item Name']||'')}</option>`).join('');
 
   const eSel = document.getElementById('ledgerEmployee');
-  eSel.innerHTML = '<option value="">-- Select Employee --</option>' + staff.map(s => `<option value="${escapeHtml(s['Employee Code'])}">${escapeHtml(s['Employee Code'])} - ${escapeHtml(s['Employee Name'])}</option>`).join('');
+  eSel.innerHTML = '<option value="">-- Select Employee --</option>' +
+    staff.map(s=>`<option value="${escapeHtml(s['Employee Code'])}">${escapeHtml(s['Employee Code'])} - ${escapeHtml(s['Employee Name'])}</option>`).join('');
 
-  teams = [...new Set(supplies.map(s => s.Team).filter(Boolean))].sort();
+  teams = [...new Set(supplies.map(s=>s.Team).filter(Boolean))].sort();
   const teamSel = document.getElementById('filterTeam');
-  teamSel.innerHTML = '<option value="">All Teams</option>' + teams.map(t => `<option>${escapeHtml(t)}</option>`).join('');
+  teamSel.innerHTML = '<option value="">All Teams</option>' + teams.map(t=>`<option>${escapeHtml(t)}</option>`).join('');
 }
 
-/* Mobile Sidebar Toggle */
+/* ===================== MOBILE SIDEBAR ===================== */
 function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('sidebarBackdrop');
-  sidebar.classList.toggle('open');
-  backdrop.classList.toggle('hidden');
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarBackdrop').classList.toggle('hidden');
 }
 
-/* ---------- Tab switching ---------- */
+/* ===================== STOCK DATE FILTERS ===================== */
+function applyStockFilters() {
+  renderStock();
+  renderProductConsolidatedChart();
+}
+function clearStockFilters() {
+  document.getElementById('stockFrom').value = '';
+  document.getElementById('stockTo').value = '';
+  renderStock();
+  renderProductConsolidatedChart();
+}
+
+function getStockFilteredInventory() {
+  const f = document.getElementById('stockFrom').value;
+  const t = document.getElementById('stockTo').value;
+  const search = (document.getElementById('filterSearch').value || '').toLowerCase();
+
+  let result = filterByType(inventory, 'Type');
+
+  return result.filter(r => {
+    if (num(r.Qty) <= 0) return false;
+    if (f || t) {
+      const rawDate = r['Last Updated'] || r['Receipt Date'] || '';
+      const d = new Date(rawDate);
+      if (f && new Date(f) > d) return false;
+      if (t && new Date(t) < d) return false;
+    }
+    if (search) {
+      const rowText = JSON.stringify(r).toLowerCase();
+      if (!rowText.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+/* ===================== TAB SWITCHING ===================== */
 function switchTab(e, force){
   const target = force || (e && e.currentTarget && e.currentTarget.dataset.target);
   if(!target) return;
   currentTab = target;
-  document.getElementById('activeLabel').textContent = ({
-    stock:'Stock Summary', minStock:'Minimum Stock', expiry:'Expiry Tracker', receipts:'Receipts Summary',
-    teamSupply:'Team Supply Report', productLedger:'Product Ledger', employeeLedger:'Employee Ledger', employeeDistribution:'Employee Distribution', productDistribution:'Product Distribution'
-  })[target] || target;
-  
-  document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden', 'shadow-lg'));
+
+  const labels = {
+    stock:'Stock Summary', minStock:'Minimum Stock', expiry:'Expiry Tracker',
+    receipts:'Receipts Summary', teamSupply:'Team Supply Report',
+    productLedger:'Product Ledger', employeeLedger:'Employee Ledger',
+    employeeDistribution:'Employee Distribution', productDistribution:'Product Distribution',
+    dashboard:'Home'
+  };
+  document.getElementById('activeLabel').textContent = labels[target] || target;
+
+  document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
   const el = document.getElementById(target); if(el) el.classList.remove('hidden');
+  document.querySelectorAll('.sidebtn').forEach(b => {
+    b.classList.toggle('tab-active', b.dataset.target === target);
+  });
 
-  document.querySelectorAll('.sidebtn').forEach(b => b.classList.remove('tab-active'));
-  document.querySelectorAll('.sidebtn').forEach(b => { if(b.dataset.target === target) b.classList.add('tab-active'); });
-
-  // Hide sidebar on mobile after selection
-  if (window.innerWidth < 768) { toggleSidebar(); }
-
-  // auto-render
+  if (window.innerWidth < 768) toggleSidebar();
   renderForCurrentTab();
 }
 
-/* ---------- Renderers ---------- */
+/* ===================== RENDERERS ===================== */
+
 function renderStock(){
   const tbody = document.querySelector('#stockTable tbody'); tbody.innerHTML = '';
   const typeValueMap = {};
   let totalValue = 0;
   const uniqueProducts = new Set();
   let count = 0;
-  
-  // Variables for the new summary cards - using same logic as dashboard
-  let expiredQty = 0, expiredValue = 0;
-  let shortExpiryQty = 0, shortExpiryValue = 0;
-  let regularQty = 0, regularValue = 0;
-  
-  const today = new Date(); 
-  today.setHours(0,0,0,0);
-  const sixMonths = new Date(); 
-  sixMonths.setMonth(sixMonths.getMonth() + 6);
+  let expiredQty=0, expiredValue=0, shortExpiryQty=0, shortExpiryValue=0, regularQty=0, regularValue=0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sixMonths = new Date(); sixMonths.setMonth(sixMonths.getMonth()+6);
 
-  const filtered = getFilteredData(inventory, 'Last Updated');
+  const filtered = getStockFilteredInventory();
 
-filtered
-  .filter(r => num(r.Qty) > 0)   // 🔥 Hide zero stock
-  .forEach(r => {
+  filtered.forEach(r => {
     const value = num(r.Qty) * num(r.MRP);
     totalValue += value;
-
-    // Data for charts/cards
     const type = r.Type || 'Uncategorized';
-    typeValueMap[type] = (typeValueMap[type] || 0) + value;
+    typeValueMap[type] = (typeValueMap[type]||0) + value;
     uniqueProducts.add(r.Product);
-    
-    // Categorize based on expiry date using same logic as dashboard
+
     if(r.Expiry) {
       const expiryStr = fmtExpiryMMYYYY(r.Expiry);
       if(/^\d{2}-\d{4}$/.test(expiryStr)) {
         const [mm, yy] = expiryStr.split('-').map(Number);
         const expDate = new Date(yy, mm, 0);
-        
-        if(expDate < today) {
-          // Expired
-          expiredQty += num(r.Qty);
-          expiredValue += value;
-        } else if(expDate <= sixMonths) {
-          // Short expiry
-          shortExpiryQty += num(r.Qty);
-          shortExpiryValue += value;
-        } else {
-          // Regular stock (expiry after 6 months)
-          regularQty += num(r.Qty);
-          regularValue += value;
-        }
-      } else {
-        // If expiry format is invalid, treat as regular stock
-        regularQty += num(r.Qty);
-        regularValue += value;
-      }
-    } else {
-      // No expiry date = regular stock
-      regularQty += num(r.Qty);
-      regularValue += value;
-    }
+        if(expDate < today){ expiredQty+=num(r.Qty); expiredValue+=value; }
+        else if(expDate<=sixMonths){ shortExpiryQty+=num(r.Qty); shortExpiryValue+=value; }
+        else { regularQty+=num(r.Qty); regularValue+=value; }
+      } else { regularQty+=num(r.Qty); regularValue+=value; }
+    } else { regularQty+=num(r.Qty); regularValue+=value; }
 
-    // Table rendering
     const tr = document.createElement('tr');
-    // Updated 'Value' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Type||'')}</td><td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-</td><td class="p-3 text-right font-medium">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${value.toFixed(2)||''}</td><td class="p-3 text-left text-xs text-slate-500">${escapeHtml(fmtDDMMYYYY(r['Last Updated']||r['Receipt Date']||''))}</td>`;
+    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Type||'')}</td><td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right font-medium">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${value.toFixed(2)}</td><td class="p-3 text-left text-xs text-slate-500">${escapeHtml(fmtDDMMYYYY(r['Last Updated']||''))}</td>`;
     tbody.appendChild(tr);
     count++;
   });
 
-  // Render Summary Cards
   document.getElementById('stockCount').textContent = count;
-  document.getElementById('totalStockValue').textContent = '₹' + totalValue.toFixed(2);
+  document.getElementById('totalStockValue').textContent = '₹'+totalValue.toFixed(2);
   document.getElementById('uniqueProductsCount').textContent = uniqueProducts.size;
   document.getElementById('expiredQtyValue').textContent = `${expiredQty} / ₹${expiredValue.toFixed(2)}`;
   document.getElementById('shortExpiryQtyValue').textContent = `${shortExpiryQty} / ₹${shortExpiryValue.toFixed(2)}`;
   document.getElementById('regularStockQtyValue').textContent = `${regularQty} / ₹${regularValue.toFixed(2)}`;
 
-  // Update date range display
-  const filterFrom = document.getElementById('filterFrom').value;
-  const filterTo = document.getElementById('filterTo').value;
-  const stockDateRangeEl = document.getElementById('stockDateRange');
-  
-  if(filterFrom && filterTo) {
-    const fromDate = new Date(filterFrom);
-    const toDate = new Date(filterTo);
-    const fromStr = String(fromDate.getDate()).padStart(2,'0') + '/' + String(fromDate.getMonth()+1).padStart(2,'0') + '/' + fromDate.getFullYear();
-    const toStr = String(toDate.getDate()).padStart(2,'0') + '/' + String(toDate.getMonth()+1).padStart(2,'0') + '/' + toDate.getFullYear();
-    stockDateRangeEl.textContent = `${fromStr} to ${toStr}`;
-  } else {
-    stockDateRangeEl.textContent = 'All period';
-  }
+  const f = document.getElementById('stockFrom').value;
+  const t = document.getElementById('stockTo').value;
+  const rangeEl = document.getElementById('stockDateRange');
+  if(f && t) {
+    const fd=new Date(f), td=new Date(t);
+    rangeEl.textContent = `${String(fd.getDate()).padStart(2,'0')}/${String(fd.getMonth()+1).padStart(2,'0')}/${fd.getFullYear()} to ${String(td.getDate()).padStart(2,'0')}/${String(td.getMonth()+1).padStart(2,'0')}/${td.getFullYear()}`;
+  } else { rangeEl.textContent = 'All period'; }
 }
 
-let consolidatedMode = 'value';
-
 function renderProductConsolidatedChart(){
-
-  if(!inventory || inventory.length === 0) return;
-
-  const canvas = document.getElementById('productConsolidatedChart');
-  if(!canvas) return;
-
-  const filtered = getFilteredData(inventory, 'Last Updated')
-    .filter(r => num(r.Qty) > 0);
-
+  const filtered = getStockFilteredInventory();
   const map = {};
-
   filtered.forEach(r => {
     const product = r.Product || 'Unknown';
-
-    if(!map[product]){
-      map[product] = { qty:0, value:0 };
-    }
-
+    if(!map[product]) map[product] = { qty:0, value:0 };
     map[product].qty += num(r.Qty);
-    map[product].value += num(r.Qty) * num(r.MRP);
+    map[product].value += num(r.Qty)*num(r.MRP);
   });
-
-  // Convert to array & SORT descending
-  let dataArray = Object.keys(map).map(p => ({
-    product: p,
-    qty: map[p].qty,
-    value: map[p].value
-  }));
-
-  dataArray.sort((a,b) => 
-    consolidatedMode === 'value'
-      ? b.value - a.value
-      : b.qty - a.qty
-  );
-
-  // Show only Top 10
-  dataArray = dataArray.slice(0, 10);
-
-  const labels = dataArray.map(d => d.product);
-  const values = dataArray.map(d =>
-    consolidatedMode === 'value' ? d.value : d.qty
-  );
-
-  const colors = labels.map((_, i) =>
-    `hsl(${(i*35)%360} 70% 55%)`
-  );
-
+  let dataArray = Object.keys(map).map(p=>({product:p, qty:map[p].qty, value:map[p].value}));
+  dataArray.sort((a,b)=> consolidatedMode==='value' ? b.value-a.value : b.qty-a.qty);
+  dataArray = dataArray.slice(0,10);
+  const labels = dataArray.map(d=>d.product);
+  const values = dataArray.map(d=> consolidatedMode==='value' ? d.value : d.qty);
+  const colors = labels.map((_,i)=>`hsl(${(i*35)%360} 70% 55%)`);
   createChart('productConsolidatedChart','bar',{
-  labels: labels,
-  datasets: [{
-    label: consolidatedMode === 'value'
-      ? 'Top 10 Products - Stock Value (₹)'
-      : 'Top 10 Products - Quantity',
-    data: values,
-    backgroundColor: colors,
-    borderRadius: 6
-  }]
-},{
-  indexAxis: 'y',
-  onClick: function(evt, elements){
-    if(elements.length > 0){
-      const index = elements[0].index;
-      const productName = labels[index];
-      openProductDetailPopup(productName);
-    }
-  },
-  scales: {
-    x: {
-      ticks: {
-        callback: function(value){
-          return consolidatedMode === 'value'
-            ? '₹' + Number(value).toLocaleString()
-            : value;
-        }
-      }
-    }
-  },
-  plugins:{
-    legend:{ display:false }
-  }
-});
+    labels, datasets:[{
+      label: consolidatedMode==='value' ? 'Top 10 - Stock Value (₹)' : 'Top 10 - Quantity',
+      data: values, backgroundColor: colors, borderRadius: 6
+    }]
+  },{
+    indexAxis:'y',
+    onClick: function(evt,elements){ if(elements.length>0) openProductDetailPopup(labels[elements[0].index]); },
+    scales:{ x:{ ticks:{ callback: v=> consolidatedMode==='value' ? '₹'+Number(v).toLocaleString() : v }}},
+    plugins:{ legend:{ display:false }}
+  });
 }
 
 function renderMinStock(){
   const sliderValue = Number(document.getElementById('minStockSlider').value || 1);
   const tbody = document.querySelector('#minTable tbody'); tbody.innerHTML = '';
-  
-  const filtered = getFilteredData(inventory, 'Last Updated');
-
-  // Find max quantity to set slider max
-  let maxQty = 100;
-  filtered.forEach(i => {
-    const qty = num(i.Qty);
-    if(qty > 0 && qty > maxQty) maxQty = qty;
-  });
-  
-  // Update slider max value
-  document.getElementById('minStockSlider').max = Math.max(100, maxQty);
-
-  // Filter: Only items with quantity >= sliderValue and qty > 0
-  const matchingStock = filtered
-    .filter(i => {
-      const qty = num(i.Qty);
-      return qty > 0 && qty >= sliderValue;
-    })
-    .sort((a,b) => num(a.Qty) - num(b.Qty));
-
-  // Update stats
-  let totalQty = 0;
-  let totalValue = 0;
-  matchingStock.forEach(r => {
-    totalQty += num(r.Qty);
-    totalValue += num(r.Qty) * num(r.MRP);
-  });
-
+  const base = filterByType(inventory, 'Type');
+  const filtered = getFilteredData(base, 'Last Updated', 'Type');
+  const matchingStock = filtered.filter(i=> { const q=num(i.Qty); return q>0 && q>=sliderValue; }).sort((a,b)=>num(a.Qty)-num(b.Qty));
+  let totalQty=0, totalValue=0;
+  matchingStock.forEach(r=>{ totalQty+=num(r.Qty); totalValue+=num(r.Qty)*num(r.MRP); });
   document.getElementById('msMatchingCount').textContent = matchingStock.length;
   document.getElementById('msMatchingQty').textContent = totalQty;
-  document.getElementById('msMatchingValue').textContent = '₹' + totalValue.toFixed(2);
-
-  // Table rendering
-  matchingStock.forEach(r => {
-    const val = num(r.Qty) * num(r.MRP);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-</td><td class="p-3 text-right font-semibold text-red-600">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)||''}</td><td class="p-3 text-right">₹${val.toFixed(2)||''}</td><td class="p-3">${escapeHtml(r.Type||'')}</td>`;
+  document.getElementById('msMatchingValue').textContent = '₹'+totalValue.toFixed(2);
+  matchingStock.forEach(r=>{
+    const val=num(r.Qty)*num(r.MRP);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right font-semibold text-red-600">${r.Qty||0}</td><td class="p-3 text-right">${num(r.MRP).toFixed(2)}</td><td class="p-3 text-right">₹${val.toFixed(2)}</td><td class="p-3">${escapeHtml(r.Type||'')}</td>`;
     tbody.appendChild(tr);
   });
 }
 
-function renderExpiry(){
-  const days = Number(document.getElementById('expiryDays').value || 30);
+function renderExpiredSummary(){
   const tbody = document.querySelector('#expiryTable tbody'); tbody.innerHTML = '';
-  const now = new Date();
-  const expiringItems = [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const sixMonthsLater = new Date(); sixMonthsLater.setMonth(sixMonthsLater.getMonth()+6);
+  const map = {};
+  let totalExpiredQty=0, totalExpiredValue=0, totalShortQty=0, totalShortValue=0, totalRegularQty=0, totalRegularValue=0;
 
-  // Month map for charting
-  const expiryMonthMap = {};
-  const monthOrder = []; // To keep months in chronological order
+  const base = filterByType(inventory, 'Type');
 
-  const filtered = getFilteredData(inventory, 'Last Updated');
-
-filtered.forEach(r => {
-    if(!r.Expiry) return;
-    let expDate = null;
-    let expiryStr = String(r.Expiry).trim();
-    
-    // Attempt to parse date
-    if(/^\d{2}-\d{4}$/.test(expiryStr)){
-      const [mm,yy] = expiryStr.split('-');
-      expDate = new Date(Number(yy), Number(mm)-1, 1);
-    } else {
-      const dt = new Date(expiryStr);
-      if(!isNaN(dt)) expDate = dt;
-    }
-
-    if(!expDate) return;
-    
-    // Check if the date is actually set to the first day of the month for comparison
-    const year = expDate.getFullYear();
-    const month = expDate.getMonth();
-    const expiryMonthKey = `${String(month + 1).padStart(2, '0')}-${year}`;
-
-    // Get the last day of the expiry month for accurate diff calculation
-    const lastDayOfMonth = new Date(year, month + 1, 0); 
-    const diff = Math.ceil((lastDayOfMonth - now) / (1000 * 60 * 60 * 24));
-    
-    if(diff <= days && diff > 0){
-      expiringItems.push({...r, diff: diff});
-    }
-
-    if(diff > 0 && diff <= 365){ // For chart: show next year of expiries
-      expiryMonthMap[expiryMonthKey] = (expiryMonthMap[expiryMonthKey] || 0) + 1;
-      if (!monthOrder.includes(expiryMonthKey)) {
-        monthOrder.push(expiryMonthKey);
-      }
-    }
+  base.forEach(r=>{
+    if(!r.Expiry || num(r.Qty)<=0) return;
+    const expiryStr = fmtExpiryMMYYYY(r.Expiry);
+    if(!/^\d{2}-\d{4}$/.test(expiryStr)) return;
+    const [mm,yyyy] = expiryStr.split('-').map(Number);
+    const expDate = new Date(yyyy,mm,0); expDate.setHours(23,59,59,999);
+    const product = r.Product||'Unknown';
+    const qty=num(r.Qty), value=qty*num(r.MRP);
+    if(!map[product]) map[product]={expiredQty:0,shortQty:0,mrp:num(r.MRP),value:0};
+    if(expDate<today){ map[product].expiredQty+=qty; totalExpiredQty+=qty; totalExpiredValue+=value; }
+    else if(expDate>=today&&expDate<=sixMonthsLater){ map[product].shortQty+=qty; totalShortQty+=qty; totalShortValue+=value; }
+    else { totalRegularQty+=qty; totalRegularValue+=value; }
   });
 
-  // Sort months chronologically
-  monthOrder.sort((a, b) => {
-    const [m1, y1] = a.split('-').map(Number);
-    const [m2, y2] = b.split('-').map(Number);
-    if (y1 !== y2) return y1 - y2;
-    return m1 - m2;
-  });
-  
-  // Prepare chart data
-  const chartLabels = monthOrder.map(key => key);
-  const chartValues = monthOrder.map(key => expiryMonthMap[key]);
+  document.getElementById('expiryExpiredQtyValue').textContent = `${totalExpiredQty} / ₹${totalExpiredValue.toFixed(2)}`;
+  document.getElementById('expiryShortQtyValue').textContent = `${totalShortQty} / ₹${totalShortValue.toFixed(2)}`;
+  document.getElementById('expiryRegularQtyValue').textContent = `${totalRegularQty} / ₹${totalRegularValue.toFixed(2)}`;
 
-  createChart('expiryByMonthChart', 'bar', {
-    labels: chartLabels,
-    datasets: [{
-      label: 'Batches Expiring',
-      data: chartValues,
-      backgroundColor: 'rgba(251, 191, 36, 0.7)', // Amber
-      borderColor: 'rgba(251, 191, 36, 1)',
-      borderWidth: 1,
-      borderRadius: 4
-    }]
-  });
-
-  // Table rendering
-  expiringItems.forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Product||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-semibold text-amber-700">${r.diff}</td>`;
+  Object.keys(map).map(product=>{
+    const d=map[product];
+    const totalQty=d.expiredQty+d.shortQty;
+    const totalValue=totalQty*d.mrp;
+    return {product, expiredQty:d.expiredQty, shortQty:d.shortQty, mrp:d.mrp, totalValue};
+  }).filter(d=>d.expiredQty>0||d.shortQty>0).sort((a,b)=>b.totalValue-a.totalValue).forEach(d=>{
+    const tr=document.createElement('tr');
+    tr.classList.add('cursor-pointer','hover:bg-red-50');
+    tr.innerHTML=`<td class="p-3 font-semibold">${escapeHtml(d.product)}</td><td class="p-3 text-right text-red-600 font-bold">${d.expiredQty}</td><td class="p-3 text-right text-orange-500 font-semibold">${d.shortQty}</td><td class="p-3 text-right">${d.mrp.toFixed(2)}</td><td class="p-3 text-right font-bold text-indigo-600">₹${d.totalValue.toFixed(2)}</td>`;
+    tr.onclick=()=>openExpiredDetailPopup(d.product);
     tbody.appendChild(tr);
   });
 }
 
 function renderReceipts(){
   const tbody = document.querySelector('#receiptsTable tbody'); tbody.innerHTML = '';
-  
-  // Get local date filters for this tab
-  const f = document.getElementById('receiptsFrom').value;
-  const t = document.getElementById('receiptsTo').value;
-  
-  // Filter by receipt date if provided
-  let filtered = receipts;
-  if(f || t) {
-    filtered = receipts.filter(r => {
-      const rawDate = r.Date || r['Received Date'] || '';
-      // Parse dates properly using parseDDMMYYYY for DD-MM-YYYY format
-      const d = parseDDMMYYYY(rawDate);
-      
-      if (!d) return true; // Include records with unparseable dates
-      
-      // From date filter (inclusive)
-      if (f) {
-        const fromDate = new Date(f);
-        if (d < fromDate) return false;
-      }
-      
-      // To date filter (inclusive - include entire selected day)
-      if (t) {
-        const toDate = new Date(t);
-        toDate.setDate(toDate.getDate() + 1);
-        if (d >= toDate) return false;
-      }
-      
+  const f=document.getElementById('receiptsFrom').value;
+  const t=document.getElementById('receiptsTo').value;
+
+  let filtered = filterByType(receipts, 'Type');
+
+  if(f||t){
+    filtered = filtered.filter(r=>{
+      const d=parseDDMMYYYY(r.Date||r['Received Date']||'');
+      if(!d) return true;
+      if(f && d<new Date(f)) return false;
+      if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; }
       return true;
     });
   }
 
-filtered.forEach(r => {
-    const tr = document.createElement('tr');
-    // Updated 'Amount' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Received Date']||''))}</td><td class="p-3">${escapeHtml(r['Receipt ID']||'')}</td><td class="p-3">${escapeHtml(r['Item Name']||r['Item']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-</td><td class="p-3 text-right">${r['Received Qty']||r.Qty||0}</td><td class="p-3">${escapeHtml(r['Supplier Name']||'')}</td><td class="p-3 text-right font-medium text-emerald-600">₹${num(r['Total Value']||r.Amount||0).toFixed(2)}</td>`;
+  let totalCount=0, totalQty=0, totalValue=0;
+  filtered.forEach(r=>{
+    totalCount++; totalQty+=num(r['Received Qty']||r.Qty); totalValue+=num(r['Total Value']||r.Amount);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Received Date']||''))}</td><td class="p-3">${escapeHtml(r['Receipt ID']||'')}</td><td class="p-3">${escapeHtml(r['Item Name']||r['Item']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r['Received Qty']||r.Qty||0}</td><td class="p-3">${escapeHtml(r['Supplier Name']||'')}</td><td class="p-3 text-right font-medium text-emerald-600">₹${num(r['Total Value']||r.Amount||0).toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
-// ✅ Receipts Summary
-let totalCount = 0, totalQty = 0, totalValue = 0;
-
-filtered.forEach(r=>{
-  totalCount++;
-  totalQty += num(r['Received Qty'] || r.Qty);
-  totalValue += num(r['Total Value'] || r.Amount);
-});
-
-document.getElementById('rsCount').textContent = totalCount;
-document.getElementById('rsQty').textContent = totalQty;
-document.getElementById('rsValue').textContent = '₹'+totalValue.toFixed(2);
+  document.getElementById('rsCount').textContent=totalCount;
+  document.getElementById('rsQty').textContent=totalQty;
+  document.getElementById('rsValue').textContent='₹'+totalValue.toFixed(2);
 }
 
-/* Team summary + pie chart + table */
-let teamPieChart = null; 
-
 function renderTeamSummary(){
+  const team=document.getElementById('filterTeam').value;
+  const f=document.getElementById('teamFrom').value;
+  const t=document.getElementById('teamTo').value;
 
-  const team = document.getElementById('filterTeam').value;
-  const f = document.getElementById('teamFrom').value;
-  const t = document.getElementById('teamTo').value;
+  let base = supplies;
+  const selectedTypes = getSelectedTypes();
+  if(selectedTypes.length===1) {
+    const typeProducts = new Set(
+      filterByType(inventory,'Type').map(i=>i.Product)
+    );
+    base = supplies.filter(s=>{
+      const p = s.Product||s['Item Supplied']||s['Item Name']||'';
+      return typeProducts.has(p);
+    });
+  }
 
-  const filtered = supplies.filter(s => {
-
-    if(team && s.Team !== team) return false;
-
-    if(f || t){
-      const rawDate = s.Date || s['Supply Date'] || s.DateRaw || s['Date'];
-      const d = parseDDMMYYYY(rawDate);
+  const filtered=base.filter(s=>{
+    if(team && s.Team!==team) return false;
+    if(f||t){
+      const d=parseDDMMYYYY(s.Date||s['Supply Date']||'');
       if(!d) return false;
-
-      if(f && new Date(f) > d) return false;
-      if(t && new Date(t) < d) return false;
+      if(f && new Date(f)>d) return false;
+      if(t && new Date(t)<d) return false;
     }
-
     return true;
   });
 
-  const map = {};
-
-filtered.forEach(s => {
-
-    const teamName = s.Team || 'Unknown';
-
-    if(!map[teamName]){
-      map[teamName] = {
-        count: 0,
-        value: 0
-      };
-    }
-
-    map[teamName].count += 1;
-    map[teamName].value += num(s['Total Value'] || 0);
-
+  const map={};
+  filtered.forEach(s=>{ const tn=s.Team||'Unknown'; if(!map[tn]) map[tn]={count:0,value:0}; map[tn].count+=1; map[tn].value+=num(s['Total Value']||0); });
+  const tbody=document.querySelector('#teamSummaryTable tbody'); tbody.innerHTML='';
+  const labels=[], values=[];
+  Object.keys(map).forEach(t=>{ labels.push(t); values.push(map[t].value); const tr=document.createElement('tr'); tr.innerHTML=`<td class="p-3">${escapeHtml(t)}</td><td class="p-3 text-right">${map[t].count}</td><td class="p-3 text-right font-medium text-indigo-600">₹${map[t].value.toFixed(2)}</td>`; tbody.appendChild(tr); });
+  const sorted=labels.map((l,i)=>({label:l,value:values[i]})).sort((a,b)=>b.value-a.value);
+  const top=sorted.slice(0,10), others=sorted.slice(10);
+  let fl=top.map(x=>x.label), fv=top.map(x=>x.value);
+  if(others.length>0){ fl.push('Others'); fv.push(others.reduce((a,b)=>a+b.value,0)); }
+  const total=fv.reduce((a,b)=>a+b,0);
+  const colors=fl.map((_,i)=>`hsl(${i*45%360} 70% 55%)`);
+  if(teamPieChart) teamPieChart.destroy();
+  createChart('teamPie','doughnut',{ labels:fl, datasets:[{data:fv, backgroundColor:colors, borderWidth:2}] },{
+    cutout:'60%',
+    plugins:{ legend:{position:'bottom',labels:{boxWidth:12,padding:15}}, tooltip:{callbacks:{label:function(ctx){ const pct=((ctx.raw/total)*100).toFixed(1); return `${ctx.label}: ₹${ctx.raw.toLocaleString()} (${pct}%)`; }}}}
   });
-
-  const tbody = document.querySelector('#teamSummaryTable tbody'); tbody.innerHTML = '';
-  const labels = [], values = [];
-  Object.keys(map).forEach(team => {
-    labels.push(team);
-    values.push(map[team].value);
-    const tr = document.createElement('tr');
-    // Updated 'Total Value' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(team)}</td><td class="p-3 text-right">${map[team].count}</td><td class="p-3 text-right font-medium text-indigo-600">₹${map[team].value.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  });
-
-// Sort descending
-const sorted = labels.map((l,i)=>({
-  label:l,
-  value:values[i]
-})).sort((a,b)=>b.value-a.value);
-
-// 🔥 Show Top 6 only
-const top = sorted.slice(0,10);
-const others = sorted.slice(10);
-
-let finalLabels = top.map(x=>x.label);
-let finalValues = top.map(x=>x.value);
-
-if(others.length > 0){
-  const othersTotal = others.reduce((a,b)=>a+b.value,0);
-  finalLabels.push('Others');
-  finalValues.push(othersTotal);
-}
-
-const total = finalValues.reduce((a,b)=>a+b,0);
-
-const colors = finalLabels.map((_,i)=>
-  `hsl(${i*45 % 360} 70% 55%)`
-);
-
-if(teamPieChart) teamPieChart.destroy();
-
-createChart('teamPie', 'doughnut', {
-  labels: finalLabels,
-  datasets: [{
-    data: finalValues,
-    backgroundColor: colors,
-    borderWidth: 2
-  }]
-},{
-  cutout: '60%',
-  plugins:{
-    legend:{
-      position:'bottom',
-      labels:{
-        boxWidth:12,
-        padding:15
-      }
-    },
-    tooltip:{
-      callbacks:{
-        label:function(ctx){
-          const value = ctx.raw;
-          const percent = ((value/total)*100).toFixed(1);
-          return `${ctx.label}: ₹${value.toLocaleString()} (${percent}%)`;
-        }
-      }
-    }
-  }
-});
-
-teamPieChart = chartInstances['teamPie']; // Update reference
+  teamPieChart=chartInstances['teamPie'];
 }
 
 function renderTeamSupply(){
-  const team = document.getElementById('filterTeam').value;
-  const f = document.getElementById('teamFrom').value;
-  const t = document.getElementById('teamTo').value;
-  const tbody = document.querySelector('#teamSupplyTable tbody'); tbody.innerHTML = '';
+  const team=document.getElementById('filterTeam').value;
+  const f=document.getElementById('teamFrom').value;
+  const t=document.getElementById('teamTo').value;
 
-  const baseFiltered = supplies;
+  let base=supplies;
+  const selectedTypes=getSelectedTypes();
+  if(selectedTypes.length===1){
+    const typeProducts=new Set(filterByType(inventory,'Type').map(i=>i.Product));
+    base=supplies.filter(s=>typeProducts.has(s.Product||s['Item Supplied']||s['Item Name']||''));
+  }
 
-const rows = baseFiltered.filter(s => {
-    if(team && s.Team !== team) return false;
-    if(f || t){
-      const rawDate = s.Date || s['Supply Date'] || s.DateRaw || s['Date'];
-const d = parseDDMMYYYY(rawDate);
-if (!d) return false;
-      if(f && new Date(f) > d) return false;
-      if(t && new Date(t) < d) return false;
-    }
+  const tbody=document.querySelector('#teamSupplyTable tbody'); tbody.innerHTML='';
+  base.filter(s=>{
+    if(team&&s.Team!==team) return false;
+    if(f||t){ const d=parseDDMMYYYY(s.Date||''); if(!d) return false; if(f&&new Date(f)>d) return false; if(t&&new Date(t)<d) return false; }
     return true;
-  });
-
-  rows.forEach(r => {
-    const code = r['Supply to (Emp ID)'] || r['Supply to'] || r['Employee Code'] || '';
-    const st = staff.find(x => String(x['Employee Code']).trim() === String(code).trim()) || {};
-    const tr = document.createElement('tr');
-    // Updated 'Total Value' column to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(r.Team||'')}</td><td class="p-3">${escapeHtml(code)}</td><td class="p-3">${escapeHtml(st['Employee Name']||r['Emp Name']||'')}</td><td class="p-3">${escapeHtml(st['Designation']||r.Designation||'')}</td><td class="p-3">${escapeHtml(r['Item Supplied']||r['Item Name']||r.Product||'')}</td><td class="p-3">${escapeHtml(r['Batch No']||r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']||0).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
+  }).forEach(r=>{
+    const code=r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'';
+    const st=staff.find(x=>String(x['Employee Code']).trim()===String(code).trim())||{};
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(r.Team||'')}</td><td class="p-3">${escapeHtml(code)}</td><td class="p-3">${escapeHtml(st['Employee Name']||r['Emp Name']||'')}</td><td class="p-3">${escapeHtml(st['Designation']||r.Designation||'')}</td><td class="p-3">${escapeHtml(r['Item Supplied']||r['Item Name']||r.Product||'')}</td><td class="p-3">${escapeHtml(r['Batch No']||r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']||0).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
     tbody.appendChild(tr);
   });
 }
 
-/* Product ledger - FIXED: MRP lookup added */
 async function renderProductLedger(){
-  const product = document.getElementById('ledgerProduct').value;
-  const tbody = document.querySelector('#prodLedgerTable tbody');
-  tbody.innerHTML = '';
+  const product=document.getElementById('ledgerProduct').value;
+  const tbody=document.querySelector('#prodLedgerTable tbody'); tbody.innerHTML='';
+  if(!product){ tbody.innerHTML=`<tr><td colspan="7" class="p-4 text-center text-slate-500">Please select a product from the dropdown above.</td></tr>`; return; }
 
-  if(!product){
-    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">
-      Please select a product from the dropdown above.
-    </td></tr>`;
-    return;
+  const f=document.getElementById('prodLedgerFrom').value;
+  const t=document.getElementById('prodLedgerTo').value;
+
+  const selectedTypes=getSelectedTypes();
+  let allowedProducts=null;
+  if(selectedTypes.length===1){
+    allowedProducts=new Set(filterByType(inventory,'Type').map(i=>i.Product));
   }
 
-  let rows = [];
+  let fRec=receipts, fSup=supplies;
+  const dateFilter=(arr, dateField)=>{
+    if(!f&&!t) return arr;
+    return arr.filter(r=>{ const d=parseDDMMYYYY(r[dateField]||r.Date||''); if(!d) return true; if(f&&d<new Date(f)) return false; if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; });
+  };
+  fRec=dateFilter(fRec,'Date'); fSup=dateFilter(fSup,'Date');
 
-  // Get local date filters
-  const f = document.getElementById('prodLedgerFrom').value;
-  const t = document.getElementById('prodLedgerTo').value;
-
-// Build ledger from receipts & supplies (Correct Logic)
-let ledgerMap = {};
-
-// Filter receipts and supplies by date range using proper date parsing
-let filteredReceipts = receipts;
-let filteredSupplies = supplies;
-
-if(f || t) {
-  filteredReceipts = receipts.filter(r => {
-    const rawDate = r.Date || r['Received Date'] || '';
-    const d = parseDDMMYYYY(rawDate);
-    if (!d) return true;
-    
-    if (f) {
-      const fromDate = new Date(f);
-      if (d < fromDate) return false;
-    }
-    
-    if (t) {
-      const toDate = new Date(t);
-      toDate.setDate(toDate.getDate() + 1);
-      if (d >= toDate) return false;
-    }
-    return true;
+  const ledgerMap={};
+  fRec.forEach(r=>{
+    const p=r['Item Name']||r.Product||'';
+    const b=r.Batch||'';
+    if(product!=='ALL'&&p!==product) return;
+    if(allowedProducts&&!allowedProducts.has(p)) return;
+    const key=p+'||'+b;
+    if(!ledgerMap[key]) ledgerMap[key]={ProductName:p,Batch:b,Expiry:r.Expiry||'',Received:0,Supplied:0,MRP:num(r.MRP||0)};
+    ledgerMap[key].Received+=num(r['Received Qty']||r.Qty||0);
   });
-  
-  filteredSupplies = supplies.filter(s => {
-    const rawDate = s.Date || s['Supply Date'] || '';
-    const d = parseDDMMYYYY(rawDate);
-    if (!d) return true;
-    
-    if (f) {
-      const fromDate = new Date(f);
-      if (d < fromDate) return false;
-    }
-    
-    if (t) {
-      const toDate = new Date(t);
-      toDate.setDate(toDate.getDate() + 1);
-      if (d >= toDate) return false;
-    }
-    return true;
+  fSup.forEach(r=>{
+    const p=r.Product||r['Item Supplied']||r['Item Name']||'';
+    const b=r.Batch||r['Batch No']||'';
+    if(product!=='ALL'&&p!==product) return;
+    if(allowedProducts&&!allowedProducts.has(p)) return;
+    const key=p+'||'+b;
+    if(!ledgerMap[key]) ledgerMap[key]={ProductName:p,Batch:b,Expiry:r.Expiry||'',Received:0,Supplied:0,MRP:0};
+    ledgerMap[key].Supplied+=num(r.Qty||0);
   });
-}
 
-// RECEIVED
-filteredReceipts.forEach(r => {
-  const p = r['Item Name'] || r.Product || '';
-  const b = r.Batch || '';
-  if(product !== "ALL" && p !== product) return;
+  const rows=Object.values(ledgerMap).map(r=>({...r,Balance:r.Received-r.Supplied}));
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="7" class="p-4 text-center text-slate-500">No ledger data found.</td></tr>`; return; }
 
-  const key = p + '||' + b;
+  let totalReceived=0,totalSupplied=0,totalRemaining=0,totalValue=0;
+  rows.forEach(r=>{ totalReceived+=num(r.Received); totalSupplied+=num(r.Supplied); totalRemaining+=num(r.Balance); totalValue+=num(r.Balance)*num(r.MRP); });
+  document.getElementById('plProducts').textContent = product==='ALL'?new Set(rows.map(r=>r.ProductName)).size:1;
+  document.getElementById('plBatches').textContent=rows.length;
+  document.getElementById('plReceived').textContent=totalReceived;
+  document.getElementById('plSupplied').textContent=totalSupplied;
+  document.getElementById('plRemaining').textContent=totalRemaining;
+  document.getElementById('plValue').textContent='₹'+totalValue.toFixed(2);
 
-  if(!ledgerMap[key]){
-    ledgerMap[key] = {
-      ProductName: p,
-      Batch: b,
-      Expiry: r.Expiry || '',
-      Received: 0,
-      Supplied: 0,
-      MRP: num(r.MRP || 0)
-    };
-  }
-
-  ledgerMap[key].Received += num(r['Received Qty'] || r.Qty || 0);
-});
-
-// SUPPLIED
-filteredSupplies.forEach(r => {
-  const p = r.Product || r['Item Supplied'] || r['Item Name'] || '';
-  const b = r.Batch || r['Batch No'] || '';
-  if(product !== "ALL" && p !== product) return;
-
-  const key = p + '||' + b;
-
-  if(!ledgerMap[key]){
-    ledgerMap[key] = {
-      ProductName: p,
-      Batch: b,
-      Expiry: r.Expiry || '',
-      Received: 0,
-      Supplied: 0,
-      MRP: 0
-    };
-  }
-
-  ledgerMap[key].Supplied += num(r.Qty || 0);
-});
-
-rows = Object.values(ledgerMap).map(r => {
-  r.Balance = r.Received - r.Supplied;
-  return r;
-});
-
-
-  if(rows.length === 0){
-    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">
-      No ledger data found.
-    </td></tr>`;
-    return;
-  }
-// ✅ Product Ledger Summary
-let totalReceived = 0, totalSupplied = 0, totalRemaining = 0, totalValue = 0;
-
-rows.forEach(r=>{
-  totalReceived += num(r.Received);
-  totalSupplied += num(r.Supplied);
-  totalRemaining += num(r.Balance);
-  totalValue += num(r.Balance) * num(r.MRP);
-});
-
-document.getElementById('plProducts').textContent =
-  product === "ALL" ? new Set(rows.map(r=>r.ProductName)).size : 1;
-
-document.getElementById('plBatches').textContent = rows.length;
-document.getElementById('plReceived').textContent = totalReceived;
-document.getElementById('plSupplied').textContent = totalSupplied;
-document.getElementById('plRemaining').textContent = totalRemaining;
-document.getElementById('plValue').textContent = '₹'+totalValue.toFixed(2);
-
-  rows.forEach(r => {
-    const remainingQty = num(r.Balance);
-    const totalValue = remainingQty * num(r.MRP);
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="p-3">${escapeHtml(r.ProductName||'')}</td>
-      <td class="p-3">${escapeHtml(r.Batch||'')}</td>
-      <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-        ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-      </td>
-      <td class="p-3 text-right text-emerald-600 font-medium">${r.Received||0}</td>
-      <td class="p-3 text-right text-red-600 font-medium">${r.Supplied||0}</td>
-      <td class="p-3 text-right font-bold">${remainingQty}</td>
-      <td class="p-3 text-right font-bold text-indigo-600">₹${totalValue.toFixed(2)}</td>
-    `;
+  rows.forEach(r=>{
+    const remainingQty=num(r.Balance), tv=remainingQty*num(r.MRP);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(r.ProductName||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right text-emerald-600 font-medium">${r.Received||0}</td><td class="p-3 text-right text-red-600 font-medium">${r.Supplied||0}</td><td class="p-3 text-right font-bold">${remainingQty}</td><td class="p-3 text-right font-bold text-indigo-600">₹${tv.toFixed(2)}</td>`;
     tbody.appendChild(tr);
   });
 }
 
-/* Employee ledger - FIXED: MRP lookup added */
 async function renderEmployeeLedger(){
-  const empCode = document.getElementById('ledgerEmployee').value;
-  const tbody = document.querySelector('#empLedgerTable tbody'); tbody.innerHTML = '';
-  if(!empCode) { tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-slate-500">Please select an employee from the dropdown above.</td></tr>`; return; }
+  const empCode=document.getElementById('ledgerEmployee').value;
+  const tbody=document.querySelector('#empLedgerTable tbody'); tbody.innerHTML='';
+  if(!empCode){ tbody.innerHTML=`<tr><td colspan="10" class="p-4 text-center text-slate-500">Please select an employee.</td></tr>`; return; }
 
-  const res = await post('getReportData', { reportType: 'employeeLedger', employee: empCode });
-  if(!res || !res.success || (res.rows || []).length === 0){ 
-    tbody.innerHTML = `<tr><td colspan="10" class="p-4 text-center text-slate-500">${escapeHtml(res.message || 'No supply data found for this employee.')}</td></tr>`; return; 
-  }
-  
-  // Get local date filters
-  const f = document.getElementById('empLedgerFrom').value;
-  const t = document.getElementById('empLedgerTo').value;
-  
-  // Filter by date range if provided
-  let filteredRows = res.rows || [];
-  if(f || t) {
-    filteredRows = (res.rows || []).filter(r => {
-      const rawDate = r.Date || r['Supply Date'] || '';
-      const d = parseDDMMYYYY(rawDate);
-      if (!d) return true;
-      
-      if (f) {
-        const fromDate = new Date(f);
-        if (d < fromDate) return false;
-      }
-      
-      if (t) {
-        const toDate = new Date(t);
-        toDate.setDate(toDate.getDate() + 1);
-        if (d >= toDate) return false;
-      }
-      return true;
-    });
-  }
-  
-  filteredRows.forEach(r => {
-    const qty = num(r.Qty || 0);
-    let mrp = num(r.MRP || 0);
-    const product = r.Product || r['Item Supplied'] || '';
-    const batch = r.Batch || '';
+  const res=await post('getReportData',{reportType:'employeeLedger',employee:empCode});
+  if(!res||!res.success||(res.rows||[]).length===0){ tbody.innerHTML=`<tr><td colspan="10" class="p-4 text-center text-slate-500">${escapeHtml(res.message||'No data found.')}</td></tr>`; return; }
 
-    // FIX: Fallback MRP lookup if the backend didn't provide it (which is common for supplies)
-    if (mrp === 0 && product && batch) {
-        const inventoryItem = inventory.find(i => 
-            String(i.Product).trim() === String(product).trim() && 
-            String(i.Batch).trim() === String(batch).trim()
-        );
-        if (inventoryItem) {
-            mrp = num(inventoryItem.MRP);
-        }
+  const f=document.getElementById('empLedgerFrom').value;
+  const t=document.getElementById('empLedgerTo').value;
 
+  const selectedTypes=getSelectedTypes();
+  let allowedProducts=null;
+  if(selectedTypes.length===1) allowedProducts=new Set(filterByType(inventory,'Type').map(i=>i.Product));
+
+  let filteredRows=(res.rows||[]).filter(r=>{
+    if(allowedProducts&&!allowedProducts.has(r.Product||r['Item Supplied']||'')) return false;
+    if(f||t){
+      const d=parseDDMMYYYY(r.Date||r['Supply Date']||'');
+      if(!d) return true;
+      if(f&&d<new Date(f)) return false;
+      if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; }
     }
+    return true;
+  });
 
-    // Calculate total value using the fetched/looked-up MRP
-    const totalValue = num(r['Total Value'] || (qty * mrp));
-
-    const tr = document.createElement('tr');
-    // Updated Total Value to include ₹
-    tr.innerHTML = `<td class="p-3">${escapeHtml(r.Date||'')}</td><td class="p-3">${escapeHtml(r['Employee Code']||'')}</td><td class="p-3">${escapeHtml(r['Employee Name']||'')}</td><td class="p-3">${escapeHtml(r['Designation']||'')}</td><td class="p-3">${escapeHtml(r.Product||r['Item Supplied']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(r.Expiry||'')}</td><td class="p-3 text-right font-medium">${qty}</td><td class="p-3 text-right font-medium text-red-600">₹${totalValue.toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
+  let totalTrans=0,totalQty=0,totalValue=0;
+  filteredRows.forEach(r=>{
+    totalTrans++; const qty=num(r.Qty||0); totalQty+=qty;
+    let mrp=num(r.MRP||0);
+    if(mrp===0&&r.Product&&r.Batch){
+      const inv=inventory.find(i=>String(i.Product).trim()===String(r.Product).trim()&&String(i.Batch).trim()===String(r.Batch).trim());
+      if(inv) mrp=num(inv.MRP);
+    }
+    const rowValue=num(r['Total Value']||(qty*mrp)); totalValue+=rowValue;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(r.Date||'')}</td><td class="p-3">${escapeHtml(r['Employee Code']||'')}</td><td class="p-3">${escapeHtml(r['Employee Name']||'')}</td><td class="p-3">${escapeHtml(r['Designation']||'')}</td><td class="p-3">${escapeHtml(r.Product||r['Item Supplied']||'')}</td><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3">${escapeHtml(r.Expiry||'')}</td><td class="p-3 text-right font-medium">${qty}</td><td class="p-3 text-right font-medium text-red-600">₹${rowValue.toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
     tbody.appendChild(tr);
   });
-// ✅ Employee Ledger Summary (Correct Placement)
-let totalTrans = 0, totalQty = 0, totalValue = 0;
-
-filteredRows.forEach(r=>{
-  totalTrans++;
-  totalQty += num(r.Qty || 0);
-  const qty = num(r.Qty || 0);
-let mrp = num(r.MRP || 0);
-
-// fallback MRP lookup (same logic used above)
-if (mrp === 0 && r.Product && r.Batch) {
-  const inventoryItem = inventory.find(i =>
-    String(i.Product).trim() === String(r.Product).trim() &&
-    String(i.Batch).trim() === String(r.Batch).trim()
-  );
-  if (inventoryItem) {
-    mrp = num(inventoryItem.MRP);
-  }
+  document.getElementById('elTrans').textContent=totalTrans;
+  document.getElementById('elQty').textContent=totalQty;
+  document.getElementById('elValue').textContent='₹'+totalValue.toFixed(2);
 }
 
-const rowValue = num(r['Total Value'] || (qty * mrp));
-totalValue += rowValue;
-});
-
-document.getElementById('elTrans').textContent = totalTrans;
-document.getElementById('elQty').textContent = totalQty;
-document.getElementById('elValue').textContent = '₹'+totalValue.toFixed(2);
+function getTypeFilteredSupplies() {
+  const selectedTypes=getSelectedTypes();
+  if(selectedTypes.length===1){
+    const typeProducts=new Set(filterByType(inventory,'Type').map(i=>i.Product));
+    return supplies.filter(s=>typeProducts.has(s.Product||s['Item Supplied']||s['Item Name']||''));
+  }
+  return supplies;
 }
 
 function renderEmployeeDistribution(){
-  const summaryBody = document.querySelector('#empDistSummaryTable tbody');
-  const detailBody = document.querySelector('#empDistDetailTable tbody');
-  summaryBody.innerHTML = '';
-  detailBody.innerHTML = '';
+  const summaryBody=document.querySelector('#empDistSummaryTable tbody'); summaryBody.innerHTML='';
+  const base=getTypeFilteredSupplies();
+  if(!base.length){ summaryBody.innerHTML=`<tr><td colspan="5" class="p-4 text-center text-slate-500">No distribution data found.</td></tr>`; return; }
 
-  if(!supplies || supplies.length === 0){
-    summaryBody.innerHTML = `
-      <tr>
-        <td colspan="5" class="p-4 text-center text-slate-500">
-          No distribution data found.
-        </td>
-      </tr>`;
-    return;
+  const f=document.getElementById('empDistFrom').value;
+  const t=document.getElementById('empDistTo').value;
+  const selectedTeam=document.getElementById('empDistTeam').value;
+  const teamSet=new Set();
+
+  let filtered=base;
+  if(f||t){
+    filtered=base.filter(s=>{ const d=parseDDMMYYYY(s.Date||''); if(!d) return true; if(f&&d<new Date(f)) return false; if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; });
+  }
+  filtered.forEach(r=>teamSet.add(r.Team||'Unassigned'));
+
+  const teamSelect=document.getElementById('empDistTeam');
+  if(teamSelect.options.length<=1){
+    [...teamSet].sort().forEach(t=>{ const opt=document.createElement('option'); opt.value=t; opt.textContent=t; teamSelect.appendChild(opt); });
   }
 
-  const empMap = {};
-  const teamSet = new Set();
-  
-  // Get local date filters
-  const f = document.getElementById('empDistFrom').value;
-  const t = document.getElementById('empDistTo').value;
-  const selectedTeam = document.getElementById('empDistTeam').value;
-  
-  let filtered = supplies;
-  if(f || t) {
-    filtered = supplies.filter(s => {
-      const rawDate = s.Date || s['Supply Date'] || '';
-      const d = parseDDMMYYYY(rawDate);
-      if (!d) return true;
-      
-      if (f) {
-        const fromDate = new Date(f);
-        if (d < fromDate) return false;
-      }
-      
-      if (t) {
-        const toDate = new Date(t);
-        toDate.setDate(toDate.getDate() + 1);
-        if (d >= toDate) return false;
-      }
-      return true;
-    });
-  }
-
-  // Collect all teams for dropdown
-  filtered.forEach(r => {
-    const team = r.Team || r['Department'] || r['Designation'] || 'Unassigned';
-    teamSet.add(team);
-  });
-
-  // Populate team dropdown
-  const teamSelect = document.getElementById('empDistTeam');
-  const teamOptions = Array.from(teamSet).sort();
-  
-  // Update options if needed
-  if(teamSelect.options.length <= 1) {
-    teamSelect.innerHTML = '<option value="">All Teams</option>';
-    teamOptions.forEach(team => {
-      const opt = document.createElement('option');
-      opt.value = team;
-      opt.textContent = team;
-      teamSelect.appendChild(opt);
-    });
-  }
-
-filtered.forEach(r => {
-
-    const empCode =
-      r['Supply to (Emp ID)'] ||
-      r['Supply to'] ||
-      r['Employee Code'] ||
-      '';
-
-    const empName =
-      r['Emp Name'] ||
-      r['Employee Name'] ||
-      '';
-      
-    const team = r.Team || r['Department'] || r['Designation'] || 'Unassigned';
-    
-    // Filter by selected team
-    if(selectedTeam && team !== selectedTeam) return;
-
+  const empMap={};
+  filtered.forEach(r=>{
+    const empCode=r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'';
+    const empName=r['Emp Name']||r['Employee Name']||'';
+    const team=r.Team||'Unassigned';
+    if(selectedTeam&&team!==selectedTeam) return;
     if(!empCode) return;
-
-    if(!empMap[empCode]){
-      empMap[empCode] = {
-        name: empName,
-        team: team,
-        supIds: new Set(),
-        totalQty: 0,
-        totalValue: 0
-      };
-    }
-
-    const supId =
-      r['Supply ID'] ||
-      r['SUP ID'] ||
-      r['Distribution ID'] ||
-      '';
-
+    if(!empMap[empCode]) empMap[empCode]={name:empName,team:team,supIds:new Set(),totalQty:0,totalValue:0};
+    const supId=r['Supply ID']||r['SUP ID']||r['Distribution ID']||'';
     if(supId) empMap[empCode].supIds.add(supId);
-
-    empMap[empCode].totalQty += num(r.Qty);
-    empMap[empCode].totalValue += num(r['Total Value']);
+    empMap[empCode].totalQty+=num(r.Qty);
+    empMap[empCode].totalValue+=num(r['Total Value']);
   });
 
-Object.entries(empMap)
-  .sort((a, b) => b[1].totalValue - a[1].totalValue)
-  .forEach(([empCode, data]) => {
-
-    const tr = document.createElement('tr');
+  Object.entries(empMap).sort((a,b)=>b[1].totalValue-a[1].totalValue).forEach(([empCode,data])=>{
+    const tr=document.createElement('tr');
     tr.classList.add('cursor-pointer','hover:bg-indigo-50');
-
-    tr.innerHTML = `
-      <td class="p-3 font-medium">${empCode}</td>
-      <td class="p-3">${escapeHtml(data.name || '')}</td>
-      <td class="p-3 text-right">${data.supIds.size}</td>
-      <td class="p-3 text-right">${data.totalQty}</td>
-      <td class="p-3 text-right font-semibold text-indigo-600">₹${data.totalValue.toFixed(2)}</td>
-    `;
-
-    tr.onclick = () => {
-      renderEmployeeDistributionDetail(empCode);
-      openEmpDistModal();
-    };
-
+    tr.innerHTML=`<td class="p-3 font-medium">${empCode}</td><td class="p-3">${escapeHtml(data.name||'')}</td><td class="p-3 text-right">${data.supIds.size}</td><td class="p-3 text-right">${data.totalQty}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${data.totalValue.toFixed(2)}</td>`;
+    tr.onclick=()=>{ renderEmployeeDistributionDetail(empCode); openEmpDistModal(); };
     summaryBody.appendChild(tr);
-});
-
-// ✅ Overall Staffwise Summary
-let totalQty = 0, totalValue = 0;
-
-Object.values(empMap).forEach(d=>{
-  totalQty += d.totalQty;
-  totalValue += d.totalValue;
-});
-
-document.getElementById('edTotalEmp').textContent = Object.keys(empMap).length;
-document.getElementById('edTotalQty').textContent = totalQty;
-document.getElementById('edTotalValue').textContent = '₹'+totalValue.toFixed(2);
-
-// ✅ Team Summary Cards (for selected team)
-if(selectedTeam) {
-  let teamEmpCount = 0;
-  let teamTotalQty = 0;
-  let teamTotalValue = 0;
-  
-  Object.values(empMap).forEach(emp => {
-    if(emp.team === selectedTeam) {
-      teamEmpCount++;
-      teamTotalQty += emp.totalQty;
-      teamTotalValue += emp.totalValue;
-    }
   });
-  
-  document.getElementById('edTeamEmpCount').textContent = teamEmpCount;
-  document.getElementById('edTeamQty').textContent = teamTotalQty;
-  document.getElementById('edTeamValue').textContent = '₹'+teamTotalValue.toFixed(2);
-  document.getElementById('teamSummaryCards').style.display = 'grid';
-} else {
-  document.getElementById('teamSummaryCards').style.display = 'none';
-}
-}
 
+  let totalQty=0, totalValue=0;
+  Object.values(empMap).forEach(d=>{ totalQty+=d.totalQty; totalValue+=d.totalValue; });
+  document.getElementById('edTotalEmp').textContent=Object.keys(empMap).length;
+  document.getElementById('edTotalQty').textContent=totalQty;
+  document.getElementById('edTotalValue').textContent='₹'+totalValue.toFixed(2);
 
+  if(selectedTeam){
+    let tec=0,tq=0,tv=0;
+    Object.values(empMap).forEach(e=>{ if(e.team===selectedTeam){tec++;tq+=e.totalQty;tv+=e.totalValue;} });
+    document.getElementById('edTeamEmpCount').textContent=tec;
+    document.getElementById('edTeamQty').textContent=tq;
+    document.getElementById('edTeamValue').textContent='₹'+tv.toFixed(2);
+    document.getElementById('teamSummaryCards').style.display='grid';
+  } else {
+    document.getElementById('teamSummaryCards').style.display='none';
+  }
+}
 
 function renderEmployeeDistributionDetail(empCode){
-
-  const detailBody = document.querySelector('#empDistDetailTable tbody');
-  detailBody.innerHTML = '';
-
-  if(!supplies || supplies.length === 0) return;
-
-  const filtered = getFilteredData(supplies, 'Date');
-
-const rows = filtered.filter(r => {
-    const code =
-      r['Supply to (Emp ID)'] ||
-      r['Supply to'] ||
-      r['Employee Code'] ||
-      '';
-
-    return String(code).trim() === String(empCode).trim();
-  });
-
-  if(rows.length === 0){
-    detailBody.innerHTML = `
-      <tr>
-        <td colspan="10" class="p-4 text-center text-slate-500">
-          No detailed records found.
-        </td>
-      </tr>`;
-    return;
-  }
-
-  rows.forEach(r => {
-
-    const tr = document.createElement('tr');
-
-    tr.innerHTML = `
-      <td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date || r['Supply Date'] || ''))}</td>
-      <td class="p-3">${escapeHtml(empCode)}</td>
-      <td class="p-3">${escapeHtml(r['Emp Name'] || r['Employee Name'] || '')}</td>
-      <td class="p-3">${escapeHtml(r.Designation || '')}</td>
-      <td class="p-3">${escapeHtml(r.Product || r['Item Supplied'] || r['Item Name'] || '')}</td>
-      <td class="p-3">${escapeHtml(r.Batch || r['Batch No'] || '')}</td>
-      <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-        ${escapeHtml(fmtExpiryMMYYYY(r.Expiry || ''))}
-      </td>
-      <td class="p-3 text-right">${num(r.Qty)}</td>
-      <td class="p-3 text-right font-medium text-red-600">
-        ₹${num(r['Total Value']).toFixed(2)}
-      </td>
-      <td class="p-3">${escapeHtml(r.Remarks || '')}</td>
-    `;
-
+  const detailBody=document.querySelector('#empDistDetailTable tbody'); detailBody.innerHTML='';
+  const base=getTypeFilteredSupplies();
+  const rows=base.filter(r=> String(r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'').trim()===String(empCode).trim());
+  if(!rows.length){ detailBody.innerHTML=`<tr><td colspan="10" class="p-4 text-center text-slate-500">No records found.</td></tr>`; return; }
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(empCode)}</td><td class="p-3">${escapeHtml(r['Emp Name']||r['Employee Name']||'')}</td><td class="p-3">${escapeHtml(r.Designation||'')}</td><td class="p-3">${escapeHtml(r.Product||r['Item Supplied']||'')}</td><td class="p-3">${escapeHtml(r.Batch||r['Batch No']||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${num(r.Qty)}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
     detailBody.appendChild(tr);
   });
 }
 
-
 function renderProductDistribution(){
+  const summaryBody=document.querySelector('#prodDistSummaryTable tbody'); summaryBody.innerHTML='';
+  const base=getTypeFilteredSupplies();
+  if(!base.length){ summaryBody.innerHTML=`<tr><td colspan="4" class="p-4 text-center text-slate-500">No distribution data found.</td></tr>`; return; }
 
-  const summaryBody = document.querySelector('#prodDistSummaryTable tbody');
-  summaryBody.innerHTML = '';
+  const f=document.getElementById('prodDistFrom').value;
+  const t=document.getElementById('prodDistTo').value;
+  let filtered=base;
+  if(f||t){ filtered=base.filter(s=>{ const d=parseDDMMYYYY(s.Date||''); if(!d) return true; if(f&&d<new Date(f)) return false; if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; }); }
 
-  if(!supplies || supplies.length === 0){
-    summaryBody.innerHTML = `
-      <tr>
-        <td colspan="4" class="p-4 text-center text-slate-500">
-          No distribution data found.
-        </td>
-      </tr>`;
-    return;
-  }
-
-  const productMap = {};
-  
-  // Get local date filters
-  const f = document.getElementById('prodDistFrom').value;
-  const t = document.getElementById('prodDistTo').value;
-  
-  let filtered = supplies;
-  if(f || t) {
-    filtered = supplies.filter(s => {
-      const rawDate = s.Date || s['Supply Date'] || '';
-      const d = parseDDMMYYYY(rawDate);
-      if (!d) return true;
-      
-      if (f) {
-        const fromDate = new Date(f);
-        if (d < fromDate) return false;
-      }
-      
-      if (t) {
-        const toDate = new Date(t);
-        toDate.setDate(toDate.getDate() + 1);
-        if (d >= toDate) return false;
-      }
-      return true;
-    });
-  }
-
-  filtered.forEach(r => {
-
-    const product =
-      r.Product ||
-      r['Item Supplied'] ||
-      r['Item Name'] ||
-      '';
-
+  const productMap={};
+  filtered.forEach(r=>{
+    const product=r.Product||r['Item Supplied']||r['Item Name']||'';
     if(!product) return;
-
-    if(!productMap[product]){
-      productMap[product] = {
-        supIds: new Set(),
-        totalQty: 0,
-        totalValue: 0
-      };
-    }
-
-    const supId =
-      r['Supply ID'] ||
-      r['SUP ID'] ||
-      r['Distribution ID'] ||
-      '';
-
+    if(!productMap[product]) productMap[product]={supIds:new Set(),totalQty:0,totalValue:0};
+    const supId=r['Supply ID']||r['SUP ID']||r['Distribution ID']||'';
     if(supId) productMap[product].supIds.add(supId);
-
-    productMap[product].totalQty += num(r.Qty);
-    productMap[product].totalValue += num(r['Total Value']);
+    productMap[product].totalQty+=num(r.Qty);
+    productMap[product].totalValue+=num(r['Total Value']);
   });
 
-  Object.entries(productMap)
-    .sort((a,b)=> b[1].totalValue - a[1].totalValue) // Descending value
-    .forEach(([product,data])=>{
+  Object.entries(productMap).sort((a,b)=>b[1].totalValue-a[1].totalValue).forEach(([product,data])=>{
+    const tr=document.createElement('tr');
+    tr.classList.add('cursor-pointer','hover:bg-indigo-50');
+    tr.innerHTML=`<td class="p-3 font-medium">${escapeHtml(product)}</td><td class="p-3 text-right">${data.supIds.size}</td><td class="p-3 text-right">${data.totalQty}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${data.totalValue.toFixed(2)}</td>`;
+    tr.onclick=()=>{ renderProductDistributionDetail(product); openProdDistModal(); };
+    summaryBody.appendChild(tr);
+  });
 
-      const tr = document.createElement('tr');
-      tr.classList.add('cursor-pointer','hover:bg-indigo-50');
-
-      tr.innerHTML = `
-        <td class="p-3 font-medium">${escapeHtml(product)}</td>
-        <td class="p-3 text-right">${data.supIds.size}</td>
-        <td class="p-3 text-right">${data.totalQty}</td>
-        <td class="p-3 text-right font-semibold text-indigo-600">₹${data.totalValue.toFixed(2)}</td>
-      `;
-
-      tr.onclick = ()=>{
-        renderProductDistributionDetail(product);
-        openProdDistModal();
-      };
-
-      summaryBody.appendChild(tr);
-    });
-
-// ✅ Productwise Summary
-let totalQty = 0, totalValue = 0;
-
-Object.values(productMap).forEach(d=>{
-  totalQty += d.totalQty;
-  totalValue += d.totalValue;
-});
-
-document.getElementById('pdTotalProducts').textContent = Object.keys(productMap).length;
-document.getElementById('pdTotalQty').textContent = totalQty;
-document.getElementById('pdTotalValue').textContent = '₹'+totalValue.toFixed(2);
-}
-
-// Clear filter functions
-function clearReceiptsFilters(){
-  document.getElementById('receiptsFrom').value = '';
-  document.getElementById('receiptsTo').value = '';
-  renderReceipts();
-}
-
-function clearProductLedgerFilters(){
-  document.getElementById('prodLedgerFrom').value = '';
-  document.getElementById('prodLedgerTo').value = '';
-  renderProductLedger();
-}
-
-function clearEmployeeLedgerFilters(){
-  document.getElementById('empLedgerFrom').value = '';
-  document.getElementById('empLedgerTo').value = '';
-  renderEmployeeLedger();
-}
-
-function clearEmployeeDistributionFilters(){
-  document.getElementById('empDistFrom').value = '';
-  document.getElementById('empDistTo').value = '';
-  document.getElementById('empDistTeam').value = '';
-  renderEmployeeDistribution();
-}
-
-function clearProductDistributionFilters(){
-  document.getElementById('prodDistFrom').value = '';
-  document.getElementById('prodDistTo').value = '';
-  renderProductDistribution();
+  let totalQty=0, totalValue=0;
+  Object.values(productMap).forEach(d=>{ totalQty+=d.totalQty; totalValue+=d.totalValue; });
+  document.getElementById('pdTotalProducts').textContent=Object.keys(productMap).length;
+  document.getElementById('pdTotalQty').textContent=totalQty;
+  document.getElementById('pdTotalValue').textContent='₹'+totalValue.toFixed(2);
 }
 
 function renderProductDistributionDetail(product){
-
-  const detailBody = document.querySelector('#prodDistDetailTable tbody');
-  detailBody.innerHTML = '';
-
-  const filtered = getFilteredData(supplies, 'Date');
-
-  const rows = filtered.filter(r=>{
-    const p = r.Product || r['Item Supplied'] || r['Item Name'] || '';
-    return String(p).trim() === String(product).trim();
-  });
-
-  rows.forEach(r=>{
-    const tr = document.createElement('tr');
-
-  const empCode =
-  r['Supply to (Emp ID)'] ||
-  r['Supply to'] ||
-  r['Employee Code'] ||
-  '';
-
-const empName =
-  r['Emp Name'] ||
-  r['Employee Name'] ||
-  '';
-
-tr.innerHTML = `
-  <td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||r['Supply Date']||''))}</td>
-  <td class="p-3">${escapeHtml(empCode)}</td>
-  <td class="p-3">${escapeHtml(empName)}</td>
-  <td class="p-3">${escapeHtml(product)}</td>
-  <td class="p-3">${escapeHtml(r.Batch||r['Batch No']||'')}</td>
-  <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-    ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-  </td>
-  <td class="p-3 text-right">${num(r.Qty)}</td>
-  <td class="p-3 text-right font-medium text-red-600">
-    ₹${num(r['Total Value']).toFixed(2)}
-  </td>
-  <td class="p-3">${escapeHtml(r.Remarks||'')}</td>
-`;
-
+  const detailBody=document.querySelector('#prodDistDetailTable tbody'); detailBody.innerHTML='';
+  const base=getTypeFilteredSupplies();
+  base.filter(r=>String(r.Product||r['Item Supplied']||r['Item Name']||'').trim()===String(product).trim()).forEach(r=>{
+    const empCode=r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'';
+    const empName=r['Emp Name']||r['Employee Name']||'';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(empCode)}</td><td class="p-3">${escapeHtml(empName)}</td><td class="p-3">${escapeHtml(product)}</td><td class="p-3">${escapeHtml(r.Batch||r['Batch No']||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${num(r.Qty)}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
     detailBody.appendChild(tr);
   });
 }
 
-/* ---------- Export helpers (unchanged) ---------- */
-function tableToCsv(table) {
-  const rows = [];
-  table.querySelectorAll('tr').forEach(tr => {
-    const cols = [];
-    tr.querySelectorAll('th,td').forEach(td => {
-      let txt = td.textContent.replace(/\n+/g,' ').trim();
-      cols.push('"' + txt.replace(/"/g,'""') + '"');
-    });
+/* ===================== DASHBOARD ===================== */
+function renderDashboard(){
+  const filterFrom=document.getElementById('filterFrom').value;
+  const filterTo=document.getElementById('filterTo').value;
+  const dateRangeEl=document.getElementById('dashboardDateRange');
+  if(filterFrom&&filterTo){
+    const fd=new Date(filterFrom),td=new Date(filterTo);
+    dateRangeEl.textContent=`${String(fd.getDate()).padStart(2,'0')}/${String(fd.getMonth()+1).padStart(2,'0')}/${fd.getFullYear()} to ${String(td.getDate()).padStart(2,'0')}/${String(td.getMonth()+1).padStart(2,'0')}/${td.getFullYear()}`;
+  } else { dateRangeEl.textContent='All period'; }
+
+  const typedInventory=filterByType(inventory,'Type');
+  const filteredInventory=typedInventory.filter(r=>num(r.Qty)>0);
+
+  const selectedTypes=getSelectedTypes();
+  const typeIndicator=document.getElementById('dbTypeIndicator');
+  if(selectedTypes.length===1){
+    typeIndicator.textContent=`Showing: ${selectedTypes[0]} only`;
+    typeIndicator.classList.remove('hidden');
+  } else {
+    typeIndicator.classList.add('hidden');
+  }
+
+  const productSet=new Set(filteredInventory.map(r=>r.Product));
+  document.getElementById('dbTotalProducts').textContent=productSet.size;
+  let totalValue=0;
+  filteredInventory.forEach(r=>{ totalValue+=num(r.Qty)*num(r.MRP); });
+  document.getElementById('dbTotalValue').textContent='₹'+totalValue.toFixed(2);
+
+  let expiredQty=0,expiredVal=0,shortQty=0,shortVal=0;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const sixMonths=new Date(); sixMonths.setMonth(sixMonths.getMonth()+6);
+  filteredInventory.forEach(r=>{
+    if(!r.Expiry) return;
+    const expiryStr=fmtExpiryMMYYYY(r.Expiry);
+    if(!/^\d{2}-\d{4}$/.test(expiryStr)) return;
+    const [mm,yy]=expiryStr.split('-').map(Number);
+    const expDate=new Date(yy,mm,0);
+    const value=num(r.Qty)*num(r.MRP);
+    if(expDate<today){ expiredQty+=num(r.Qty); expiredVal+=value; }
+    else if(expDate<=sixMonths){ shortQty+=num(r.Qty); shortVal+=value; }
+  });
+  document.getElementById('dbExpired').textContent=expiredQty+' / ₹'+expiredVal.toFixed(2);
+  document.getElementById('dbShortExpiry').textContent=shortQty+' / ₹'+shortVal.toFixed(2);
+
+  const filteredSupplies=getTypeFilteredSupplies();
+  const filteredReceipts=filterByType(receipts,'Type');
+  document.getElementById('dbReceipts').textContent=filteredReceipts.length;
+  document.getElementById('dbSupplies').textContent=filteredSupplies.length;
+
+  const productMap={};
+  filteredInventory.forEach(r=>{ productMap[r.Product]=(productMap[r.Product]||0)+num(r.Qty)*num(r.MRP); });
+  const sortedProducts=Object.entries(productMap).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const chartColors=['rgba(79,70,229,0.8)','rgba(59,130,246,0.8)','rgba(16,185,129,0.8)','rgba(249,115,22,0.8)','rgba(239,68,68,0.8)','rgba(168,85,247,0.8)','rgba(236,72,153,0.8)','rgba(14,165,233,0.8)','rgba(251,146,60,0.8)','rgba(244,63,94,0.8)','rgba(107,114,128,0.8)','rgba(34,197,94,0.8)','rgba(139,92,246,0.8)','rgba(217,119,6,0.8)','rgba(30,41,59,0.8)'];
+  createChart('dbProductChart','bar',{
+    labels:sortedProducts.map(x=>{ const n=x[0]; return n.length>30?n.substring(0,27)+'...':n; }),
+    datasets:[{label:'Stock Value (₹)',data:sortedProducts.map(x=>x[1]),backgroundColor:chartColors,borderRadius:6,borderWidth:1,borderColor:'#fff'}]
+  });
+
+  const typeMap={};
+  filteredInventory.forEach(r=>{ typeMap[r.Type]=(typeMap[r.Type]||0)+num(r.Qty); });
+  createChart('dbTypeChart','pie',{
+    labels:Object.keys(typeMap),
+    datasets:[{data:Object.values(typeMap),backgroundColor:['rgba(59,130,246,0.7)','rgba(16,185,129,0.7)','rgba(249,115,22,0.7)','rgba(168,85,247,0.7)','rgba(236,72,153,0.7)','rgba(14,165,233,0.7)','rgba(251,146,60,0.7)','rgba(244,63,94,0.7)'],borderWidth:2,borderColor:'#fff'}]
+  });
+
+  const teamMap={};
+  filteredSupplies.forEach(s=>{ teamMap[s.Team]=(teamMap[s.Team]||0)+num(s['Total Value']); });
+  createChart('dbTeamChart','doughnut',{
+    labels:Object.keys(teamMap),
+    datasets:[{data:Object.values(teamMap),backgroundColor:['rgba(79,70,229,0.8)','rgba(59,130,246,0.8)','rgba(16,185,129,0.8)','rgba(249,115,22,0.8)','rgba(168,85,247,0.8)','rgba(236,72,153,0.8)','rgba(14,165,233,0.8)','rgba(251,146,60,0.8)','rgba(244,63,94,0.8)','rgba(107,114,128,0.8)'],borderWidth:2,borderColor:'#fff'}]
+  });
+
+  const distMap={};
+  filteredSupplies.forEach(s=>{ const p=s.Product||s['Item Supplied']; distMap[p]=(distMap[p]||0)+num(s.Qty); });
+  const sortedDist=Object.entries(distMap).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  createChart('dbDistributionChart','bar',{
+    labels:sortedDist.map(x=>{ const n=x[0]||''; return n.length>30?n.substring(0,27)+'...':n; }),
+    datasets:[{label:'Qty Distributed',data:sortedDist.map(x=>x[1]),backgroundColor:['rgba(16,185,129,0.8)','rgba(34,197,94,0.8)','rgba(74,222,128,0.8)','rgba(132,204,22,0.8)','rgba(191,144,0,0.8)','rgba(234,179,8,0.8)','rgba(239,68,68,0.8)','rgba(244,63,94,0.8)','rgba(168,85,247,0.8)','rgba(139,92,246,0.8)','rgba(99,102,241,0.8)','rgba(59,130,246,0.8)','rgba(14,165,233,0.8)','rgba(6,182,212,0.8)','rgba(20,184,166,0.8)'],borderRadius:6,borderWidth:1,borderColor:'#fff'}]
+  });
+
+  const empMap={};
+  filteredSupplies.forEach(s=>{ const name=s['Employee Name']||s['Emp Name']||s['Supply to (Emp ID)']||s['Employee Code']||''; if(!name) return; empMap[name]=(empMap[name]||0)+num(s['Total Value']||0); });
+  const topEmployees=Object.entries(empMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const empTbody=document.getElementById('dbTopEmployees'); empTbody.innerHTML='';
+  topEmployees.forEach(e=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td class="p-3 font-medium">${escapeHtml(e[0])}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${e[1].toFixed(2)}</td>`; empTbody.appendChild(tr); });
+
+  const prodMap2={};
+  filteredSupplies.forEach(s=>{ const p=s.Product||s['Item Supplied']||''; if(!p) return; prodMap2[p]=(prodMap2[p]||0)+num(s['Total Value']||0); });
+  const topProducts=Object.entries(prodMap2).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const prodTbody=document.getElementById('dbTopProducts'); prodTbody.innerHTML='';
+  topProducts.forEach(p=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td class="p-3 font-medium">${escapeHtml(p[0])}</td><td class="p-3 text-right font-semibold text-emerald-600">₹${p[1].toFixed(2)}</td>`; prodTbody.appendChild(tr); });
+}
+
+/* ===================== MISC RENDERERS ===================== */
+function openProductDetailPopup(productName){
+  const rows=inventory.filter(r=>r.Product===productName&&num(r.Qty)>0);
+  if(!rows.length) return;
+  let html=`<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" id="prodPopup"><div class="bg-white w-[90%] max-w-4xl rounded-xl shadow-xl p-6 relative"><button onclick="document.getElementById('prodPopup').remove()" class="absolute top-3 right-3 text-red-600 font-bold text-lg">✕</button><h3 class="text-xl font-bold mb-4">${productName} - Batch Details</h3><div class="overflow-x-auto border rounded-lg"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-3 text-left">Product Name</th><th class="p-3 text-left">Batch</th><th class="p-3 text-left">Expiry</th><th class="p-3 text-right">Qty</th><th class="p-3 text-right">MRP</th><th class="p-3 text-right">Value</th></tr></thead><tbody>`;
+  rows.forEach(r=>{ const value=num(r.Qty)*num(r.MRP); html+=`<tr class="border-t"><td class="p-3">${r.Product}</td><td class="p-3">${r.Batch}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty}</td><td class="p-3 text-right">₹${num(r.MRP).toFixed(2)}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${value.toFixed(2)}</td></tr>`; });
+  html+=`</tbody></table></div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function openExpiredDetailPopup(productName){
+  const rows=inventory.filter(r=>r.Product===productName&&num(r.Qty)>0);
+  if(!rows.length) return;
+  let html=`<div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" id="expiredPopup"><div class="bg-white w-[95%] max-w-5xl rounded-xl shadow-xl p-6 relative"><button onclick="document.getElementById('expiredPopup').remove()" class="absolute top-3 right-3 text-red-600 font-bold text-lg">✕</button><h3 class="text-xl font-bold mb-4">${escapeHtml(productName)} - Batch Expiry Details</h3><div class="overflow-x-auto border rounded-lg"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-3 text-left">Batch</th><th class="p-3 text-left">Expiry</th><th class="p-3 text-right">Qty</th><th class="p-3 text-right">MRP</th><th class="p-3 text-right">Value</th></tr></thead><tbody>`;
+  rows.forEach(r=>{ const value=num(r.Qty)*num(r.MRP); html+=`<tr class="border-t"><td class="p-3">${escapeHtml(r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty}</td><td class="p-3 text-right">₹${num(r.MRP).toFixed(2)}</td><td class="p-3 text-right font-semibold text-indigo-600">₹${value.toFixed(2)}</td></tr>`; });
+  html+=`</tbody></table></div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+/* ===================== CLEAR FILTERS ===================== */
+function clearReceiptsFilters(){ document.getElementById('receiptsFrom').value=''; document.getElementById('receiptsTo').value=''; renderReceipts(); }
+function clearProductLedgerFilters(){ document.getElementById('prodLedgerFrom').value=''; document.getElementById('prodLedgerTo').value=''; renderProductLedger(); }
+function clearEmployeeLedgerFilters(){ document.getElementById('empLedgerFrom').value=''; document.getElementById('empLedgerTo').value=''; renderEmployeeLedger(); }
+function clearEmployeeDistributionFilters(){ document.getElementById('empDistFrom').value=''; document.getElementById('empDistTo').value=''; document.getElementById('empDistTeam').value=''; renderEmployeeDistribution(); }
+function clearProductDistributionFilters(){ document.getElementById('prodDistFrom').value=''; document.getElementById('prodDistTo').value=''; renderProductDistribution(); }
+
+/* ===================== MODALS ===================== */
+function openEmpDistModal(){ const m=document.getElementById('empDistModal'); m.classList.remove('hidden'); m.classList.add('flex'); }
+function closeEmpDistModal(){ const m=document.getElementById('empDistModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+function openProdDistModal(){ const m=document.getElementById('prodDistModal'); m.classList.remove('hidden'); m.classList.add('flex'); }
+function closeProdDistModal(){ const m=document.getElementById('prodDistModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+/* ===================== EXPORT ===================== */
+function tableToCsv(table){
+  const rows=[];
+  table.querySelectorAll('tr').forEach(tr=>{
+    const cols=[]; tr.querySelectorAll('th,td').forEach(td=>{ let txt=td.textContent.replace(/\n+/g,' ').trim(); cols.push('"'+txt.replace(/"/g,'""')+'"'); });
     if(cols.length) rows.push(cols.join(','));
   });
   return rows.join('\n');
 }
+function downloadCsv(filename,csv){ const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 
-function downloadCsv(filename, csv) {
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
-}
-
-/* Export visible as CSV */
 function exportCsvCurrent(){
-  let tableId = 'stockTable';
-  if(currentTab === 'minStock') tableId = 'minTable';
-  else if(currentTab === 'expiry') tableId = 'expiryTable';
-  else if(currentTab === 'receipts') tableId = 'receiptsTable';
-  else if(currentTab === 'teamSupply') tableId = 'teamSupplyTable';
-  else if(currentTab === 'productLedger') tableId = 'prodLedgerTable';
-  else if(currentTab === 'employeeLedger') tableId = 'empLedgerTable';
-  const table = document.getElementById(tableId);
-  const csv = tableToCsv(table);
-  downloadCsv(`${currentTab}_report_${new Date().toISOString().slice(0,10)}.csv`, csv);
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',teamSupply:'teamSupplyTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable'};
+  const tableId=tabMap[currentTab]||'stockTable';
+  downloadCsv(`${currentTab}_report_${new Date().toISOString().slice(0,10)}.csv`, tableToCsv(document.getElementById(tableId)));
 }
 
-/* Export current visible report as Excel (.xlsx) */
 async function exportExcelCurrent(){
-  if(currentTab === 'teamSupply'){
-
-// Use already filtered frontend data
-const team = document.getElementById('filterTeam').value;
-const f = document.getElementById('teamFrom').value;
-const t = document.getElementById('teamTo').value;
-
-const allRows = supplies.filter(s => {
-  if(team && s.Team !== team) return false;
-
-  if(f || t){
-    const rawDate = s.Date || s['Supply Date'] || s.DateRaw || s['Date'];
-    const d = parseDDMMYYYY(rawDate);
-    if(!d) return false;
-
-    if(f && new Date(f) > d) return false;
-    if(t && new Date(t) < d) return false;
-  }
-
-  return true;
-});
-
-    const summaryTable = document.getElementById('teamSummaryTable');
-    const summarySheet = XLSX.utils.table_to_sheet(summaryTable, { raw:true });
-Object.keys(summarySheet).forEach(key => {
-    if (key[0] === '!') return;
-    if (summarySheet[key].v && /^\d{2}-\d{2}-\d{4}$/.test(summarySheet[key].v)) {
-        summarySheet[key].t = 's';
-    }
-});
-
-const details = allRows.map(r => {
-
-  const code = r['Supply to (Emp ID)'] || 
-               r['Supply to'] || 
-               r['Employee Code'] || '';
-
-  const st = staff.find(x =>
-      String(x['Employee Code']).trim() === String(code).trim()
-  ) || {};
-
-  return {
-    Date: r.Date || '',
-    Team: r.Team || '',
-    'Employee Code': code,
-    'Employee Name': st['Employee Name'] || r['Emp Name'] || '',
-    Designation: st['Designation'] || r.Designation || '',
-    Product: r.Product || r['Item Supplied'] || r['Item Name'] || '',
-    Batch: r.Batch || r['Batch No'] || '',
-    Expiry: r.Expiry || '',
-    Qty: r.Qty || 0,
-    'Total Value': r['Total Value'] || 0,
-    Remarks: r.Remarks || ''
-  };
-});
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, summarySheet, 'Summary');
-
-    if(details.length){
-      const detSheet = XLSX.utils.json_to_sheet(details);
-Object.keys(detSheet).forEach(key => {
-    if (key[0] === '!') return;
-    if (detSheet[key].v && /^\d{2}-\d{2}-\d{4}$/.test(detSheet[key].v)) {
-        detSheet[key].t = 's'; // force Excel to treat as text
-    }
-});
-      XLSX.utils.book_append_sheet(wb, detSheet, 'Details');
-    } else {
-      const empty = XLSX.utils.json_to_sheet([{Info:'No data found for selected filters'}]);
-      XLSX.utils.book_append_sheet(wb, empty, 'Details');
-    }
-
-    XLSX.writeFile(wb, `team_supply_${team || 'all'}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable'};
+  const tableId=tabMap[currentTab]||'stockTable';
+  if(currentTab==='teamSupply'){
+    const team=document.getElementById('filterTeam').value;
+    const f=document.getElementById('teamFrom').value;
+    const t=document.getElementById('teamTo').value;
+    const base=getTypeFilteredSupplies();
+    const allRows=base.filter(s=>{ if(team&&s.Team!==team) return false; if(f||t){ const d=parseDDMMYYYY(s.Date||''); if(!d) return false; if(f&&new Date(f)>d) return false; if(t&&new Date(t)<d) return false; } return true; });
+    const summarySheet=XLSX.utils.table_to_sheet(document.getElementById('teamSummaryTable'),{raw:true});
+    const details=allRows.map(r=>{ const code=r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||''; const st=staff.find(x=>String(x['Employee Code']).trim()===String(code).trim())||{}; return {Date:r.Date||'',Team:r.Team||'','Employee Code':code,'Employee Name':st['Employee Name']||r['Emp Name']||'',Designation:st['Designation']||r.Designation||'',Product:r.Product||r['Item Supplied']||'',Batch:r.Batch||r['Batch No']||'',Expiry:r.Expiry||'',Qty:r.Qty||0,'Total Value':r['Total Value']||0,Remarks:r.Remarks||''}; });
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,summarySheet,'Summary');
+    XLSX.utils.book_append_sheet(wb,details.length?XLSX.utils.json_to_sheet(details):XLSX.utils.json_to_sheet([{Info:'No data'}]),'Details');
+    XLSX.writeFile(wb,`team_supply_${team||'all'}_${new Date().toISOString().slice(0,10)}.xlsx`);
     return;
   }
-
-  // other tabs
-  let tableId = 'stockTable';
-  if(currentTab === 'minStock') tableId = 'minTable';
-  else if(currentTab === 'expiry') tableId = 'expiryTable';
-  else if(currentTab === 'receipts') tableId = 'receiptsTable';
-  else if(currentTab === 'productLedger') tableId = 'prodLedgerTable';
-  else if(currentTab === 'employeeLedger') tableId = 'empLedgerTable';
-
-  const table = document.getElementById(tableId);
-  const sheet = XLSX.utils.table_to_sheet(table, { raw: false });
-
-Object.keys(sheet).forEach(key => {
-    if (key[0] === '!') return; // skip metadata
-    if (sheet[key].v && /^\d{2}-\d{2}-\d{4}$/.test(sheet[key].v)) {
-        sheet[key].t = 's'; // force text
-    }
-});
-
-const wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, sheet, "Report");
-  XLSX.writeFile(wb, `${currentTab}_report_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const table=document.getElementById(tableId);
+  const sheet=XLSX.utils.table_to_sheet(table,{raw:false});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,sheet,'Report');
+  XLSX.writeFile(wb,`${currentTab}_report_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-/* ---------- Wiring UI actions ---------- */
-document.getElementById('refreshBtn').addEventListener('click', async () => { await loadAll(); renderForCurrentTab(); });
-document.getElementById('goBtn').addEventListener('click', () => { renderForCurrentTab(); });
+/* ===================== RENDER DISPATCHER ===================== */
+function renderForCurrentTab(){
+  if(currentTab==='stock'){ renderStock(); renderProductConsolidatedChart(); }
+  else if(currentTab==='dashboard') renderDashboard();
+  else if(currentTab==='minStock') renderMinStock();
+  else if(currentTab==='expiry') renderExpiredSummary();
+  else if(currentTab==='receipts') renderReceipts();
+  else if(currentTab==='teamSupply'){ renderTeamSummary(); renderTeamSupply(); }
+  else if(currentTab==='productLedger') renderProductLedger();
+  else if(currentTab==='employeeLedger') renderEmployeeLedger();
+  else if(currentTab==='employeeDistribution') renderEmployeeDistribution();
+  else if(currentTab==='productDistribution') renderProductDistribution();
+}
+
+/* ===================== EVENTS ===================== */
+document.getElementById('refreshBtn').addEventListener('click', async()=>{ await loadAll(); renderForCurrentTab(); });
+document.getElementById('goBtn').addEventListener('click', ()=>renderForCurrentTab());
 document.getElementById('exportCsvBtn').addEventListener('click', exportCsvCurrent);
 document.getElementById('exportExcelBtn').addEventListener('click', exportExcelCurrent);
-document.getElementById('refreshTeam').addEventListener('click', () => { renderTeamSummary(); renderTeamSupply(); });
-document.getElementById('menuToggle').addEventListener('click', toggleSidebar); // New mobile toggle binding
+document.getElementById('refreshTeam').addEventListener('click', ()=>{ renderTeamSummary(); renderTeamSupply(); });
+document.getElementById('menuToggle').addEventListener('click', toggleSidebar);
 
-// Minimum Stock Slider Event Listener
-const minStockSlider = document.getElementById('minStockSlider');
-if(minStockSlider) {
-  minStockSlider.addEventListener('input', (e) => {
-    const value = e.target.value;
-    document.getElementById('minStockSliderValue').textContent = value;
-    document.getElementById('sliderQtyText').textContent = value;
-    renderMinStock();
-  });
-}
+const minStockSlider=document.getElementById('minStockSlider');
+if(minStockSlider){ minStockSlider.addEventListener('input',e=>{ document.getElementById('minStockSliderValue').textContent=e.target.value; document.getElementById('sliderQtyText').textContent=e.target.value; renderMinStock(); }); }
 
-async function renderForCurrentTab(){
-  // Apply date and product type filters to the main inventory/supplies lists if needed before rendering.
-  // For this application, filtering is handled by the `post` calls in ledgers or is simple in-memory in other render functions.
-  // For complex filtering, you'd call a new API function here. Since we don't have that, we render as is.
-if(currentTab === 'stock'){
-  renderStock();
-  renderProductConsolidatedChart();
-}
-else if(currentTab === 'dashboard') renderDashboard();  
-else if(currentTab === 'minStock') renderMinStock();
-  else if(currentTab === 'expiry') renderExpiredSummary();
-  else if(currentTab === 'receipts') renderReceipts();
-  else if(currentTab === 'teamSupply') { renderTeamSummary(); renderTeamSupply(); }
-  else if(currentTab === 'productLedger') renderProductLedger();
-  else if(currentTab === 'employeeLedger') renderEmployeeLedger();
-else if(currentTab === 'employeeDistribution') renderEmployeeDistribution();
-else if(currentTab === 'productDistribution') renderProductDistribution();
-autoFormatSummaryCards();
-}
-
-function openEmpDistModal(){
-  const modal = document.getElementById('empDistModal');
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
-}
-
-function closeEmpDistModal(){
-  const modal = document.getElementById('empDistModal');
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
-}
-
-function openProdDistModal(){
-  const modal = document.getElementById('prodDistModal');
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
-}
-
-function closeProdDistModal(){
-  const modal = document.getElementById('prodDistModal');
-  modal.classList.add('hidden');
-  modal.classList.remove('flex');
-}
-
-/* ---------- Initial load ---------- */
-(async ()=>{
-  await loadAll();
-  switchTab(null, 'dashboard');
-})();
-
-
-document.addEventListener('DOMContentLoaded', function(){
-
-  const valBtn = document.getElementById('toggleValue');
-  const qtyBtn = document.getElementById('toggleQty');
-
-  if(valBtn && qtyBtn){
-
-    valBtn.onclick = () => {
-      consolidatedMode = 'value';
-      renderProductConsolidatedChart();
-    };
-
-    qtyBtn.onclick = () => {
-      consolidatedMode = 'qty';
-      renderProductConsolidatedChart();
-    };
-  }
-
-});
-
-
-document.addEventListener('DOMContentLoaded', function(){
-
-  const valBtn = document.getElementById('toggleValue');
-  const qtyBtn = document.getElementById('toggleQty');
-
-  if(!valBtn || !qtyBtn) return;
-
+document.addEventListener('DOMContentLoaded',function(){
+  const valBtn=document.getElementById('toggleValue');
+  const qtyBtn=document.getElementById('toggleQty');
+  if(!valBtn||!qtyBtn) return;
   function updateToggleUI(){
-    if(consolidatedMode === 'value'){
-      valBtn.classList.add('bg-indigo-600','text-white');
-      valBtn.classList.remove('border');
-
-      qtyBtn.classList.remove('bg-indigo-600','text-white');
-      qtyBtn.classList.add('border');
-    } else {
-      qtyBtn.classList.add('bg-indigo-600','text-white');
-      qtyBtn.classList.remove('border');
-
-      valBtn.classList.remove('bg-indigo-600','text-white');
-      valBtn.classList.add('border');
-    }
+    if(consolidatedMode==='value'){ valBtn.classList.add('bg-indigo-600','text-white'); valBtn.classList.remove('border'); qtyBtn.classList.remove('bg-indigo-600','text-white'); qtyBtn.classList.add('border'); }
+    else { qtyBtn.classList.add('bg-indigo-600','text-white'); qtyBtn.classList.remove('border'); valBtn.classList.remove('bg-indigo-600','text-white'); valBtn.classList.add('border'); }
   }
-
-  valBtn.onclick = () => {
-    consolidatedMode = 'value';
-    updateToggleUI();
-    renderProductConsolidatedChart();
-  };
-
-  qtyBtn.onclick = () => {
-    consolidatedMode = 'qty';
-    updateToggleUI();
-    renderProductConsolidatedChart();
-  };
-
+  valBtn.onclick=()=>{ consolidatedMode='value'; updateToggleUI(); renderProductConsolidatedChart(); };
+  qtyBtn.onclick=()=>{ consolidatedMode='qty'; updateToggleUI(); renderProductConsolidatedChart(); };
 });
 
-function openProductDetailPopup(productName){
-
-  const rows = inventory.filter(r =>
-    r.Product === productName && num(r.Qty) > 0
-  );
-
-  if(rows.length === 0) return;
-
-  let html = `
-  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" id="prodPopup">
-    <div class="bg-white w-[90%] max-w-4xl rounded-xl shadow-xl p-6 relative">
-      <button onclick="document.getElementById('prodPopup').remove()"
-        class="absolute top-3 right-3 text-red-600 font-bold text-lg">✕</button>
-
-      <h3 class="text-xl font-bold mb-4">${productName} - Batch Details</h3>
-
-      <div class="overflow-x-auto border rounded-lg">
-        <table class="min-w-full text-sm">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="p-3 text-left">Product Name</th>
-              <th class="p-3 text-left">Batch</th>
-              <th class="p-3 text-left">Expiry</th>
-              <th class="p-3 text-right">Qty</th>
-              <th class="p-3 text-right">MRP</th>
-              <th class="p-3 text-right">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-  `;
-
-  rows.forEach(r=>{
-    const value = num(r.Qty) * num(r.MRP);
-
-    html += `
-      <tr class="border-t">
-        <td class="p-3">${r.Product}</td>
-        <td class="p-3">${r.Batch}</td>
-        <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-  ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-</td>
-        <td class="p-3 text-right">${r.Qty}</td>
-        <td class="p-3 text-right">₹${num(r.MRP).toFixed(2)}</td>
-        <td class="p-3 text-right font-semibold text-indigo-600">
-          ₹${value.toFixed(2)}
-        </td>
-      </tr>
-    `;
-  });
-
-  html += `
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>`;
-
-  document.body.insertAdjacentHTML('beforeend', html);
-}
-
-function renderExpiredSummary(){
-
-  const tbody = document.querySelector('#expiryTable tbody');
-  tbody.innerHTML = '';
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  const map = {};
-  
-  // Variables for summary cards
-  let totalExpiredQty = 0, totalExpiredValue = 0;
-  let totalShortQty = 0, totalShortValue = 0;
-  let totalRegularQty = 0, totalRegularValue = 0;
-  
-  const sixMonthsLater = new Date();
-  sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
-
-  inventory.forEach(r => {
-
-    if(!r.Expiry || num(r.Qty) <= 0) return;
-
-    const expiryStr = fmtExpiryMMYYYY(r.Expiry);
-    if(!/^\d{2}-\d{4}$/.test(expiryStr)) return;
-
-    const [mm, yyyy] = expiryStr.split('-').map(Number);
-    const expDate = new Date(yyyy, mm, 0);
-    expDate.setHours(23,59,59,999);
-
-    const product = r.Product || 'Unknown';
-    const qty = num(r.Qty);
-    const value = qty * num(r.MRP);
-
-    if(!map[product]){
-      map[product] = {
-        expiredQty:0,
-        shortQty:0,
-        mrp:num(r.MRP),
-        value:0
-      };
-    }
-
-    if(expDate < today){
-      map[product].expiredQty += qty;
-      totalExpiredQty += qty;
-      totalExpiredValue += value;
-    } else if(expDate >= today && expDate <= sixMonthsLater){
-      map[product].shortQty += qty;
-      totalShortQty += qty;
-      totalShortValue += value;
-    } else {
-      totalRegularQty += qty;
-      totalRegularValue += value;
-    }
-
-  });
-
-  // Update summary cards
-  document.getElementById('expiryExpiredQtyValue').textContent = `${totalExpiredQty} / ₹${totalExpiredValue.toFixed(2)}`;
-  document.getElementById('expiryShortQtyValue').textContent = `${totalShortQty} / ₹${totalShortValue.toFixed(2)}`;
-  document.getElementById('expiryRegularQtyValue').textContent = `${totalRegularQty} / ₹${totalRegularValue.toFixed(2)}`;
-
-  Object.keys(map)
-  .map(product => {
-
-    const d = map[product];
-    const totalQty = d.expiredQty + d.shortQty;
-    const totalValue = totalQty * d.mrp;
-
-    return {
-      product,
-      expiredQty: d.expiredQty,
-      shortQty: d.shortQty,
-      mrp: d.mrp,
-      totalValue
-    };
-
-  })
-  .filter(d => d.expiredQty > 0 || d.shortQty > 0)
-
-  // 🔥 SORT DESCENDING BY TOTAL VALUE
-  .sort((a, b) => b.totalValue - a.totalValue)
-
-  .forEach(d => {
-
-    const tr = document.createElement('tr');
-    tr.classList.add('cursor-pointer','hover:bg-red-50');
-
-    tr.innerHTML = `
-      <td class="p-3 font-semibold">${escapeHtml(d.product)}</td>
-      <td class="p-3 text-right text-red-600 font-bold">${d.expiredQty}</td>
-      <td class="p-3 text-right text-orange-500 font-semibold">${d.shortQty}</td>
-      <td class="p-3 text-right">${d.mrp.toFixed(2)}</td>
-      <td class="p-3 text-right font-bold text-indigo-600">
-        ₹${d.totalValue.toFixed(2)}
-      </td>
-    `;
-
-    tr.onclick = () => openExpiredDetailPopup(d.product);
-
-    tbody.appendChild(tr);
-  });
-
-}
-
-function openExpiredDetailPopup(productName){
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-
-  const rows = inventory.filter(r => 
-    r.Product === productName && num(r.Qty) > 0
-  );
-
-  if(rows.length === 0) return;
-
-  let html = `
-  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" id="expiredPopup">
-    <div class="bg-white w-[95%] max-w-5xl rounded-xl shadow-xl p-6 relative">
-      <button onclick="document.getElementById('expiredPopup').remove()"
-        class="absolute top-3 right-3 text-red-600 font-bold text-lg">✕</button>
-
-      <h3 class="text-xl font-bold mb-4">
-        ${escapeHtml(productName)} - Batch Expiry Details
-      </h3>
-
-      <div class="overflow-x-auto border rounded-lg">
-        <table class="min-w-full text-sm">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="p-3 text-left">Batch</th>
-              <th class="p-3 text-left">Expiry</th>
-              <th class="p-3 text-right">Qty</th>
-              <th class="p-3 text-right">MRP</th>
-              <th class="p-3 text-right">Value</th>
-            </tr>
-          </thead>
-          <tbody>
-  `;
-
-  rows.forEach(r => {
-
-    const value = num(r.Qty) * num(r.MRP);
-
-    html += `
-      <tr class="border-t">
-        <td class="p-3">${escapeHtml(r.Batch||'')}</td>
-        <td class="p-3 ${getExpiryStatusClass(r.Expiry)}">
-          ${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}
-        </td>
-        <td class="p-3 text-right">${r.Qty}</td>
-        <td class="p-3 text-right">₹${num(r.MRP).toFixed(2)}</td>
-        <td class="p-3 text-right font-semibold text-indigo-600">
-          ₹${value.toFixed(2)}
-        </td>
-      </tr>
-    `;
-  });
-
-  html += `
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>`;
-
-  document.body.insertAdjacentHTML('beforeend', html);
-}
-
-
-function renderDashboard(){
-
-  // Update date range display
-  const filterFrom = document.getElementById('filterFrom').value;
-  const filterTo = document.getElementById('filterTo').value;
-  const dateRangeEl = document.getElementById('dashboardDateRange');
-  
-  if(filterFrom && filterTo) {
-    // Format dates as DD/MM/YYYY
-    const fromDate = new Date(filterFrom);
-    const toDate = new Date(filterTo);
-    const fromStr = `${String(fromDate.getDate()).padStart(2,'0')}/${String(fromDate.getMonth()+1).padStart(2,'0')}/${fromDate.getFullYear()}`;
-    const toStr = `${String(toDate.getDate()).padStart(2,'0')}/${String(toDate.getMonth()+1).padStart(2,'0')}/${toDate.getFullYear()}`;
-    dateRangeEl.textContent = `${fromStr} to ${toStr}`;
-  } else {
-    dateRangeEl.textContent = 'All period';
-  }
-
-  const filteredInventory = getFilteredData(inventory, 'Last Updated').filter(r => num(r.Qty) > 0);
-
-  // TOTAL PRODUCTS (consolidated)
-  const productSet = new Set(filteredInventory.map(r => r.Product));
-  document.getElementById('dbTotalProducts').textContent = productSet.size;
-
-  // TOTAL VALUE
-  let totalValue = 0;
-  filteredInventory.forEach(r=>{
-    totalValue += num(r.Qty) * num(r.MRP);
-  });
-  document.getElementById('dbTotalValue').textContent = '₹'+totalValue.toFixed(2);
-
-  // EXPIRY SUMMARY
-  let expiredQty=0, expiredVal=0, shortQty=0, shortVal=0;
-
-  const today = new Date(); today.setHours(0,0,0,0);
-  const sixMonths = new Date(); sixMonths.setMonth(sixMonths.getMonth()+6);
-
-  filteredInventory.forEach(r=>{
-    if(!r.Expiry) return;
-    const expiryStr = fmtExpiryMMYYYY(r.Expiry);
-    if(!/^\d{2}-\d{4}$/.test(expiryStr)) return;
-
-    const [mm,yy] = expiryStr.split('-').map(Number);
-    const expDate = new Date(yy,mm,0);
-
-    const value = num(r.Qty)*num(r.MRP);
-
-    if(expDate < today){
-      expiredQty += num(r.Qty);
-      expiredVal += value;
-    } else if(expDate <= sixMonths){
-      shortQty += num(r.Qty);
-      shortVal += value;
-    }
-  });
-
-  document.getElementById('dbExpired').textContent =
-    expiredQty+' / ₹'+expiredVal.toFixed(2);
-
-  document.getElementById('dbShortExpiry').textContent =
-    shortQty+' / ₹'+shortVal.toFixed(2);
-
-  document.getElementById('dbReceipts').textContent = receipts.length;
-  document.getElementById('dbSupplies').textContent = supplies.length;
-
-  // PRODUCT CHART (Top 15 by value with better styling)
-  const productMap = {};
-  filteredInventory.forEach(r=>{
-    productMap[r.Product] =
-      (productMap[r.Product]||0) + num(r.Qty)*num(r.MRP);
-  });
-
-  const sortedProducts = Object.entries(productMap)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,15);
-
-  createChart('dbProductChart','bar',{
-    labels: sortedProducts.map(x=> {
-      // Truncate long labels to 30 chars
-      const name = x[0];
-      return name.length > 30 ? name.substring(0, 27) + '...' : name;
-    }),
-    datasets:[{
-      label:'Stock Value (₹)',
-      data: sortedProducts.map(x=>x[1]),
-      backgroundColor:[
-        'rgba(79,70,229,0.8)',
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(249, 115, 22, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(168, 85, 247, 0.8)',
-        'rgba(236, 72, 153, 0.8)',
-        'rgba(14, 165, 233, 0.8)',
-        'rgba(251, 146, 60, 0.8)',
-        'rgba(244, 63, 94, 0.8)',
-        'rgba(107, 114, 128, 0.8)',
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(139, 92, 246, 0.8)',
-        'rgba(217, 119, 6, 0.8)',
-        'rgba(30, 41, 59, 0.8)'
-      ],
-      borderRadius:6,
-      borderWidth: 1,
-      borderColor: '#fff'
-    }]
-  });
-
-  // PRODUCT TYPE CHART (QTY based)
-  const typeMap = {};
-  filteredInventory.forEach(r=>{
-    typeMap[r.Type] =
-      (typeMap[r.Type]||0) + num(r.Qty);
-  });
-
-  createChart('dbTypeChart','pie',{
-    labels:Object.keys(typeMap),
-    datasets:[{
-      data:Object.values(typeMap),
-      backgroundColor:[
-        'rgba(59, 130, 246, 0.7)',   // blue
-        'rgba(16, 185, 129, 0.7)',   // emerald
-        'rgba(249, 115, 22, 0.7)',   // orange
-        'rgba(168, 85, 247, 0.7)',   // purple
-        'rgba(236, 72, 153, 0.7)',   // pink
-        'rgba(14, 165, 233, 0.7)',   // sky
-        'rgba(251, 146, 60, 0.7)',   // orange-400
-        'rgba(244, 63, 94, 0.7)'     // rose
-      ],
-      borderWidth: 2,
-      borderColor: '#fff'
-    }]
-  });
-
-  // TEAM SUPPLY CHART
-  const teamMap = {};
-  supplies.forEach(s=>{
-    teamMap[s.Team] =
-      (teamMap[s.Team]||0) + num(s['Total Value']);
-  });
-
-  createChart('dbTeamChart','doughnut',{
-    labels:Object.keys(teamMap),
-    datasets:[{
-      data:Object.values(teamMap),
-      backgroundColor:[
-        'rgba(79, 70, 229, 0.8)',    // indigo
-        'rgba(59, 130, 246, 0.8)',   // blue
-        'rgba(16, 185, 129, 0.8)',   // emerald
-        'rgba(249, 115, 22, 0.8)',   // orange
-        'rgba(168, 85, 247, 0.8)',   // purple
-        'rgba(236, 72, 153, 0.8)',   // pink
-        'rgba(14, 165, 233, 0.8)',   // sky
-        'rgba(251, 146, 60, 0.8)',   // orange-400
-        'rgba(244, 63, 94, 0.8)',    // rose
-        'rgba(107, 114, 128, 0.8)'   // slate
-      ],
-      borderWidth: 2,
-      borderColor: '#fff'
-    }]
-  });
-
-  // PRODUCT DISTRIBUTION (Top 15 with better styling)
-  const distMap = {};
-  supplies.forEach(s=>{
-    const p = s.Product || s['Item Supplied'];
-    distMap[p] = (distMap[p]||0) + num(s.Qty);
-  });
-
-  const sortedDist = Object.entries(distMap)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,15);
-
-  createChart('dbDistributionChart','bar',{
-    labels: sortedDist.map(x=> {
-      // Truncate long labels to 30 chars
-      const name = x[0];
-      return name.length > 30 ? name.substring(0, 27) + '...' : name;
-    }),
-    datasets:[{
-      label:'Qty Distributed',
-      data: sortedDist.map(x=>x[1]),
-      backgroundColor:[
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(34, 197, 94, 0.8)',
-        'rgba(74, 222, 128, 0.8)',
-        'rgba(132, 204, 22, 0.8)',
-        'rgba(191, 144, 0, 0.8)',
-        'rgba(234, 179, 8, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(244, 63, 94, 0.8)',
-        'rgba(168, 85, 247, 0.8)',
-        'rgba(139, 92, 246, 0.8)',
-        'rgba(99, 102, 241, 0.8)',
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(14, 165, 233, 0.8)',
-        'rgba(6, 182, 212, 0.8)',
-        'rgba(20, 184, 166, 0.8)'
-      ],
-      borderRadius:6,
-      borderWidth: 1,
-      borderColor: '#fff'
-    }]
-  });
-// TOP 10 EMPLOYEES BY VALUE
-const empMap = {};
-
-supplies.forEach(s=>{
-  const empCode = s['Supply to (Emp ID)'] || s['Employee Code'] || '';
-  const empName = s['Employee Name'] || s['Emp Name'] || empCode;
-
-  if(!empName) return;
-
-  empMap[empName] =
-    (empMap[empName] || 0) + num(s['Total Value'] || 0);
-});
-
-const topEmployees = Object.entries(empMap)
-  .sort((a,b)=>b[1]-a[1])
-  .slice(0,10);
-
-const empTbody = document.getElementById('dbTopEmployees');
-empTbody.innerHTML = '';
-
-topEmployees.forEach(e=>{
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="p-3 font-medium">${escapeHtml(e[0])}</td>
-    <td class="p-3 text-right font-semibold text-indigo-600">
-      ₹${e[1].toFixed(2)}
-    </td>
-  `;
-  empTbody.appendChild(tr);
-});
-
-// TOP 10 PRODUCTS BY DISTRIBUTION VALUE
-const prodMap = {};
-
-supplies.forEach(s=>{
-  const product = s.Product || s['Item Supplied'] || '';
-  if(!product) return;
-
-  prodMap[product] =
-    (prodMap[product] || 0) + num(s['Total Value'] || 0);
-});
-
-const topProducts = Object.entries(prodMap)
-  .sort((a,b)=>b[1]-a[1])
-  .slice(0,10);
-
-const prodTbody = document.getElementById('dbTopProducts');
-prodTbody.innerHTML = '';
-
-topProducts.forEach(p=>{
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="p-3 font-medium">${escapeHtml(p[0])}</td>
-    <td class="p-3 text-right font-semibold text-emerald-600">
-      ₹${p[1].toFixed(2)}
-    </td>
-  `;
-  prodTbody.appendChild(tr);
-});
-}
-
-
-function autoFormatSummaryCards() {
-
-  const ids = [
-    'dbTotalProducts','dbTotalValue','dbExpired','dbShortExpiry',
-    'dbReceipts','dbSupplies',
-
-    'totalStockValue','uniqueProductsCount','minStockBatches',
-
-    'rsCount','rsQty','rsValue',
-
-    'plProducts','plBatches','plReceived','plSupplied',
-    'plRemaining','plValue',
-
-    'elTrans','elQty','elValue',
-
-    'edTotalEmp','edTotalQty','edTotalValue',
-
-    'pdTotalProducts','pdTotalQty','pdTotalValue'
-  ];
-
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-
-    let text = el.textContent.replace(/₹|,/g,'').trim();
-
-    // Handle special cases like "0 / ₹0"
-    if (text.includes('/')) {
-      const parts = text.split('/').map(p => p.trim());
-      const left = formatIndianNumber(parts[0].replace(/₹|,/g,''), false);
-      const right = formatIndianNumber(parts[1].replace(/₹|,/g,''), true);
-      el.textContent = left + ' / ' + right;
-      return;
-    }
-
-    const isCurrency = el.textContent.includes('₹');
-
-    el.textContent = formatIndianNumber(text, isCurrency);
-  });
-
-}
-
-
-
-
+/* ===================== INITIAL LOAD ===================== */
+(async()=>{ await loadAll(); switchTab(null,'dashboard'); })();
 </script>
-
-
-
-
-<!-- Employee Distribution Modal -->
-<div id="empDistModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
-  <div class="bg-white w-[95%] max-w-6xl rounded-xl shadow-2xl p-6 relative animate-fadeIn">
-
-    <button onclick="closeEmpDistModal()" 
-      class="absolute top-3 right-3 text-slate-500 hover:text-red-600 text-xl font-bold">
-      ✕
-    </button>
-
-    <h3 class="text-xl font-bold text-slate-700 mb-4">
-      Detailed Distribution
-    </h3>
-
-    <div class="overflow-x-auto rounded-lg border shadow-md max-h-[60vh] overflow-y-auto">
-      <table id="empDistDetailTable" class="min-w-full text-sm">
-        <thead class="table-header-bg border-b">
-          <tr>
-            <th class="p-3">Date</th>
-            <th class="p-3">Emp Code</th>
-            <th class="p-3">Emp Name</th>
-            <th class="p-3">Designation</th>
-            <th class="p-3">Product</th>
-            <th class="p-3">Batch</th>
-            <th class="p-3">Expiry</th>
-            <th class="p-3 text-right">Qty</th>
-            <th class="p-3 text-right">Total Value (₹)</th>
-            <th class="p-3">Remarks</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- Product Distribution Modal -->
-<div id="prodDistModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
-  <div class="bg-white w-[95%] max-w-5xl rounded-xl shadow-2xl p-6 relative">
-
-    <button onclick="closeProdDistModal()" 
-      class="absolute top-3 right-3 text-slate-500 hover:text-red-600 text-xl font-bold">
-      ✕
-    </button>
-
-    <h3 class="text-xl font-bold text-slate-700 mb-4">
-      Product Distribution Details
-    </h3>
-
-    <div class="overflow-x-auto rounded-lg border shadow-md max-h-[60vh] overflow-y-auto">
-      <table id="prodDistDetailTable" class="min-w-full text-sm">
-        <thead class="table-header-bg border-b">
-          <tr>
-            <th class="p-3">Date</th>
-<th class="p-3">Emp Code</th>
-  <th class="p-3">Emp Name</th>
-            <th class="p-3">Product</th>
-            <th class="p-3">Batch</th>
-            <th class="p-3">Expiry</th>
-            <th class="p-3 text-right">Qty</th>
-            <th class="p-3 text-right">Total Value (₹)</th>
-            <th class="p-3">Remarks</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
