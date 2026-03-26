@@ -35,8 +35,8 @@
         <button data-tab="supply" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Supply</button>
         <button data-tab="live" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Live Inventory</button>
         <button data-tab="po" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">PO Generation</button>
-        <button onclick="window.location.href='Invoice.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Sup-Inv & DC</button>
-        <button onclick="window.location.href='Report.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Reports</button>
+        <button onclick="window.location.href='Invoice.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Sup-Inv & DC</button>
+        <button onclick="window.location.href='Report.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Reports</button>
       </nav>
     </div>
   </header>
@@ -140,7 +140,7 @@
             <div class="flex items-center gap-3">
               <label class="text-sm"><input type="radio" name="receiptType" value="Medicine" checked onchange="onReceiptTypeChange(this.value)" /> Medicine</label>
               <label class="text-sm"><input type="radio" name="receiptType" value="Gift" onchange="onReceiptTypeChange(this.value)" /> Gift</label>
-              <label class="text-sm"><input type="radio" name="receiptType" value="Gift" onchange="onReceiptTypeChange(this.value)" /> Other</label>
+              <label class="text-sm"><input type="radio" name="receiptType" value="Other" onchange="onReceiptTypeChange(this.value)" /> Other</label>
             </div>
           </div>
         </div>
@@ -401,7 +401,8 @@
   /* ------------------------------------------ */
 
   let products = [], employees = [], inventory = [], vendors = [];
-  let currentRequestId = null; // Stores the ID after a successful save
+  let currentRequestId = null;
+  let lastSavedPo = null;
 
   function showLoading(){ const el=document.getElementById('loading'); if(el) el.style.display='flex'; }
   function hideLoading(){ const el=document.getElementById('loading'); if(el) el.style.display='none'; }
@@ -458,12 +459,12 @@
     addSupplyRow();
     addPoRow();
 
-    // ensure receipt type UI state
     onReceiptTypeChange(document.querySelector('input[name="receiptType"]:checked').value);
   });
 
   /* LOADERS */
   async function loadProducts(){ const r = await post('getProducts',{}); products = (r && r.success) ? r.products : []; }
+
   async function loadEmployees(){ 
     const r = await post('getEmployeeList',{}); 
     employees = (r && r.success) ? r.employees.sort((a,b)=>a["Employee Name"].localeCompare(b["Employee Name"])) : []; 
@@ -473,21 +474,38 @@
     if(supSel) supSel.innerHTML = options.replace('-- Select Employee (optional) --','Select Employee');
     if(reqSel) reqSel.innerHTML = options;
   }
+
   async function loadInventory(){ 
     const r = await post('getInventory',{}); 
     inventory = (r && r.success) ? r.rows : []; 
     const types = [...new Set(inventory.map(x=>x.Type).filter(Boolean))].sort(); 
+
+    // Populate Supply Type dropdown
     const tSel = document.getElementById('sType'); 
     if(tSel) tSel.innerHTML = `<option value="">(All types)</option>` + types.map(t=>`<option>${t}</option>`).join(''); 
-    const f=document.getElementById('filterType'); if(f) f.innerHTML=`<option value="">All</option>`+types.map(t=>`<option>${t}</option>`).join(''); 
 
-    // refresh supply rows and live inventory when visible
+    // Populate Live Inventory filter
+    const f=document.getElementById('filterType'); 
+    if(f) f.innerHTML=`<option value="">All</option>`+types.map(t=>`<option>${t}</option>`).join(''); 
+
+    // Refresh supply rows if supply tab is visible
     if(document.getElementById('supply').style.display !== 'none'){
-      const supTb = document.querySelector('#supTable tbody'); if(supTb){ supTb.innerHTML=''; addSupplyRow(); }
+      const supTb = document.querySelector('#supTable tbody'); 
+      if(supTb){ supTb.innerHTML=''; addSupplyRow(); }
     }
+
+    // Refresh live inventory if that tab is visible
     if(document.getElementById('live').style.display !== 'none'){ renderLiveInventory(); }
   }
-  async function loadVendors(){ const r = await post('getVendors',{}); vendors = (r && r.success) ? r.vendors : []; const sel = document.getElementById('poSupplier'); const recSel = document.getElementById('recPurchasedFrom'); if(sel) sel.innerHTML = `<option value="">Select Supplier</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join(''); if(recSel) recSel.innerHTML = `<option value="">-- Select Supplier (optional) --</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join(''); }
+
+  async function loadVendors(){ 
+    const r = await post('getVendors',{}); 
+    vendors = (r && r.success) ? r.vendors : []; 
+    const sel = document.getElementById('poSupplier'); 
+    const recSel = document.getElementById('recPurchasedFrom'); 
+    if(sel) sel.innerHTML = `<option value="">Select Supplier</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join(''); 
+    if(recSel) recSel.innerHTML = `<option value="">-- Select Supplier (optional) --</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join(''); 
+  }
 
   async function loadPendingRequests(){
     const sel = document.getElementById('pendingRequests');
@@ -546,7 +564,7 @@
       if(!val){ prodSel.disabled=true; prodSel.innerHTML='<option>-- Product --</option>'; return; }
       prodSel.disabled=false;
       const list = products.filter(p=>p.Type===val).sort((a,b)=>a.Product.localeCompare(b.Product));
-prodSel.innerHTML = '<option>-- Product --</option>' + list.map(p=>`<option>${escapeHtml(p.Product)}</option>`).join('');
+      prodSel.innerHTML = '<option>-- Product --</option>' + list.map(p=>`<option>${escapeHtml(p.Product)}</option>`).join('');
     });
 
     prodSel.addEventListener('change', () => {
@@ -563,56 +581,54 @@ prodSel.innerHTML = '<option>-- Product --</option>' + list.map(p=>`<option>${es
     tr.querySelector('.total').value = to2(q * m);
   }
 
-async function saveRequest() {
-  const date = document.getElementById("reqDate").value || "";
-  const empSelect = document.getElementById("reqFor");
-  const empCode = empSelect?.value || "";
-  const empText = empSelect?.options[empSelect.selectedIndex]?.text || "";
-  const empName = empText.split(" - ")[1] || "";
-  const purpose = document.getElementById("reqPurpose")?.value || "";
-  const remarksOverall = document.getElementById("reqRemarks")?.value || "";
+  async function saveRequest() {
+    const date = document.getElementById("reqDate").value || "";
+    const empSelect = document.getElementById("reqFor");
+    const empCode = empSelect?.value || "";
+    const empText = empSelect?.options[empSelect.selectedIndex]?.text || "";
+    const empName = empText.split(" - ")[1] || "";
+    const purpose = document.getElementById("reqPurpose")?.value || "";
+    const remarksOverall = document.getElementById("reqRemarks")?.value || "";
 
-  // ✅ Pick the Team Wise directly from loaded employees array
-  const team =
-    employees.find(e =>
-      `${e["Employee Code"]} - ${e["Employee Name"]}`.trim() === empText.trim()
-    )?.["Team Wise"] || "";
+    const team =
+      employees.find(e =>
+        `${e["Employee Code"]} - ${e["Employee Name"]}`.trim() === empText.trim()
+      )?.["Team Wise"] || "";
 
-  // Collect line items
-  const rows = [...document.querySelectorAll("#reqTable tbody tr")].map(tr => ({
-    item: tr.querySelector(".productSel")?.value || "",
-    qty: Number(tr.querySelector(".qty")?.value || 0),
-    mrp: Number(tr.querySelector(".mrp")?.value || 0),
-    total: Number(tr.querySelector(".total")?.value || 0),
-    remarks: tr.querySelector(".remarks")?.value || ""
-  })).filter(r => r.item && r.qty > 0);
+    const rows = [...document.querySelectorAll("#reqTable tbody tr")].map(tr => ({
+      item: tr.querySelector(".productSel")?.value || "",
+      qty: Number(tr.querySelector(".qty")?.value || 0),
+      mrp: Number(tr.querySelector(".mrp")?.value || 0),
+      total: Number(tr.querySelector(".total")?.value || 0),
+      remarks: tr.querySelector(".remarks")?.value || ""
+    })).filter(r => r.item && r.qty > 0);
 
-  if (!rows.length) return alert("Add at least one product");
+    if (!rows.length) return alert("Add at least one product");
 
-  const payload = {
-    action: "saveRequest",
-    date,
-    empCode,
-    empName,
-    requestFor: empText,
-    team,   // ✅ send Team Wise directly
-    purpose,
-    remarksOverall,
-    rows
-  };
+    const payload = {
+      action: "saveRequest",
+      date,
+      empCode,
+      empName,
+      requestFor: empText,
+      team,
+      purpose,
+      remarksOverall,
+      rows
+    };
 
-  const res = await post("saveRequest", payload);
-  if (res && res.success) {
-    alert(res.message || "Request saved successfully!");
-    currentRequestId = res.requestId || (res.message ? res.message.match(/(REQ\\d+)/i)?.[1] : null);
-    document.getElementById("sendMailBtn").classList.remove("hidden");
-    document.getElementById("saveRequestBtn").classList.add("hidden");
-    await loadPendingRequests();
-  } else {
-    alert("Save failed: " + (res.message || ""));
+    const res = await post("saveRequest", payload);
+    if (res && res.success) {
+      alert(res.message || "Request saved successfully!");
+      currentRequestId = res.requestId || (res.message ? res.message.match(/(REQ\d+)/i)?.[1] : null);
+      document.getElementById("sendMailBtn").classList.remove("hidden");
+      document.getElementById("saveRequestBtn").classList.add("hidden");
+      await loadPendingRequests();
+    } else {
+      alert("Save failed: " + (res.message || ""));
+    }
   }
-}
-  // NEW: Function to clear the form fields and reset UI state
+
   function clearRequestForm(){
     document.getElementById('reqFor').value = '';
     document.getElementById('reqPurpose').value = '';
@@ -624,25 +640,18 @@ async function saveRequest() {
     currentRequestId = null;
   }
 
-  // NEW/MODIFIED: Send Mail function that clears the form only after success
   async function sendRequestMailUI(){
     if(!currentRequestId) {
         return alert('Please save the request first to generate a Request ID before sending mail.');
     }
-
-    // 'post' handles the loading animation
     const res = await post('sendRequestMail', { reqId: currentRequestId });
-
     if(res && res.success) {
         alert('Mail successfully sent!');
-        // Clear the form only after mail is successfully sent
         clearRequestForm();
     } else {
         alert('Mail sending failed: ' + (res.message || 'The server returned an error.'));
-        // Keep the form and Send Mail button visible so the user can try again or check the data
     }
   }
-
 
   /* RECEIPT */
   function onPendingRequestSelect(){
@@ -655,7 +664,6 @@ async function saveRequest() {
   }
 
   function onReceiptTypeChange(value){
-    // visually mark if batch/expiry mandatory
     const isMedicine = (value === 'Medicine');
     const headerBatch = document.querySelectorAll('#recTable thead th')[5];
     const headerExp = document.querySelectorAll('#recTable thead th')[6];
@@ -694,14 +702,13 @@ async function saveRequest() {
       });
       tb.appendChild(tr);
     });
-    // ensure receipt type rules apply visually
     onReceiptTypeChange(document.querySelector('input[name="receiptType"]:checked').value);
   }
 
   async function saveReceipt(){
-const date = document.getElementById('recDate').value || '';
+    const date = document.getElementById('recDate').value || '';
     const mode = document.getElementById('receiptMode')?.value || 'fetch';
-const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqId').value || '');
+    const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqId').value || '');
     const purchasedFrom = document.getElementById('recPurchasedFrom').value || '';
     const remarksOverall = document.getElementById('recRemarks').value || '';
     const receiptType = document.querySelector('input[name="receiptType"]:checked').value || 'Medicine';
@@ -722,7 +729,6 @@ const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqI
 
     if(!rows.length) return alert('No rows');
 
-    // If Medicine, ensure batch & expiry provided for each row
     if(receiptType === 'Medicine'){
       for(const [idx,row] of rows.entries()){
         if(!row.batchNo || !row.expiry){
@@ -731,14 +737,7 @@ const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqI
       }
     }
 
-    const payload = {
-date,
-      reqId,
-      purchasedFrom,
-      remarksOverall,
-      receiptType,
-      rows
-    };
+    const payload = { date, reqId, purchasedFrom, remarksOverall, receiptType, rows };
 
     const res = await post('saveReceipt', payload);
     if(res && res.success) {
@@ -746,7 +745,6 @@ date,
       document.querySelector('#recTable tbody').innerHTML = '';
       document.getElementById('recPurchasedFrom').value = '';
       document.getElementById('recRemarks').value = '';
-      // refresh inventory & pending requests
       await loadInventory();
       await loadPendingRequests();
     } else {
@@ -754,9 +752,12 @@ date,
     }
   }
 
-  /* SUPPLY */
+  /* ===================== SUPPLY ===================== */
+
   function showEmployeeDetails(){
-    const id = document.getElementById('supTo').value; const g = document.getElementById('empGrid'); g.innerHTML = '';
+    const id = document.getElementById('supTo').value; 
+    const g = document.getElementById('empGrid'); 
+    g.innerHTML = '';
     if(!id) return;
     const e = employees.find(x=> x["Employee Code"] === id);
     if(!e) return;
@@ -779,20 +780,41 @@ date,
     </div>`;
   }
 
+  /**
+   * FIX: When the type dropdown changes, clear existing supply rows
+   * and add a fresh row so the item dropdown reflects the new type filter.
+   */
+  function onSupplyTypeChange(){
+    const supTb = document.querySelector('#supTable tbody');
+    if(supTb){
+      supTb.innerHTML = '';
+      addSupplyRow();
+    }
+  }
+
+  /**
+   * FIX: Build item options filtered by the currently selected type.
+   * Each existing row in the table also gets its dropdown refreshed.
+   */
+  function buildSupplyItemOptions(selectedType) {
+    const list = inventory
+      .filter(r => Number(r.Qty) > 0 && (selectedType ? r.Type === selectedType : true))
+      .sort((a, b) => a.Product.localeCompare(b.Product));
+
+    return '<option value="">--select--</option>' + list
+      .map(r => `<option value='${encodeURIComponent(JSON.stringify(r))}'>
+          ${escapeHtml(r.Product)} (Batch:${escapeHtml(r.Batch||'-')} | Exp:${escapeHtml(r.Expiry||'')} | Avl:${escapeHtml(String(r.Qty||'0'))})
+        </option>`)
+      .join('');
+  }
+
   function addSupplyRow(){
     const type = document.getElementById('sType').value;
-    const list = inventory
-  .filter(r => Number(r.Qty) > 0 && (type ? r.Type === type : true))
-  .sort((a, b) => a.Product.localeCompare(b.Product));
+    const opts = buildSupplyItemOptions(type);
 
-const opts = list
-  .map(r => `<option value='${encodeURIComponent(JSON.stringify(r))}'>
-      ${escapeHtml(r.Product)} (Batch:${escapeHtml(r.Batch||'-')} | Exp:${escapeHtml(r.Expiry||'')} | Avl:${escapeHtml(r.Qty||'0')})
-    </option>`)
-  .join('');
     const tb = document.querySelector('#supTable tbody');
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="p-2"><select class="s-prod border border-gray-200 rounded-md px-2 py-1"><option value="">--select--</option>${opts}</select></td>
+    tr.innerHTML = `<td class="p-2"><select class="s-prod border border-gray-200 rounded-md px-2 py-1 w-full min-w-[260px]"><option value="">--select--</option></select></td>
       <td class="p-2"><input class="s-batch border border-gray-200 rounded-md px-2 py-1" readonly></td>
       <td class="p-2"><input class="s-exp border border-gray-200 rounded-md px-2 py-1" readonly></td>
       <td class="p-2"><input class="s-qty border border-gray-200 rounded-md px-2 py-1" type="number" min="0"></td>
@@ -801,10 +823,20 @@ const opts = list
       <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
     tb.appendChild(tr);
 
-    const sel = tr.querySelector('.s-prod'); const qty = tr.querySelector('.s-qty');
+    const sel = tr.querySelector('.s-prod');
+    // Set the filtered options
+    sel.innerHTML = opts;
+
+    const qty = tr.querySelector('.s-qty');
 
     sel.addEventListener('change', ()=>{
-      if(!sel.value){ tr.querySelector('.s-batch').value=''; tr.querySelector('.s-exp').value=''; tr.querySelector('.s-mrp').value=''; tr.querySelector('.s-total').value=''; return; }
+      if(!sel.value){ 
+        tr.querySelector('.s-batch').value=''; 
+        tr.querySelector('.s-exp').value=''; 
+        tr.querySelector('.s-mrp').value=''; 
+        tr.querySelector('.s-total').value=''; 
+        return; 
+      }
       const o = JSON.parse(decodeURIComponent(sel.value));
       tr.querySelector('.s-batch').value = o.Batch || '';
       tr.querySelector('.s-exp').value = o.Expiry || '';
@@ -815,16 +847,24 @@ const opts = list
     });
 
     qty.addEventListener('input', ()=>{
-      const selVal = sel.value; const q = num(qty.value); let available = Infinity;
-      if(selVal){ try{ const o = JSON.parse(decodeURIComponent(selVal)); available = num(o.Qty); }catch(e){ available = Infinity; } }
-      if(available !== Infinity && q > available){ qty.value = available; alert('Not enough stock available — quantity reduced to available stock.'); }
-      const qFinal = num(qty.value); const m = num(tr.querySelector('.s-mrp').value) || 0;
+      const selVal = sel.value; 
+      const q = num(qty.value); 
+      let available = Infinity;
+      if(selVal){ 
+        try{ const o = JSON.parse(decodeURIComponent(selVal)); available = num(o.Qty); }catch(e){ available = Infinity; } 
+      }
+      if(available !== Infinity && q > available){ 
+        qty.value = available; 
+        alert('Not enough stock available — quantity reduced to available stock.'); 
+      }
+      const qFinal = num(qty.value); 
+      const m = num(tr.querySelector('.s-mrp').value) || 0;
       tr.querySelector('.s-total').value = to2(qFinal * m);
     });
   }
 
   async function saveSupply(){
-const date = document.getElementById('supDate').value || '';
+    const date = document.getElementById('supDate').value || '';
     const emp = document.getElementById('supTo').value;
     if(!emp) return alert('Select Employee');
     const rows = [...document.querySelectorAll('#supTable tbody tr')].map(tr=>{
@@ -976,8 +1016,8 @@ const date = document.getElementById('supDate').value || '';
     updatePoTotals();
     document.getElementById('printPoBtn').classList.add('hidden');
     lastSavedPo = null;
- document.getElementById("savePoBtn").classList.remove("hidden");
-  document.getElementById("printPoBtn").classList.add("hidden");
+    document.getElementById("savePoBtn").classList.remove("hidden");
+    document.getElementById("printPoBtn").classList.add("hidden");
   }
 
   async function savePo(){
@@ -1021,20 +1061,15 @@ const date = document.getElementById('supDate').value || '';
       alert('Save failed: ' + (res.message || 'Unknown error'));
     }
   }
- function buildPoHtmlForPrint(){
-    // Utility functions (assuming num, to2, escapeHtml, and numberToWords are defined globally or locally)
-    const num = (v) => Number(v) || 0;
-    const to2 = (v) => (Number(v) || 0).toFixed(2);
-    
-    // Fallback for escapeHtml if not defined elsewhere
-    const escapeHtml = (unsafe) => {
-      if (typeof unsafe !== 'string') return unsafe;
+
+  function buildPoHtmlForPrint(){
+    const _num = (v) => Number(v) || 0;
+    const _to2 = (v) => (_num(v)).toFixed(2);
+    const _esc = (unsafe) => {
+      if (typeof unsafe !== 'string') return String(unsafe || '');
       return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     };
 
-
-    // Fetch data from the form/last saved state
-    // NOTE: lastSavedPo, vendors, and element IDs are assumed to be available in the scope.
     const use = lastSavedPo || {
       poNum: document.getElementById('poNumber')?.value,
       supplier: vendors?.[document.getElementById('poSupplier')?.value] || {},
@@ -1045,13 +1080,12 @@ const date = document.getElementById('supDate').value || '';
         amount: tr.querySelector('.po-amt')?.value || 0,
         due: tr.querySelector('.po-due')?.value || ''
       })),
-      gst: num(document.getElementById('poGstPercent')?.value),
-      taxType: document.querySelector('input[name="taxType"]:checked')?.value || 'igst', // Default to igst
+      gst: _num(document.getElementById('poGstPercent')?.value),
+      taxType: document.querySelector('input[name="taxType"]:checked')?.value || 'igst',
       poDate: document.getElementById('poDate')?.value
     };
 
-    // Calculations
-    const subtotal = use.rows.reduce((s,r)=> s + num(r.amount), 0);
+    const subtotal = use.rows.reduce((s,r)=> s + _num(r.amount), 0);
     const gst = use.gst || 0;
     const taxTotal = subtotal * gst / 100;
     let cgst = 0, sgst = 0, igst = 0;
@@ -1061,9 +1095,6 @@ const date = document.getElementById('supDate').value || '';
     const roundOff = (rounded - gross);
     const total = rounded;
 
-    // --- Modern Invoice Structure ---
-
-    // 1. Company and Document Title Block
     const companyBlock = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
         <div>
@@ -1076,22 +1107,21 @@ const date = document.getElementById('supDate').value || '';
         <div style="text-align: right;">
             <h1 style="font-size: 24pt; font-weight: bold; margin: 0; color: #333;">PURCHASE ORDER</h1>
             <div style="font-size: 9pt; margin-top: 5px;">
-                <span style="font-weight: bold; color: #555;">PO Number:</span> <span style="font-weight: bold; color: #059669;">${escapeHtml(use.poNum||'')}</span><br>
-                <span style="font-weight: bold; color: #555;">Date:</span> ${escapeHtml(formatDateForPrint(use.poDate||''))}
+                <span style="font-weight: bold; color: #555;">PO Number:</span> <span style="font-weight: bold; color: #059669;">${_esc(use.poNum||'')}</span><br>
+                <span style="font-weight: bold; color: #555;">Date:</span> ${_esc(formatDateForPrint(use.poDate||''))}
             </div>
         </div>
       </div>
     `;
 
-    // 2. Address & Meta Blocks
     const supplier = use.supplier || {};
     const supplierBlock = `
       <div style="padding-right: 20px;">
         <div style="font-weight: 700; text-transform: uppercase; color: #555; margin-bottom: 3px; font-size: 8pt;">Supplier (Bill From)</div>
-        <div style="font-weight: bold; color: #333;">${escapeHtml(supplier['Supplier Name']||'')}</div>
-        <div style="font-size: 9pt; color: #666;">${escapeHtml(supplier['Address']||'')}</div>
-        <div style="font-size: 9pt; color: #666;">GSTIN/UIN: ${escapeHtml(supplier['GSTIN / UIN']||supplier['GSTIN']||'')}</div>
-        <div style="font-size: 9pt; color: #666;">State: ${escapeHtml(supplier['State']||'')} (${escapeHtml(supplier['Code']||'')})</div>
+        <div style="font-weight: bold; color: #333;">${_esc(supplier['Supplier Name']||'')}</div>
+        <div style="font-size: 9pt; color: #666;">${_esc(supplier['Address']||'')}</div>
+        <div style="font-size: 9pt; color: #666;">GSTIN/UIN: ${_esc(supplier['GSTIN / UIN']||supplier['GSTIN']||'')}</div>
+        <div style="font-size: 9pt; color: #666;">State: ${_esc(supplier['State']||'')} (${_esc(supplier['Code']||'')})</div>
       </div>
     `;
 
@@ -1112,15 +1142,14 @@ const date = document.getElementById('supDate').value || '';
       </div>
     `;
 
-    // 3. Items Table
     const itemsHtmlRows = use.rows.map((r,i) => {
       return `<tr>
-        <td style="text-align:center; width: 5%;">${i+1}</td>
-        <td style="width: auto;">${escapeHtml(r.description || '')}</td>
-        <td style="text-align:right; width: 15%;">₹ ${to2(num(r.rate))}</td>
-        <td style="text-align:right; width: 10%;">${to2(num(r.qty))}</td>
-        <td style="text-align:right; width: 15%;">₹ ${to2(num(r.amount))}</td>
-        <td style="width: 15%;">${escapeHtml(formatDateForPrint(r.due || ''))}</td>
+        <td style="text-align:center; width: 5%; border: 1px solid #e5e7eb; padding: 6px 8px;">${i+1}</td>
+        <td style="width: auto; border: 1px solid #e5e7eb; padding: 6px 8px;">${_esc(r.description || '')}</td>
+        <td style="text-align:right; width: 15%; border: 1px solid #e5e7eb; padding: 6px 8px;">₹ ${_to2(_num(r.rate))}</td>
+        <td style="text-align:right; width: 10%; border: 1px solid #e5e7eb; padding: 6px 8px;">${_to2(_num(r.qty))}</td>
+        <td style="text-align:right; width: 15%; border: 1px solid #e5e7eb; padding: 6px 8px;">₹ ${_to2(_num(r.amount))}</td>
+        <td style="width: 15%; border: 1px solid #e5e7eb; padding: 6px 8px;">${_esc(formatDateForPrint(r.due || ''))}</td>
       </tr>`;
     }).join('');
 
@@ -1142,32 +1171,28 @@ const date = document.getElementById('supDate').value || '';
         <tfoot style="background-color: #f3f4f6; font-weight: bold;">
           <tr>
             <td colspan="4" style="text-align:right; padding: 8px; border: 1px solid #e5e7eb;">Sub Total ₹</td>
-            <td style="text-align:right; padding: 8px; border: 1px solid #e5e7eb; color: #059669;">${to2(subtotal)}</td>
+            <td style="text-align:right; padding: 8px; border: 1px solid #e5e7eb; color: #059669;">${_to2(subtotal)}</td>
             <td style="border: 1px solid #e5e7eb;"></td>
           </tr>
         </tfoot>
       </table>
     `;
 
-    // 4. Totals and Footer
     const totalsHtml = `
       <div style="display: flex; justify-content: flex-end; margin-top: 15px;">
         <div style="width: 35%; border: 1px solid #ddd; padding: 10px; border-radius: 6px; font-size: 10pt; background-color: #f9f9f9;">
-          <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>Sub Total:</div><div>₹ ${to2(subtotal)}</div></div>
-          
+          <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>Sub Total:</div><div>₹ ${_to2(subtotal)}</div></div>
           ${ use.taxType === 'cgst' ? 
-            `<div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>CGST (${gst/2}%)</div><div>₹ ${to2(cgst)}</div></div>
-             <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>SGST (${gst/2}%)</div><div>₹ ${to2(sgst)}</div></div>` :
-            `<div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>IGST (${gst}%)</div><div>₹ ${to2(igst)}</div></div>`
+            `<div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>CGST (${gst/2}%)</div><div>₹ ${_to2(cgst)}</div></div>
+             <div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>SGST (${gst/2}%)</div><div>₹ ${_to2(sgst)}</div></div>` :
+            `<div style="display:flex; justify-content:space-between; margin-bottom: 5px;"><div>IGST (${gst}%)</div><div>₹ ${_to2(igst)}</div></div>`
           }
-
           <div style="display:flex; justify-content:space-between; padding-top: 5px; border-top: 1px solid #ccc;">
-             <div>Less : Round Off:</div><div>₹ ${to2(roundOff)}</div>
+             <div>Less : Round Off:</div><div>₹ ${_to2(roundOff)}</div>
           </div>
-          
           <div style="display:flex; justify-content:space-between; font-weight:800; font-size: 12pt; color: #059669; padding-top: 5px; border-top: 2px solid #059669;">
             <div>TOTAL AMOUNT:</div>
-            <div>₹ ${to2(total)}</div>
+            <div>₹ ${_to2(total)}</div>
           </div>
         </div>
       </div>
@@ -1195,46 +1220,28 @@ const date = document.getElementById('supDate').value || '';
       </div>
     `;
 
-
-    // Final HTML structure with Watermark wrapper
     return `
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Purchase Order - ${escapeHtml(use.poNum||'')}</title>
+          <title>Purchase Order - ${_esc(use.poNum||'')}</title>
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
           <style>
-            body { 
-              font-family: 'Inter', sans-serif; 
-              color: #1f2937; 
-              font-size: 10pt; 
-              padding: 0; 
-              margin: 0;
-            }
+            body { font-family: 'Inter', sans-serif; color: #1f2937; font-size: 10pt; padding: 0; margin: 0; }
             @page { size: A4; margin: 15mm; }
             table { border-collapse: collapse; }
-            /* Styling specific to the items table */
-            .items-table th { background-color: #059669; color: white; border-color: #059669; font-weight: 600; }
-            .items-table th, .items-table td { border: 1px solid #e5e7eb; padding: 6px 8px; vertical-align: top; }
           </style>
         </head>
         <body>
           <div style="padding: 20px; position: relative; min-height: 280mm;">
-              <!-- Watermark Element for Print -->
-              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; 
-                          display: flex; justify-content: center; align-items: center;">
-                  <img src="https://www.pristinepearlpharma.in/images/alt-logo.png" 
-                       alt="Watermark" 
-                       style="width: 300px; height: auto; opacity: 0.1; transform: rotate(-15deg);" 
-                       onerror="this.style.display='none';">
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; display: flex; justify-content: center; align-items: center;">
+                  <img src="https://www.pristinepearlpharma.in/images/alt-logo.png" alt="Watermark" style="width: 300px; height: auto; opacity: 0.1; transform: rotate(-15deg);" onerror="this.style.display='none';">
               </div>
-              
-              <!-- Content Wrapper -->
               <div style="position: relative; z-index: 1;">
                 ${companyBlock}
                 ${addressMetaHtml}
-                ${itemsTableHtml.replace(/<table/g, '<table class="items-table"')}
+                ${itemsTableHtml}
                 ${totalsHtml}
                 ${wordsHtml}
                 ${footer}
@@ -1245,36 +1252,17 @@ const date = document.getElementById('supDate').value || '';
     `;
   }
 
-  /**
-   * Updated printPo function to use the new HTML generator.
-   * Uses a custom message box instead of alert.
-   */
   function printPo(){
-    // Utility for a simple console log instead of alert, as custom modals are not provided here.
-    const showMessage = (msg) => console.log('PO Print Message:', msg); 
-    
-    if(!lastSavedPo) {
-      return showMessage('Please save the PO first before printing.');
-    }
-
-    const html = buildPoHtmlForPrint(); // Uses the updated HTML generator
-
+    if(!lastSavedPo) return alert('Please save the PO first before printing.');
+    const html = buildPoHtmlForPrint();
     const w = window.open('', '_blank');
-    if(!w) {
-      return showMessage('Popup blocked — allow popups for this site.');
-    }
-    
+    if(!w) return alert('Popup blocked — allow popups for this site.');
     w.document.open();
     w.document.write(html);
     w.document.close();
-    
-    // Wait a short moment for the content to render before printing
     setTimeout(()=> w.print(), 700);
   }
 
-  /**
-   * Improved numberToWords function for better Indian Numbering System accuracy.
-   */
   function numberToWords(num) {
     if (num === 0) return "Zero";
     const upto19 = ["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
@@ -1282,9 +1270,7 @@ const date = document.getElementById('supDate').value || '';
     
     function twoDigit(n){ 
       if(n < 20) return upto19[n]; 
-      const t = Math.floor(n/10);
-      const r = n % 10; 
-      return tens[t] + (r ? " " + upto19[r] : ""); 
+      return tens[Math.floor(n/10)] + (n%10 ? " " + upto19[n%10] : ""); 
     }
 
     function threeDigit(n){ 
@@ -1299,12 +1285,9 @@ const date = document.getElementById('supDate').value || '';
     let s = ""; 
     let workingNum = Math.abs(Math.round(num)); 
     
-    const crore = Math.floor(workingNum / 10000000); 
-    workingNum %= 10000000; 
-    const lakh = Math.floor(workingNum / 100000); 
-    workingNum %= 100000; 
-    const thousand = Math.floor(workingNum / 1000); 
-    workingNum %= 1000; 
+    const crore = Math.floor(workingNum / 10000000); workingNum %= 10000000; 
+    const lakh = Math.floor(workingNum / 100000); workingNum %= 100000; 
+    const thousand = Math.floor(workingNum / 1000); workingNum %= 1000; 
     const hundred = workingNum;
 
     if(crore) s += twoDigit(crore) + " Crore ";
@@ -1314,165 +1297,147 @@ const date = document.getElementById('supDate').value || '';
     
     return s.trim();
   }
-  /* small no-op to avoid console errors if referenced */
-  function onSupplyTypeChange(){ /* currently no-op; kept for compatibility */ }
 
-function toggleDoctorInput() {
-  const reqFor = document.getElementById('reqFor').value;
-  const doctorInput = document.getElementById('doctorName');
-  if (reqFor === 'DOCTOR') {
-    doctorInput.classList.remove('hidden');
-    doctorInput.focus();
-  } else {
-    doctorInput.classList.add('hidden');
-    doctorInput.value = '';
-  }
-}
-
-/* ===================== SMART PO VIEW ===================== */
-function openPoViewer() {
-  document.getElementById("poViewerModal").classList.remove("hidden");
-  loadSavedPoList();
-}
-
-function closePoViewer() {
-  document.getElementById("poViewerModal").classList.add("hidden");
-}
-
-async function loadSavedPoList() {
-  const r = await post("getPOReport", {});
-  const tbody = document.querySelector("#poListTable tbody");
-  tbody.innerHTML = "";
-
-  if (!r || !r.success || !r.rows?.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center p-2 text-slate-500">No saved POs</td></tr>`;
-    return;
+  function toggleDoctorInput() {
+    const reqFor = document.getElementById('reqFor').value;
+    const doctorInput = document.getElementById('doctorName');
+    if(doctorInput){
+      if (reqFor === 'DOCTOR') {
+        doctorInput.classList.remove('hidden');
+        doctorInput.focus();
+      } else {
+        doctorInput.classList.add('hidden');
+        doctorInput.value = '';
+      }
+    }
   }
 
-  // 🔹 Remove duplicate PO numbers (keep only the first entry of each PO)
-  const unique = {};
-  r.rows.forEach(po => {
-    if (!unique[po.poNum]) unique[po.poNum] = po;
-  });
+  /* ===================== SMART PO VIEW ===================== */
+  function openPoViewer() {
+    document.getElementById("poViewerModal").classList.remove("hidden");
+    loadSavedPoList();
+  }
 
-  Object.values(unique).forEach(po => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="border px-2 py-1">${po.poNum}</td>
-      <td class="border px-2 py-1">${po.date}</td>
-      <td class="border px-2 py-1">${po.supplier}</td>
-      <td class="border px-2 py-1 text-right">${po.total}</td>
-      <td class="border px-2 py-1 text-center">
-        <button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm"
-          onclick="viewPoDetails('${po.poNum}')">View</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
-}
-function filterPoList() {
-  const val = document.getElementById("poSearch").value.toLowerCase();
-  const rows = document.querySelectorAll("#poListTable tbody tr");
-  rows.forEach(r => {
-    r.style.display = r.textContent.toLowerCase().includes(val) ? "" : "none";
-  });
-}
+  function closePoViewer() {
+    document.getElementById("poViewerModal").classList.add("hidden");
+  }
 
-async function viewPoDetails(poNum) {
-  const r = await post("getSavedPO", { poNumber: poNum });
-  if (!r.success) return alert("Failed to load PO details");
-  const data = r.po;
+  async function loadSavedPoList() {
+    const r = await post("getPOReport", {});
+    const tbody = document.querySelector("#poListTable tbody");
+    tbody.innerHTML = "";
 
-  closePoViewer();
-  alert("Loaded PO: " + poNum);
+    if (!r || !r.success || !r.rows?.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center p-2 text-slate-500">No saved POs</td></tr>`;
+      return;
+    }
 
-  // Fill the same form
-  document.getElementById("poNumber").value = data.poNumber;
-  document.getElementById("poDate").value = data.poDate;
-  document.getElementById("poGstPercent").value = data.gst;
-  document.querySelector(`input[name='taxType'][value='${data.taxType}']`).checked = true;
+    const unique = {};
+    r.rows.forEach(po => {
+      if (!unique[po.poNum]) unique[po.poNum] = po;
+    });
 
-  const supplierIndex = vendors.findIndex(v => v["Supplier Name"] === data.supplier["Supplier Name"]);
-  if (supplierIndex >= 0) document.getElementById("poSupplier").value = supplierIndex;
+    Object.values(unique).forEach(po => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="border px-2 py-1">${po.poNum}</td>
+        <td class="border px-2 py-1">${po.date}</td>
+        <td class="border px-2 py-1">${po.supplier}</td>
+        <td class="border px-2 py-1 text-right">${po.total}</td>
+        <td class="border px-2 py-1 text-center">
+          <button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm"
+            onclick="viewPoDetails('${po.poNum}')">View</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
-  const tbody = document.querySelector("#poTable tbody");
-  tbody.innerHTML = "";
-  data.rows.forEach(row => addPoRow(row));
-  updatePoTotals();
-lastSavedPo = {
-  poNum: data.poNumber,
-  supplier: data.supplier,
-  rows: data.rows,
-  gst: data.gst,
-  taxType: data.taxType,
-  poDate: data.poDate
-};
-document.getElementById("savePoBtn").classList.add("hidden");
+  function filterPoList() {
+    const val = document.getElementById("poSearch").value.toLowerCase();
+    const rows = document.querySelectorAll("#poListTable tbody tr");
+    rows.forEach(r => {
+      r.style.display = r.textContent.toLowerCase().includes(val) ? "" : "none";
+    });
+  }
+
+  async function viewPoDetails(poNum) {
+    const r = await post("getSavedPO", { poNumber: poNum });
+    if (!r.success) return alert("Failed to load PO details");
+    const data = r.po;
+
+    closePoViewer();
+    alert("Loaded PO: " + poNum);
+
+    document.getElementById("poNumber").value = data.poNumber;
+    document.getElementById("poDate").value = data.poDate;
+    document.getElementById("poGstPercent").value = data.gst;
+    document.querySelector(`input[name='taxType'][value='${data.taxType}']`).checked = true;
+
+    const supplierIndex = vendors.findIndex(v => v["Supplier Name"] === data.supplier["Supplier Name"]);
+    if (supplierIndex >= 0) document.getElementById("poSupplier").value = supplierIndex;
+
+    const tbody = document.querySelector("#poTable tbody");
+    tbody.innerHTML = "";
+    data.rows.forEach(row => addPoRow(row));
+    updatePoTotals();
+
+    lastSavedPo = {
+      poNum: data.poNumber,
+      supplier: data.supplier,
+      rows: data.rows,
+      gst: data.gst,
+      taxType: data.taxType,
+      poDate: data.poDate
+    };
+    document.getElementById("savePoBtn").classList.add("hidden");
     document.getElementById("printPoBtn").classList.remove("hidden");
-}
-
-// 🔹 Switch between manual and fetch modes
-function toggleReceiptMode() {
-  const mode = document.getElementById('receiptMode').value;
-  const fetchControls = ['pendingRequests', 'recReqId'];
-  const addBtn = document.getElementById('addReceiptRowBtn');
-  const recTableBody = document.querySelector('#recTable tbody');
-
-  if (mode === 'manual') {
-    fetchControls.forEach(id => document.getElementById(id).disabled = true);
-    addBtn.classList.remove('hidden');
-    recTableBody.innerHTML = ''; // clear existing
-    addReceiptRow(); // add empty row
-  } else {
-    fetchControls.forEach(id => document.getElementById(id).disabled = false);
-    addBtn.classList.add('hidden');
-    recTableBody.innerHTML = ''; // clear manual entries
   }
-}
 
-// 🔹 Add a new manual receipt row
-function addReceiptRow() {
-  const tb = document.querySelector('#recTable tbody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="p-2"><input class="r-item border border-gray-200 rounded-md px-2 py-1" placeholder="Item Name" /></td>
-    <td class="p-2"><input class="r-req border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Req Qty" /></td>
-    <td class="p-2"><input class="r-mrp border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="MRP" /></td>
-    <td class="p-2"><input class="r-total border border-gray-200 rounded-md px-2 py-1" readonly /></td>
-    <td class="p-2"><input class="r-remreq border border-gray-200 rounded-md px-2 py-1" placeholder="Req Remarks" /></td>
-    <td class="p-2"><input class="r-batch border border-gray-200 rounded-md px-2 py-1" placeholder="Batch No" /></td>
-    <td class="p-2"><input class="r-exp border border-gray-200 rounded-md px-2 py-1" type="month" /></td>
-    <td class="p-2"><input class="r-rec border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Received Qty" /></td>
-    <td class="p-2"><input class="r-rem border border-gray-200 rounded-md px-2 py-1" placeholder="Remarks" /></td>
-    <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
-  tb.appendChild(tr);
+  /* Receipt: Switch between manual and fetch modes */
+  function toggleReceiptMode() {
+    const mode = document.getElementById('receiptMode').value;
+    const fetchControls = ['pendingRequests', 'recReqId'];
+    const addBtn = document.getElementById('addReceiptRowBtn');
+    const recTableBody = document.querySelector('#recTable tbody');
 
-  const mrp = tr.querySelector('.r-mrp');
-  const qty = tr.querySelector('.r-rec');
-  function recalc() {
-    tr.querySelector('.r-total').value = to2(num(mrp.value) * num(qty.value));
+    if (mode === 'manual') {
+      fetchControls.forEach(id => document.getElementById(id).disabled = true);
+      addBtn.classList.remove('hidden');
+      recTableBody.innerHTML = '';
+      addReceiptRow();
+    } else {
+      fetchControls.forEach(id => document.getElementById(id).disabled = false);
+      addBtn.classList.add('hidden');
+      recTableBody.innerHTML = '';
+    }
   }
-  mrp.addEventListener('input', recalc);
-  qty.addEventListener('input', recalc);
-}
 
-function printPo() {
-  const html = buildPoHtmlForPrint(); // already defined in your file
-  const win = window.open("", "_blank", "width=900,height=700");
-  win.document.write(`
-    <html>
-      <head><title>Print PO</title></head>
-      <body onload="window.print();window.close();">
-        ${html}
-      </body>
-    </html>
-  `);
-  win.document.close();
-}
+  /* Add a new manual receipt row */
+  function addReceiptRow() {
+    const tb = document.querySelector('#recTable tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2"><input class="r-item border border-gray-200 rounded-md px-2 py-1" placeholder="Item Name" /></td>
+      <td class="p-2"><input class="r-req border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Req Qty" /></td>
+      <td class="p-2"><input class="r-mrp border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="MRP" /></td>
+      <td class="p-2"><input class="r-total border border-gray-200 rounded-md px-2 py-1" readonly /></td>
+      <td class="p-2"><input class="r-remreq border border-gray-200 rounded-md px-2 py-1" placeholder="Req Remarks" /></td>
+      <td class="p-2"><input class="r-batch border border-gray-200 rounded-md px-2 py-1" placeholder="Batch No" /></td>
+      <td class="p-2"><input class="r-exp border border-gray-200 rounded-md px-2 py-1" type="month" /></td>
+      <td class="p-2"><input class="r-rec border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Received Qty" /></td>
+      <td class="p-2"><input class="r-rem border border-gray-200 rounded-md px-2 py-1" placeholder="Remarks" /></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+    tb.appendChild(tr);
+
+    const mrp = tr.querySelector('.r-mrp');
+    const qty = tr.querySelector('.r-rec');
+    function recalc() {
+      tr.querySelector('.r-total').value = to2(num(mrp.value) * num(qty.value));
+    }
+    mrp.addEventListener('input', recalc);
+    qty.addEventListener('input', recalc);
+  }
   </script>
 
 </body>
-
 </html>
-
-
-
