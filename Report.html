@@ -71,17 +71,90 @@
     }
     .table-header-bg { background-color: #f7fafc; }
     @media print { .no-print { display: none } }
+
+  .ss-wrap{position:relative;display:inline-block;min-width:260px;vertical-align:middle}
+  .ss-btn{width:100%;text-align:left;border:1px solid #d1d5db;border-radius:.5rem;padding:.25rem 2rem .25rem .75rem;background:#fff;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .ss-btn::after{content:'▾';position:absolute;right:.75rem;top:50%;transform:translateY(-50%);color:#6b7280}
+  .ss-btn:focus,.ss-wrap.open .ss-btn{border-color:#6366f1;outline:none}
+  .ss-panel{display:none;position:absolute;z-index:50;left:0;right:0;min-width:300px;margin-top:4px;background:#fff;border:1px solid #d1d5db;border-radius:.5rem;box-shadow:0 10px 25px rgba(0,0,0,.15)}
+  .ss-wrap.open .ss-panel{display:block}
+  .ss-search{width:calc(100% - 16px);margin:8px;border:1px solid #d1d5db;border-radius:.375rem;padding:.35rem .6rem;font-size:.875rem}
+  .ss-search:focus{outline:none;border-color:#6366f1}
+  .ss-list{max-height:240px;overflow-y:auto;padding-bottom:4px}
+  .ss-item{padding:.4rem .75rem;font-size:.875rem;cursor:pointer}
+  .ss-item:hover,.ss-item.active{background:#eef2ff}
+  .ss-item.sel{font-weight:600;color:#4338ca}
+  .ss-empty{padding:.5rem .75rem;font-size:.875rem;color:#6b7280}
+
+  /* ===== UI enhancements ===== */
+  body{background:#f1f5f9}
+  .panel{animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .tab-active{background:linear-gradient(90deg,#10b981,#059669)!important;color:#fff!important;font-weight:600;box-shadow:0 4px 12px rgba(16,185,129,.35)}
+  .sidebar-nav{max-height:none!important;flex:1;min-height:0}
+  .nav-group{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin:10px 0 2px 6px}
+  .nav-new{font-size:9px;font-weight:800;background:#f59e0b;color:#fff;border-radius:999px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .sidebtn{font-size:14px}
+  header{backdrop-filter:blur(6px)}
+  .grid > .rounded-xl.border.p-4{transition:transform .15s,box-shadow .15s}
+  .grid > .rounded-xl.border.p-4:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(15,23,42,.10)}
+  .overflow-x-auto.rounded-lg{max-height:70vh;overflow-y:auto}
+  .overflow-x-auto.rounded-lg thead th{position:sticky;top:0;z-index:2;background:#f7fafc;cursor:pointer;user-select:none;white-space:nowrap}
+  .overflow-x-auto.rounded-lg tbody tr:hover{background:#f8fafc}
+  th[aria-sort=ascending]::after{content:' ▲';font-size:10px;color:#6366f1}
+  th[aria-sort=descending]::after{content:' ▼';font-size:10px;color:#6366f1}
+  .tbl-bar{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+  .tbl-search{border:1px solid #d1d5db;border-radius:.5rem;padding:.3rem .7rem;font-size:.85rem;min-width:240px;background:#fff}
+  .tbl-search:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 2px rgba(99,102,241,.15)}
+  .tbl-count{font-size:.75rem;color:#64748b}
+  .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700}
+  .insight-card{border-radius:14px;padding:16px;color:#fff;box-shadow:0 8px 20px rgba(15,23,42,.12)}
+  .insight-card .lbl{font-size:12px;opacity:.85}
+  .insight-card .val{font-size:24px;font-weight:800;margin-top:2px}
+  .insight-card .sub{font-size:12px;opacity:.9;margin-top:2px}
+  .alert-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:transform .12s}
+  .alert-chip:hover{transform:translateY(-1px)}
+  #toastBox{position:fixed;right:16px;bottom:16px;z-index:70;display:flex;flex-direction:column;gap:8px}
+  .toast{background:#0f172a;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.25);animation:fadeIn .2s ease}
+  @media print{aside,#sidebarBackdrop,.tbl-bar,#toastBox{display:none!important} main{display:block!important} .overflow-x-auto.rounded-lg{max-height:none!important}}
+
+  /* ===== Dark mode ===== */
+  html.dark body{background:#0b1220;color:#e5e7eb}
+  html.dark .bg-white,html.dark header,html.dark .tbl-search,html.dark .ss-btn,html.dark .ss-panel,html.dark .ss-search{background:#111827!important;color:#e5e7eb}
+  html.dark .bg-gray-100,html.dark .bg-gray-50,html.dark .bg-slate-50,html.dark .bg-slate-100,html.dark .table-header-bg,html.dark .overflow-x-auto.rounded-lg thead th{background:#1f2937!important}
+  html.dark .bg-indigo-50{background:rgba(99,102,241,.16)!important}
+  html.dark .bg-emerald-50{background:rgba(16,185,129,.16)!important}
+  html.dark .bg-red-50{background:rgba(239,68,68,.16)!important}
+  html.dark .bg-amber-50{background:rgba(245,158,11,.16)!important}
+  html.dark .bg-blue-50{background:rgba(59,130,246,.16)!important}
+  html.dark .bg-purple-50{background:rgba(168,85,247,.16)!important}
+  html.dark .bg-red-100{background:rgba(239,68,68,.22)!important} html.dark .text-red-700,html.dark .text-red-600{color:#fca5a5!important}
+  html.dark .bg-amber-100{background:rgba(245,158,11,.22)!important} html.dark .text-amber-700{color:#fcd34d!important}
+  html.dark .bg-emerald-100{background:rgba(16,185,129,.22)!important} html.dark .text-emerald-700{color:#6ee7b7!important}
+  html.dark .bg-slate-200{background:#374151!important} html.dark .text-slate-600{color:#cbd5e1!important}
+  html.dark .text-slate-800,html.dark .text-slate-700,html.dark .text-gray-600,html.dark .text-gray-700{color:#e5e7eb!important}
+  html.dark .text-slate-500,html.dark .text-slate-400,html.dark .text-gray-500{color:#94a3b8!important}
+  html.dark .text-indigo-600,html.dark .text-indigo-700{color:#a5b4fc!important}
+  html.dark .border,html.dark .border-b,html.dark .border-t-2,html.dark .border-gray-200,html.dark .border-gray-300,html.dark .border-slate-200,html.dark hr{border-color:#374151!important}
+  html.dark .divide-gray-100>:not([hidden])~:not([hidden]){border-color:#1f2937!important}
+  html.dark input:not([type=checkbox]):not([type=radio]),html.dark select,html.dark textarea{background:#0f172a!important;color:#e5e7eb!important;border-color:#374151!important}
+  html.dark .hover\:bg-gray-50:hover,html.dark .overflow-x-auto.rounded-lg tbody tr:hover,html.dark .ss-item:hover,html.dark .ss-item.active{background:#1f2937!important}
+  html.dark .sidebar-nav::-webkit-scrollbar-track{background:#1f2937}
+  html.dark .type-pill.sample-pill:not(.active),html.dark .type-pill.gift-pill:not(.active){opacity:.85}
   </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
 
 <script>
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qrP12pYxhDsg5cG2zielynHmGDStg8TRyyi9oYGVnS-9_mbD4q/exec";
+const EMPLOYEE_SHEET_ID = "1xC_TtvoGVLSSarPhGdHAR5hFKsV4U61k_PMS5TVm56w";
+const EMPLOYEE_SHEET_GID = "1713960785";
+const EMPLOYEE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${EMPLOYEE_SHEET_ID}/gviz/tq?tqx=out:csv&gid=${EMPLOYEE_SHEET_GID}`;
 </script>
 
 <!-- Header -->
 <header class="bg-white border-b px-4 py-3 sticky top-0 z-40 no-print shadow-md">
-  <div class="max-w-7xl mx-auto flex items-center justify-between">
+  <div class="w-full flex items-center justify-between">
     <div class="flex items-center gap-3">
       <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" alt="Logo" class="w-20 h-20 object-contain rounded-lg" onerror="this.onerror=null;this.src='https://placehold.co/40x40/059669/ffffff?text=PP'">
       <div>
@@ -97,6 +170,9 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
       <button id="goBtn" class="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm">Go</button>
       <button id="exportExcelBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm">Export Excel</button>
       <button id="exportCsvBtn" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm">Export CSV</button>
+      <span id="lastUpdated" class="text-xs text-slate-500 hidden sm:inline mr-1"></span>
+      <button id="themeBtn" onclick="toggleTheme()" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm">🌙 Dark</button>
+      <button onclick="window.print()" class="px-3 py-2 rounded-lg border bg-white hover:bg-gray-50 text-sm">Print</button>
       <a href="index.html" class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 text-sm">Back</a>
     </div>
   </div>
@@ -104,24 +180,34 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
 
 <div id="sidebarBackdrop" class="sidebar-backdrop hidden md:hidden" onclick="toggleSidebar()"></div>
 
-<main class="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+<main class="w-full max-w-none p-4 md:p-6 grid grid-cols-1 md:grid-cols-[260px_minmax(0,1fr)] gap-6">
 
   <!-- Sidebar -->
   <aside id="sidebar" class="col-span-1 bg-white border rounded-xl p-4 shadow-lg sidebar-wrapper md:sticky md:top-20 md:h-[calc(100vh-80px)] md:flex md:flex-col">
     <div class="text-lg font-bold text-slate-700 mb-4">Reports & Ledgers</div>
 
     <!-- Scrollable nav buttons -->
-    <div class="sidebar-nav flex flex-col gap-2 mb-2">
+    <div class="sidebar-nav flex flex-col gap-1 mb-2">
+      <div class="nav-group">Overview</div>
       <button class="sidebtn px-3 py-2 rounded-lg text-left tab-active hover:bg-gray-50 transition-colors" data-target="dashboard" onclick="switchTab(event)">Home</button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50" data-target="stock" onclick="switchTab(event)">Stock Summary</button>
+      <div class="nav-group">Stock Reports</div>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="stock" onclick="switchTab(event)">Stock Summary</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="minStock" onclick="switchTab(event)">Minimum Stock</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="expiry" onclick="switchTab(event)">Expiry Tracker</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="receipts" onclick="switchTab(event)">Receipts Summary</button>
+      <div class="nav-group">Supply Reports</div>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="teamSupply" onclick="switchTab(event)">Team Supply Report</button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productLedger" onclick="switchTab(event)">Product Ledger</button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeLedger" onclick="switchTab(event)">Employee Ledger</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeDistribution" onclick="switchTab(event)">Distribution - Staffwise</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productDistribution" onclick="switchTab(event)">Distribution - Productwise</button>
+      <div class="nav-group">Ledgers</div>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productLedger" onclick="switchTab(event)">Product Ledger</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeLedger" onclick="switchTab(event)">Employee Ledger</button>
+      <div class="nav-group">Analytics</div>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="monthlyTrend" onclick="switchTab(event)">Monthly Trend<span class="nav-new">NEW</span></button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="stockCover" onclick="switchTab(event)">Stock Cover &amp; Reorder<span class="nav-new">NEW</span></button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="slowStock" onclick="switchTab(event)">Slow / Non-moving Stock<span class="nav-new">NEW</span></button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="mgrSupply" onclick="switchTab(event)">Manager-wise Supply<span class="nav-new">NEW</span></button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="empCoverage" onclick="switchTab(event)">Employee Coverage<span class="nav-new">NEW</span></button>
     </div>
 
     <hr class="my-4 border-gray-200" />
@@ -166,7 +252,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
   </aside>
 
   <!-- Content -->
-  <section class="col-span-3 space-y-6">
+  <section class="min-w-0 space-y-6">
     <div class="bg-white p-4 rounded-xl border shadow-sm">
       <div class="flex items-center justify-between flex-wrap gap-2">
         <div class="text-base text-slate-600 font-medium">Active Report: <strong id="activeLabel" class="text-indigo-600">Home</strong></div>
@@ -193,6 +279,9 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
           </div>
           <div class="text-sm text-slate-500 mt-2">Complete inventory overview.</div>
         </div>
+
+        <div id="dbInsights" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4"></div>
+        <div id="dbAlerts" class="flex flex-wrap gap-2 mb-6"></div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Products</div><div id="dbTotalProducts" class="text-xl font-bold">0</div></div>
@@ -392,6 +481,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
               <table id="teamSummaryTable" class="min-w-full text-sm">
                 <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Team</th><th class="p-3 text-right font-semibold text-gray-600">No. of Distributions</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th></tr></thead>
                 <tbody class="divide-y divide-gray-100"></tbody>
+                <tfoot class="border-t-2 bg-indigo-50"><tr><td class="p-3 font-bold text-slate-700">Overall Total</td><td id="teamSumCount" class="p-3 text-right font-bold text-slate-700">0</td><td id="teamSumValue" class="p-3 text-right font-bold text-indigo-700">₹0.00</td></tr></tfoot>
               </table>
             </div>
           </div>
@@ -400,14 +490,116 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvsPLvAggLwxA5v2qr
             <div class="chart-container w-full h-[300px]"><canvas id="teamPie" class="w-full"></canvas></div>
           </div>
         </div>
-        <h4 class="text-lg font-semibold mb-3 text-slate-700">Detailed Supply Transactions</h4>
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h4 class="text-lg font-semibold text-slate-700">Detailed Supply Transactions</h4>
+          <label class="flex items-center gap-2 text-sm font-medium cursor-pointer select-none">
+            <span>Consolidated</span>
+            <input id="teamConsolidated" type="checkbox" checked class="sr-only peer" />
+            <span class="relative w-11 h-6 bg-gray-300 rounded-full transition-colors peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-5"></span>
+          </label>
+        </div>
         <div class="overflow-x-auto rounded-lg border shadow-md">
           <table id="teamSupplyTable" class="min-w-full text-sm">
-            <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Team</th><th class="p-3 text-left font-semibold text-gray-600">Emp Code</th><th class="p-3 text-left font-semibold text-gray-600">Emp Name</th><th class="p-3 text-left font-semibold text-gray-600">Designation</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Remarks</th></tr></thead>
+            <thead id="teamSupplyHead" class="table-header-bg border-b"></thead>
             <tbody class="divide-y divide-gray-100"></tbody>
           </table>
         </div>
       </div>
+
+      <div id="monthlyTrend" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
+    <div><h3 class="text-2xl font-bold text-slate-700">Monthly Trend</h3><div class="text-sm text-slate-500">Stock received vs supplied, month by month.</div></div>
+    <div class="flex flex-wrap items-center gap-3 text-sm"><label class="font-medium">Months</label><select id="trendMonths" class="border rounded-lg px-2 py-1" onchange="renderTrend()"><option value="6">Last 6</option><option value="12" selected>Last 12</option><option value="24">Last 24</option></select><button class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 text-sm" onclick="renderTrend()">Refresh</button></div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Received Value</div><div id="trRecv" class="text-xl font-bold">0</div></div>
+    <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Total Supplied Value</div><div id="trSupp" class="text-xl font-bold">0</div></div>
+    <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Net Stock Added (Received − Supplied)</div><div id="trNet" class="text-xl font-bold">0</div></div>
+  </div>
+  <div class="bg-white p-4 rounded-xl border shadow-sm mb-6"><h4 class="font-semibold mb-3">Received vs Supplied (₹)</h4><div class="chart-container"><canvas id="trendChart"></canvas></div></div>
+  <div class="overflow-x-auto rounded-lg border shadow-md">
+    <table id="trendTable" class="min-w-full text-sm">
+      <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Month</th><th class="p-3 text-right font-semibold text-gray-600">Receipts Qty</th><th class="p-3 text-right font-semibold text-gray-600">Receipts Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Supplied Qty</th><th class="p-3 text-right font-semibold text-gray-600">Supplied Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Net Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Supply MoM</th></tr></thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="stockCover" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
+    <div><h3 class="text-2xl font-bold text-slate-700">Stock Cover &amp; Reorder</h3><div class="text-sm text-slate-500">How many days the current stock will last at the recent supply rate, with a suggested reorder quantity.</div></div>
+    <div class="flex flex-wrap items-center gap-3 text-sm"><label class="font-medium">Look-back</label><select id="coverWin" class="border rounded-lg px-2 py-1" onchange="renderCover()"><option value="30">30 days</option><option value="60">60 days</option><option value="90" selected>90 days</option><option value="180">180 days</option></select><label class="font-medium">Target cover</label><select id="coverTarget" class="border rounded-lg px-2 py-1" onchange="renderCover()"><option value="30">30 days</option><option value="60" selected>60 days</option><option value="90">90 days</option></select><label class="font-medium">Show</label><select id="coverStatus" class="border rounded-lg px-2 py-1" onchange="renderCover()"><option value="">All</option><option>Critical</option><option>Low</option><option>Healthy</option><option>No movement</option></select></div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Critical (&lt; 15 days)</div><div id="cvCritical" class="text-xl font-bold">0</div></div>
+    <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Low (15-30 days)</div><div id="cvLow" class="text-xl font-bold">0</div></div>
+    <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Healthy (30+ days)</div><div id="cvHealthy" class="text-xl font-bold">0</div></div>
+    <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Suggested Reorder Qty</div><div id="cvReorder" class="text-xl font-bold">0</div></div>
+  </div>
+  <div class="overflow-x-auto rounded-lg border shadow-md">
+    <table id="coverTable" class="min-w-full text-sm">
+      <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-right font-semibold text-gray-600">Current Stock</th><th class="p-3 text-right font-semibold text-gray-600">Supplied (look-back)</th><th class="p-3 text-right font-semibold text-gray-600">Avg / Day</th><th class="p-3 text-right font-semibold text-gray-600">Days of Cover</th><th class="p-3 text-right font-semibold text-gray-600">Suggested Reorder Qty</th><th class="p-3 text-left font-semibold text-gray-600">Status</th></tr></thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="slowStock" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
+    <div><h3 class="text-2xl font-bold text-slate-700">Slow / Non-moving Stock</h3><div class="text-sm text-slate-500">Batches in stock that have not been supplied recently.</div></div>
+    <div class="flex flex-wrap items-center gap-3 text-sm"><label class="font-medium">Idle more than</label><select id="slowDays" class="border rounded-lg px-2 py-1" onchange="renderSlow()"><option value="30">30 days</option><option value="60">60 days</option><option value="90" selected>90 days</option><option value="180">180 days</option><option value="365">1 year</option></select><label class="font-medium">Show</label><select id="slowStatus" class="border rounded-lg px-2 py-1" onchange="renderSlow()"><option value="">All</option><option>Non-moving</option><option>Never supplied</option><option>Active</option></select></div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Non-moving Batches</div><div id="slNon" class="text-xl font-bold">0</div></div>
+    <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Never Supplied Batches</div><div id="slNever" class="text-xl font-bold">0</div></div>
+    <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Non-moving Value (₹)</div><div id="slNonVal" class="text-xl font-bold">0</div></div>
+    <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Never Supplied Value (₹)</div><div id="slNeverVal" class="text-xl font-bold">0</div></div>
+  </div>
+  <div class="overflow-x-auto rounded-lg border shadow-md">
+    <table id="slowTable" class="min-w-full text-sm">
+      <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Last Supplied</th><th class="p-3 text-right font-semibold text-gray-600">Days Idle</th><th class="p-3 text-left font-semibold text-gray-600">Status</th></tr></thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="mgrSupply" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
+    <div><h3 class="text-2xl font-bold text-slate-700">Manager-wise Supply</h3><div class="text-sm text-slate-500">Supply value by reporting manager, including their entire downline (uses the Employee sheet hierarchy).</div></div>
+    <div class="flex flex-wrap items-center gap-3 text-sm"><label class="font-medium">From</label><input id="mgrFrom" type="date" class="border rounded-lg px-2 py-1" onchange="renderMgr()"><label class="font-medium">To</label><input id="mgrTo" type="date" class="border rounded-lg px-2 py-1" onchange="renderMgr()"><button class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 text-sm" onclick="renderMgr()">Refresh</button></div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Managers</div><div id="mgCount" class="text-xl font-bold">0</div></div>
+    <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Supplied Value (₹)</div><div id="mgTotal" class="text-xl font-bold">0</div></div>
+    <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Top Manager (by team value)</div><div id="mgTop" class="text-xl font-bold">0</div></div>
+  </div>
+  <div class="bg-white p-4 rounded-xl border shadow-sm mb-6"><h4 class="font-semibold mb-3">Top 10 Managers - Team Supply Value (₹)</h4><div class="chart-container"><canvas id="mgrChart"></canvas></div></div>
+  <div class="overflow-x-auto rounded-lg border shadow-md">
+    <table id="mgrTable" class="min-w-full text-sm">
+      <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Emp ID</th><th class="p-3 text-left font-semibold text-gray-600">Manager</th><th class="p-3 text-left font-semibold text-gray-600">Designation</th><th class="p-3 text-right font-semibold text-gray-600">Direct Reports</th><th class="p-3 text-right font-semibold text-gray-600">Team Size</th><th class="p-3 text-right font-semibold text-gray-600">Own Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Downline Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Distributions</th><th class="p-3 text-left font-semibold text-gray-600">Team</th></tr></thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="empCoverage" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
+    <div><h3 class="text-2xl font-bold text-slate-700">Employee Coverage</h3><div class="text-sm text-slate-500">Which employees received supplies in the selected period, and who did not.</div></div>
+    <div class="flex flex-wrap items-center gap-3 text-sm"><label class="font-medium">From</label><input id="covFrom" type="date" class="border rounded-lg px-2 py-1" onchange="renderCoverage()"><label class="font-medium">To</label><input id="covTo" type="date" class="border rounded-lg px-2 py-1" onchange="renderCoverage()"><label class="font-medium">Department</label><select id="covDept" class="border rounded-lg px-2 py-1" onchange="renderCoverage()"><option value="">All</option></select><label class="font-medium">Show</label><select id="covMode" class="border rounded-lg px-2 py-1" onchange="renderCoverage()"><option value="">All</option><option>Not served</option><option>Served</option></select><label class="flex items-center gap-1 font-medium"><input id="covResigned" type="checkbox" onchange="renderCoverage()"> Include resigned</label></div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Employees</div><div id="cvTotal" class="text-xl font-bold">0</div></div>
+    <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Served</div><div id="cvServed" class="text-xl font-bold">0</div></div>
+    <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Not Served</div><div id="cvNot" class="text-xl font-bold">0</div></div>
+    <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Coverage %</div><div id="cvPct" class="text-xl font-bold">0</div></div>
+  </div>
+  <div class="overflow-x-auto rounded-lg border shadow-md">
+    <table id="coverageTable" class="min-w-full text-sm">
+      <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Emp ID</th><th class="p-3 text-left font-semibold text-gray-600">Emp Name</th><th class="p-3 text-left font-semibold text-gray-600">Designation</th><th class="p-3 text-left font-semibold text-gray-600">Department</th><th class="p-3 text-left font-semibold text-gray-600">Team</th><th class="p-3 text-left font-semibold text-gray-600">HQ</th><th class="p-3 text-right font-semibold text-gray-600">Distributions</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Last Supply</th><th class="p-3 text-left font-semibold text-gray-600">Status</th></tr></thead>
+      <tbody class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</div>
 
       <!-- PRODUCT LEDGER -->
       <div id="productLedger" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
@@ -659,6 +851,7 @@ async function post(action, payload = {}) {
   }
 }
 
+function _ld(s){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s||'')); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s); }
 function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function num(v){ return Number(v)||0; }
 function formatIndianNumber(value, withCurrency = false) {
@@ -678,8 +871,8 @@ function getFilteredData(data, dateField = 'Date', matchField = 'Type') {
     if (from || to) {
       const rawDate = r[dateField] || r['Receipt Date'] || r['Supply Date'] || r['Last Updated'];
       const d = new Date(rawDate);
-      if (from && new Date(from) > d) return false;
-      if (to   && new Date(to)   < d) return false;
+      if (from && _ld(from) > d) return false;
+      if (to   && _ld(to)   < d) return false;
     }
     if (search) {
       const rowText = JSON.stringify(r).toLowerCase();
@@ -772,6 +965,8 @@ async function loadAll(){
   receipts  = (recR && recR.success) ? recR.receipts : [];
   supplies  = (supR && supR.success) ? supR.supplies : [];
   populateSelectors();
+  loadEmployeeMaster();
+  if(window.setLastUpdated) setLastUpdated();
 }
 
 function populateSelectors(){
@@ -786,6 +981,130 @@ function populateSelectors(){
   teams = [...new Set(supplies.map(s=>s.Team).filter(Boolean))].sort();
   const teamSel = document.getElementById('filterTeam');
   teamSel.innerHTML = '<option value="">All Teams</option>' + teams.map(t=>`<option>${escapeHtml(t)}</option>`).join('');
+
+  makeSearchable('ledgerProduct'); makeSearchable('ledgerEmployee');
+}
+
+
+/* ===================== SEARCHABLE DROPDOWN ===================== */
+function makeSearchable(selectId){
+  const sel=document.getElementById(selectId); if(!sel) return;
+  let wrap=sel._ssWrap;
+  if(!wrap){
+    wrap=document.createElement('div'); wrap.className='ss-wrap';
+    wrap.innerHTML='<button type="button" class="ss-btn"></button><div class="ss-panel"><input type="text" class="ss-search" placeholder="Search..." autocomplete="off"><div class="ss-list"></div></div>';
+    sel.style.display='none'; sel.parentNode.insertBefore(wrap,sel.nextSibling); sel._ssWrap=wrap;
+    const btn=wrap.querySelector('.ss-btn'), input=wrap.querySelector('.ss-search'), list=wrap.querySelector('.ss-list');
+    let items=[], activeIdx=-1;
+    const close=()=>wrap.classList.remove('open');
+    const pick=v=>{ sel.value=v; sync(); close(); sel.dispatchEvent(new Event('change',{bubbles:true})); };
+    const setActive=i=>{ const els=list.querySelectorAll('.ss-item'); els.forEach(e=>e.classList.remove('active')); activeIdx=i; if(els[i]){ els[i].classList.add('active'); els[i].scrollIntoView({block:'nearest'}); } };
+    const render=()=>{
+      const q=input.value.trim().toLowerCase();
+      items=[...sel.options].filter(o=>!q||o.text.toLowerCase().includes(q));
+      list.innerHTML='';
+      if(!items.length){ list.innerHTML='<div class="ss-empty">No matches found</div>'; activeIdx=-1; return; }
+      items.forEach((o,i)=>{ const d=document.createElement('div'); d.className='ss-item'+(o.value===sel.value?' sel':''); d.textContent=o.text; d.onmousedown=e=>{e.preventDefault(); pick(o.value);}; list.appendChild(d); });
+      setActive(0);
+    };
+    btn.onclick=()=>{ if(wrap.classList.contains('open')){close();return;} document.querySelectorAll('.ss-wrap.open').forEach(w=>w.classList.remove('open')); wrap.classList.add('open'); input.value=''; render(); input.focus(); };
+    input.oninput=render;
+    input.onkeydown=e=>{
+      if(e.key==='ArrowDown'){e.preventDefault(); setActive(Math.min(activeIdx+1,items.length-1));}
+      else if(e.key==='ArrowUp'){e.preventDefault(); setActive(Math.max(activeIdx-1,0));}
+      else if(e.key==='Enter'){e.preventDefault(); if(items[activeIdx]) pick(items[activeIdx].value);}
+      else if(e.key==='Escape'){close();}
+    };
+    document.addEventListener('mousedown',e=>{ if(!wrap.contains(e.target)) close(); });
+    function sync(){ const o=sel.options[sel.selectedIndex]; btn.textContent=o?o.text:'-- Select --'; }
+    sel._ssSync=sync;
+  }
+  sel._ssSync();
+}
+
+
+/* ===================== EMPLOYEE MASTER (reporting hierarchy) ===================== */
+let hrEmployees=[];
+function _pick(o,names){
+  const keys=Object.keys(o); 
+  for(const n of names){ const k=keys.find(k=>k.replace(/\s+/g,' ').trim().toLowerCase()===n.toLowerCase()); if(k!==undefined) return o[k]; }
+  return '';
+}
+function normalizeEmployeeMaster(payload){
+  let arr=payload;
+  if(!Array.isArray(arr)&&arr&&typeof arr==='object'){
+    const k=['employees','data','rows','result','records','items'].find(k=>Array.isArray(arr[k]))||Object.keys(arr).find(k=>Array.isArray(arr[k]));
+    arr=k?arr[k]:[];
+  }
+  if(!Array.isArray(arr)) return [];
+  // supports array of objects, or array of arrays (first row = headers)
+  if(arr.length&&Array.isArray(arr[0])){
+    const h=arr[0].map(x=>String(x).trim());
+    arr=arr.slice(1).map(r=>Object.fromEntries(h.map((k,i)=>[k,r[i]])));
+  }
+  return arr.map(o=>({
+    'Employee Code':String(_pick(o,['Emp Id','Emp ID','Employee Code','Employee ID'])).trim(),
+    'Employee Name':String(_pick(o,['Emp Name','Employee Name'])).trim(),
+    'Designation':String(_pick(o,['Designation'])).trim(),
+    'Reporting Manager ID':String(_pick(o,['Reporting Manager ID','Reporting Manager Id','Reporting Manager Code'])).trim(),
+    'Resigned':String(_pick(o,['Date Of Resignation','Date of Resignation'])).trim(),
+    'Team':String(_pick(o,['Team Wise'])).trim(),
+    'HQ':String(_pick(o,['HQ'])).trim(),
+    'Department':String(_pick(o,['Department'])).trim()
+  })).filter(e=>e['Employee Code']);
+}
+let hrError='';
+function parseCsv(text){
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cur); cur=''; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cur); cur=''; rows.push(row); row=[]; }
+    else cur+=c;
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+async function loadEmployeeMaster(){
+  hrError='';
+  try{
+    const res=await fetch(EMPLOYEE_SHEET_CSV_URL,{redirect:'follow'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text=await res.text();
+    if(/^\s*<(!doctype|html)/i.test(text)) throw new Error('Sheet is not publicly accessible (share as "Anyone with the link - Viewer")');
+    const rows=parseCsv(text);
+    const list=normalizeEmployeeMaster(rows);
+    if(!list.length) throw new Error('No employee rows found in the sheet');
+    hrEmployees=list; return hrEmployees;
+  }catch(e){
+    hrError=e.message||String(e);
+    console.warn('Employee sheet load failed:',hrError);
+    hrEmployees=[]; return hrEmployees;
+  }
+}
+
+/* ===================== REPORTING HIERARCHY (for Excel export) ===================== */
+function buildReportingChain(){
+  const norm=v=>String(v==null?'':v).trim();
+  const src=hrEmployees.length?hrEmployees:staff.map(x=>({'Employee Code':x['Employee Code'],'Employee Name':x['Employee Name'],'Designation':x['Designation'],'Reporting Manager ID':x['Reporting Manager ID']||''}));
+  const byCode=new Map(); src.forEach(x=>byCode.set(norm(x['Employee Code']).toLowerCase(),x));
+  return function(code){
+    const out=[], seen=new Set();
+    let cur=byCode.get(norm(code).toLowerCase());
+    if(cur) seen.add(norm(cur['Employee Code']).toLowerCase());
+    while(cur&&out.length<10){
+      const mid=norm(cur['Reporting Manager ID']).toLowerCase(); if(!mid) break;
+      const mgr=byCode.get(mid)||byCode.get(mid.split(/\s*[-–:]\s*/)[0]);
+      if(!mgr){ out.push({code:norm(cur['Reporting Manager ID']),name:'',desig:''}); break; }
+      const mc=norm(mgr['Employee Code']).toLowerCase();
+      if(seen.has(mc)) break; seen.add(mc);
+      out.push({code:norm(mgr['Employee Code']),name:norm(mgr['Employee Name']),desig:norm(mgr['Designation'])});
+      cur=mgr;
+    }
+    return out;
+  };
 }
 
 /* ===================== MOBILE SIDEBAR ===================== */
@@ -818,8 +1137,8 @@ function getStockFilteredInventory() {
     if (f || t) {
       const rawDate = r['Last Updated'] || r['Receipt Date'] || '';
       const d = new Date(rawDate);
-      if (f && new Date(f) > d) return false;
-      if (t && new Date(t) < d) return false;
+      if (f && _ld(f) > d) return false;
+      if (t && _ld(t) < d) return false;
     }
     if (search) {
       const rowText = JSON.stringify(r).toLowerCase();
@@ -840,7 +1159,7 @@ function switchTab(e, force){
     receipts:'Receipts Summary', teamSupply:'Team Supply Report',
     productLedger:'Product Ledger', employeeLedger:'Employee Ledger',
     employeeDistribution:'Employee Distribution', productDistribution:'Product Distribution',
-    dashboard:'Home'
+    dashboard:'Home', monthlyTrend:'Monthly Trend', stockCover:'Stock Cover & Reorder', slowStock:'Slow / Non-moving Stock', mgrSupply:'Manager-wise Supply', empCoverage:'Employee Coverage'
   };
   document.getElementById('activeLabel').textContent = labels[target] || target;
 
@@ -903,7 +1222,7 @@ function renderStock(){
   const t = document.getElementById('stockTo').value;
   const rangeEl = document.getElementById('stockDateRange');
   if(f && t) {
-    const fd=new Date(f), td=new Date(t);
+    const fd=_ld(f), td=_ld(t);
     rangeEl.textContent = `${String(fd.getDate()).padStart(2,'0')}/${String(fd.getMonth()+1).padStart(2,'0')}/${fd.getFullYear()} to ${String(td.getDate()).padStart(2,'0')}/${String(td.getMonth()+1).padStart(2,'0')}/${td.getFullYear()}`;
   } else { rangeEl.textContent = 'All period'; }
 }
@@ -1007,8 +1326,8 @@ function renderReceipts(){
     filtered = filtered.filter(r=>{
       const d=parseDDMMYYYY(r.Date||r['Received Date']||'');
       if(!d) return true;
-      if(f && d<new Date(f)) return false;
-      if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; }
+      if(f && d<_ld(f)) return false;
+      if(t){ const td=_ld(t); td.setDate(td.getDate()+1); if(d>=td) return false; }
       return true;
     });
   }
@@ -1047,8 +1366,8 @@ function renderTeamSummary(){
     if(f||t){
       const d=parseDDMMYYYY(s.Date||s['Supply Date']||'');
       if(!d) return false;
-      if(f && new Date(f)>d) return false;
-      if(t && new Date(t)<d) return false;
+      if(f && _ld(f)>d) return false;
+      if(t && _ld(t)<d) return false;
     }
     return true;
   });
@@ -1058,6 +1377,9 @@ function renderTeamSummary(){
   const tbody=document.querySelector('#teamSummaryTable tbody'); tbody.innerHTML='';
   const labels=[], values=[];
   Object.keys(map).forEach(t=>{ labels.push(t); values.push(map[t].value); const tr=document.createElement('tr'); tr.innerHTML=`<td class="p-3">${escapeHtml(t)}</td><td class="p-3 text-right">${map[t].count}</td><td class="p-3 text-right font-medium text-indigo-600">₹${map[t].value.toFixed(2)}</td>`; tbody.appendChild(tr); });
+  const _tc=document.getElementById('teamSumCount'), _tv=document.getElementById('teamSumValue');
+  if(_tc) _tc.textContent=Object.values(map).reduce((a,b)=>a+b.count,0);
+  if(_tv) _tv.textContent='₹'+values.reduce((a,b)=>a+b,0).toFixed(2);
   const sorted=labels.map((l,i)=>({label:l,value:values[i]})).sort((a,b)=>b.value-a.value);
   const top=sorted.slice(0,10), others=sorted.slice(10);
   let fl=top.map(x=>x.label), fv=top.map(x=>x.value);
@@ -1085,15 +1407,44 @@ function renderTeamSupply(){
   }
 
   const tbody=document.querySelector('#teamSupplyTable tbody'); tbody.innerHTML='';
-  base.filter(s=>{
+  const consolidated=document.getElementById('teamConsolidated').checked;
+  const th=(txt,right)=>`<th class="p-3 ${right?'text-right':'text-left'} font-semibold text-gray-600">${txt}</th>`;
+  document.getElementById('teamSupplyHead').innerHTML='<tr>'+(consolidated
+    ? th('Date')+th('Team')+th('Emp Code')+th('Emp Name')+th('Designation')+th('Value (₹)',true)
+    : th('Date')+th('Team')+th('Emp Code')+th('Emp Name')+th('Designation')+th('Product')+th('Batch')+th('Expiry')+th('Qty',true)+th('Total Value (₹)',true)+th('Remarks'))+'</tr>';
+
+  const rows=base.filter(s=>{
     if(team&&s.Team!==team) return false;
-    if(f||t){ const d=parseDDMMYYYY(s.Date||''); if(!d) return false; if(f&&new Date(f)>d) return false; if(t&&new Date(t)<d) return false; }
+    if(f||t){ const d=parseDDMMYYYY(s.Date||''); if(!d) return false; if(f&&_ld(f)>d) return false; if(t&&_ld(t)<d) return false; }
     return true;
-  }).forEach(r=>{
+  });
+  const empInfo=r=>{
     const code=r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'';
     const st=staff.find(x=>String(x['Employee Code']).trim()===String(code).trim())||{};
+    return {code, name:st['Employee Name']||r['Emp Name']||'', desig:st['Designation']||r.Designation||''};
+  };
+
+  if(consolidated){
+    const groups=new Map();
+    rows.forEach(r=>{
+      const e=empInfo(r), date=fmtDDMMYYYY(r.Date||''), tm=r.Team||'';
+      const key=[date,tm,String(e.code).trim()].join('||');
+      if(!groups.has(key)) groups.set(key,{date,team:tm,code:e.code,name:e.name,desig:e.desig,value:0});
+      groups.get(key).value+=num(r['Total Value']||0);
+    });
+    groups.forEach(g=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td class="p-3">${escapeHtml(g.date)}</td><td class="p-3">${escapeHtml(g.team)}</td><td class="p-3">${escapeHtml(g.code)}</td><td class="p-3">${escapeHtml(g.name)}</td><td class="p-3">${escapeHtml(g.desig)}</td><td class="p-3 text-right font-medium text-red-600">₹${g.value.toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+    });
+    if(!groups.size) tbody.innerHTML='<tr><td colspan="6" class="p-4 text-center text-slate-500">No data</td></tr>';
+    return;
+  }
+
+  rows.forEach(r=>{
+    const e=empInfo(r);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(r.Team||'')}</td><td class="p-3">${escapeHtml(code)}</td><td class="p-3">${escapeHtml(st['Employee Name']||r['Emp Name']||'')}</td><td class="p-3">${escapeHtml(st['Designation']||r.Designation||'')}</td><td class="p-3">${escapeHtml(r['Item Supplied']||r['Item Name']||r.Product||'')}</td><td class="p-3">${escapeHtml(r['Batch No']||r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']||0).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
+    tr.innerHTML=`<td class="p-3">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td><td class="p-3">${escapeHtml(r.Team||'')}</td><td class="p-3">${escapeHtml(e.code)}</td><td class="p-3">${escapeHtml(e.name)}</td><td class="p-3">${escapeHtml(e.desig)}</td><td class="p-3">${escapeHtml(r['Item Supplied']||r['Item Name']||r.Product||'')}</td><td class="p-3">${escapeHtml(r['Batch No']||r.Batch||'')}</td><td class="p-3 ${getExpiryStatusClass(r.Expiry)}">${escapeHtml(fmtExpiryMMYYYY(r.Expiry||''))}</td><td class="p-3 text-right">${r.Qty||0}</td><td class="p-3 text-right font-medium text-red-600">₹${num(r['Total Value']||0).toFixed(2)}</td><td class="p-3">${escapeHtml(r.Remarks||'')}</td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1115,7 +1466,7 @@ async function renderProductLedger(){
   let fRec=receipts, fSup=supplies;
   const dateFilter=(arr, dateField)=>{
     if(!f&&!t) return arr;
-    return arr.filter(r=>{ const d=parseDDMMYYYY(r[dateField]||r.Date||''); if(!d) return true; if(f&&d<new Date(f)) return false; if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; });
+    return arr.filter(r=>{ const d=parseDDMMYYYY(r[dateField]||r.Date||''); if(!d) return true; if(f&&d<_ld(f)) return false; if(t){ const td=_ld(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; });
   };
   fRec=dateFilter(fRec,'Date'); fSup=dateFilter(fSup,'Date');
 
@@ -1179,8 +1530,8 @@ async function renderEmployeeLedger(){
     if(f||t){
       const d=parseDDMMYYYY(r.Date||r['Supply Date']||'');
       if(!d) return true;
-      if(f&&d<new Date(f)) return false;
-      if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; }
+      if(f&&d<_ld(f)) return false;
+      if(t){ const td=_ld(t); td.setDate(td.getDate()+1); if(d>=td) return false; }
     }
     return true;
   });
@@ -1224,7 +1575,7 @@ function renderEmployeeDistribution(){
 
   let filtered=base;
   if(f||t){
-    filtered=base.filter(s=>{ const d=parseDDMMYYYY(s.Date||''); if(!d) return true; if(f&&d<new Date(f)) return false; if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; });
+    filtered=base.filter(s=>{ const d=parseDDMMYYYY(s.Date||''); if(!d) return true; if(f&&d<_ld(f)) return false; if(t){ const td=_ld(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; });
   }
   filtered.forEach(r=>teamSet.add(r.Team||'Unassigned'));
 
@@ -1293,7 +1644,7 @@ function renderProductDistribution(){
   const f=document.getElementById('prodDistFrom').value;
   const t=document.getElementById('prodDistTo').value;
   let filtered=base;
-  if(f||t){ filtered=base.filter(s=>{ const d=parseDDMMYYYY(s.Date||''); if(!d) return true; if(f&&d<new Date(f)) return false; if(t){ const td=new Date(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; }); }
+  if(f||t){ filtered=base.filter(s=>{ const d=parseDDMMYYYY(s.Date||''); if(!d) return true; if(f&&d<_ld(f)) return false; if(t){ const td=_ld(t); td.setDate(td.getDate()+1); if(d>=td) return false; } return true; }); }
 
   const productMap={};
   filtered.forEach(r=>{
@@ -1339,7 +1690,7 @@ function renderDashboard(){
   const filterTo=document.getElementById('filterTo').value;
   const dateRangeEl=document.getElementById('dashboardDateRange');
   if(filterFrom&&filterTo){
-    const fd=new Date(filterFrom),td=new Date(filterTo);
+    const fd=_ld(filterFrom),td=_ld(filterTo);
     dateRangeEl.textContent=`${String(fd.getDate()).padStart(2,'0')}/${String(fd.getMonth()+1).padStart(2,'0')}/${fd.getFullYear()} to ${String(td.getDate()).padStart(2,'0')}/${String(td.getMonth()+1).padStart(2,'0')}/${td.getFullYear()}`;
   } else { dateRangeEl.textContent='All period'; }
 
@@ -1462,6 +1813,7 @@ function closeProdDistModal(){ const m=document.getElementById('prodDistModal');
 function tableToCsv(table){
   const rows=[];
   table.querySelectorAll('tr').forEach(tr=>{
+    if(tr.style.display==='none') return;
     const cols=[]; tr.querySelectorAll('th,td').forEach(td=>{ let txt=td.textContent.replace(/\n+/g,' ').trim(); cols.push('"'+txt.replace(/"/g,'""')+'"'); });
     if(cols.length) rows.push(cols.join(','));
   });
@@ -1470,22 +1822,43 @@ function tableToCsv(table){
 function downloadCsv(filename,csv){ const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 
 function exportCsvCurrent(){
-  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',teamSupply:'teamSupplyTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable'};
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',teamSupply:'teamSupplyTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',stockCover:'coverTable',slowStock:'slowTable',mgrSupply:'mgrTable',empCoverage:'coverageTable'};
   const tableId=tabMap[currentTab]||'stockTable';
   downloadCsv(`${currentTab}_report_${new Date().toISOString().slice(0,10)}.csv`, tableToCsv(document.getElementById(tableId)));
 }
 
 async function exportExcelCurrent(){
-  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable'};
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',stockCover:'coverTable',slowStock:'slowTable',mgrSupply:'mgrTable',empCoverage:'coverageTable'};
   const tableId=tabMap[currentTab]||'stockTable';
   if(currentTab==='teamSupply'){
     const team=document.getElementById('filterTeam').value;
     const f=document.getElementById('teamFrom').value;
     const t=document.getElementById('teamTo').value;
     const base=getTypeFilteredSupplies();
-    const allRows=base.filter(s=>{ if(team&&s.Team!==team) return false; if(f||t){ const d=parseDDMMYYYY(s.Date||''); if(!d) return false; if(f&&new Date(f)>d) return false; if(t&&new Date(t)<d) return false; } return true; });
+    const allRows=base.filter(s=>{ if(team&&s.Team!==team) return false; if(f||t){ const d=parseDDMMYYYY(s.Date||''); if(!d) return false; if(f&&_ld(f)>d) return false; if(t&&_ld(t)<d) return false; } return true; });
     const summarySheet=XLSX.utils.table_to_sheet(document.getElementById('teamSummaryTable'),{raw:true});
-    const details=allRows.map(r=>{ const code=r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||''; const st=staff.find(x=>String(x['Employee Code']).trim()===String(code).trim())||{}; return {Date:r.Date||'',Team:r.Team||'','Employee Code':code,'Employee Name':st['Employee Name']||r['Emp Name']||'',Designation:st['Designation']||r.Designation||'',Product:r.Product||r['Item Supplied']||'',Batch:r.Batch||r['Batch No']||'',Expiry:r.Expiry||'',Qty:r.Qty||0,'Total Value':r['Total Value']||0,Remarks:r.Remarks||''}; });
+    if(!hrEmployees.length){ await loadEmployeeMaster(); if(!hrEmployees.length) alert('Reporting layers could not be loaded from the employee Google Sheet, so they will be blank.\n\nReason: '+hrError); }
+    const chain=buildReportingChain();
+    const details=allRows.map(r=>{
+      const code=r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'';
+      const st=staff.find(x=>String(x['Employee Code']).trim()===String(code).trim())||hrEmployees.find(x=>String(x['Employee Code']).trim()===String(code).trim())||{};
+      const row={
+        'Date':r.Date||'','Team':r.Team||'','Employee Code':code,
+        'Employee Name':st['Employee Name']||r['Emp Name']||'',
+        'Designation':st['Designation']||r.Designation||'',
+        'Product':r.Product||r['Item Supplied']||r['Item Name']||'',
+        'Batch':r.Batch||r['Batch No']||'','Expiry':r.Expiry||'',
+        'Qty':r.Qty||0,'Total Value':num(r['Total Value']||0),'Remarks':r.Remarks||''
+      };
+      const layers=chain(code);
+      for(let i=1;i<=10;i++){
+        const m=layers[i-1];
+        row[`Reporting Layer ${i} - Emp ID`]=m?m.code:'';
+        row[`Reporting Layer ${i} - Emp Name`]=m?m.name:'';
+        row[`Reporting Layer ${i} - Designation`]=m?m.desig:'';
+      }
+      return row;
+    });
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,summarySheet,'Summary');
     XLSX.utils.book_append_sheet(wb,details.length?XLSX.utils.json_to_sheet(details):XLSX.utils.json_to_sheet([{Info:'No data'}]),'Details');
@@ -1493,7 +1866,7 @@ async function exportExcelCurrent(){
     return;
   }
   const table=document.getElementById(tableId);
-  const sheet=XLSX.utils.table_to_sheet(table,{raw:false});
+  const sheet=XLSX.utils.table_to_sheet(table,{raw:false,display:true});
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,sheet,'Report');
   XLSX.writeFile(wb,`${currentTab}_report_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -1502,7 +1875,12 @@ async function exportExcelCurrent(){
 /* ===================== RENDER DISPATCHER ===================== */
 function renderForCurrentTab(){
   if(currentTab==='stock'){ renderStock(); renderProductConsolidatedChart(); }
-  else if(currentTab==='dashboard') renderDashboard();
+  else if(currentTab==='dashboard'){ renderDashboard(); renderInsights(); }
+  else if(currentTab==='monthlyTrend') renderTrend();
+  else if(currentTab==='stockCover') renderCover();
+  else if(currentTab==='slowStock') renderSlow();
+  else if(currentTab==='mgrSupply') renderMgr();
+  else if(currentTab==='empCoverage') renderCoverage();
   else if(currentTab==='minStock') renderMinStock();
   else if(currentTab==='expiry') renderExpiredSummary();
   else if(currentTab==='receipts') renderReceipts();
@@ -1518,6 +1896,7 @@ document.getElementById('refreshBtn').addEventListener('click', async()=>{ await
 document.getElementById('goBtn').addEventListener('click', ()=>renderForCurrentTab());
 document.getElementById('exportCsvBtn').addEventListener('click', exportCsvCurrent);
 document.getElementById('exportExcelBtn').addEventListener('click', exportExcelCurrent);
+document.getElementById('teamConsolidated').addEventListener('change', renderTeamSupply);
 document.getElementById('refreshTeam').addEventListener('click', ()=>{ renderTeamSummary(); renderTeamSupply(); });
 document.getElementById('menuToggle').addEventListener('click', toggleSidebar);
 
@@ -1537,7 +1916,336 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 /* ===================== INITIAL LOAD ===================== */
+function setDefaultMonthFilters(){
+  const now=new Date(), y=now.getFullYear(), m=now.getMonth();
+  const pad=n=>String(n).padStart(2,'0');
+  const first=`${y}-${pad(m+1)}-01`;
+  const last=`${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`;
+  // Stock (snapshot) filters are intentionally left blank
+  ['filterFrom','receiptsFrom','teamFrom','prodLedgerFrom','empLedgerFrom','empDistFrom','prodDistFrom']
+    .forEach(id=>{ const el=document.getElementById(id); if(el&&!el.value) el.value=first; });
+  ['filterTo','receiptsTo','teamTo','prodLedgerTo','empLedgerTo','empDistTo','prodDistTo']
+    .forEach(id=>{ const el=document.getElementById(id); if(el&&!el.value) el.value=last; });
+}
+setDefaultMonthFilters();
 (async()=>{ await loadAll(); switchTab(null,'dashboard'); })();
 </script>
+<script>
+/* ===================== ENHANCEMENTS & NEW REPORTS ===================== */
+const $$=id=>document.getElementById(id);
+const inr=v=>'₹'+num(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sProd=r=>String(r.Product||r['Item Supplied']||r['Item Name']||'').trim();
+const sBatch=r=>String(r.Batch||r['Batch No']||'').trim();
+const sCode=r=>String(r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'').trim();
+const sDate=r=>parseDDMMYYYY(r.Date||r['Supply Date']||'');
+const sQty=r=>num(r.Qty);
+const sVal=r=>num(r['Total Value']);
+const today0=()=>{ const d=new Date(); d.setHours(0,0,0,0); return d; };
+const daysBetween=(a,b)=>Math.floor((a-b)/86400000);
+const monthKey=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+const monthLabel=k=>{ const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleString('en-IN',{month:'short',year:'numeric'}); };
+const setTxt=(id,v)=>{ const el=$$(id); if(el) el.textContent=v; };
+const badge=(t,cls)=>`<span class="badge ${cls}">${escapeHtml(t)}</span>`;
+const STATUS_CLS={'Non-moving':'bg-red-100 text-red-700','Never supplied':'bg-amber-100 text-amber-700','Active':'bg-emerald-100 text-emerald-700','Critical':'bg-red-100 text-red-700','Low':'bg-amber-100 text-amber-700','Healthy':'bg-emerald-100 text-emerald-700','No movement':'bg-slate-200 text-slate-600','Served':'bg-emerald-100 text-emerald-700','Not served':'bg-red-100 text-red-700'};
+function inRange(d,f,t){
+  if(!f&&!t) return true; if(!d) return false;
+  if(f&&d<_ld(f)) return false;
+  if(t){ const e=_ld(t); e.setDate(e.getDate()+1); if(d>=e) return false; }
+  return true;
+}
+function parseExpiry(v){
+  if(!v) return null; const s=String(v).trim();
+  let m=/^(\d{1,2})-(\d{4})$/.exec(s); if(m) return new Date(+m[2],+m[1],0);
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+async function ensureHr(){ if(!hrEmployees.length) await loadEmployeeMaster(); }
+function emptyRow(tbody,cols,msg){ tbody.innerHTML=`<tr><td colspan="${cols}" class="p-4 text-center text-slate-500">${escapeHtml(msg)}</td></tr>`; }
+
+/* ---------- modal / toast / theme ---------- */
+function openModal(title,html){
+  closeModal();
+  const d=document.createElement('div'); d.id='appModal'; d.className='fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4';
+  d.innerHTML=`<div class="bg-white w-full max-w-5xl max-h-[85vh] rounded-2xl shadow-2xl p-6 relative flex flex-col"><button class="absolute top-3 right-4 text-slate-500 hover:text-red-600 text-xl font-bold" onclick="closeModal()">✕</button><h3 class="text-xl font-bold mb-4 text-slate-700 pr-8">${escapeHtml(title)}</h3><div class="overflow-auto">${html}</div></div>`;
+  d.addEventListener('mousedown',e=>{ if(e.target===d) closeModal(); });
+  document.body.appendChild(d);
+}
+function closeModal(){ const m=$$('appModal'); if(m) m.remove(); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+function toast(msg){
+  let box=$$('toastBox'); if(!box){ box=document.createElement('div'); box.id='toastBox'; document.body.appendChild(box); }
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg; box.appendChild(t);
+  setTimeout(()=>t.remove(),2600);
+}
+let _firstLoadDone=false;
+function setLastUpdated(){
+  const el=$$('lastUpdated'); if(el) el.textContent='Updated '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  if(_firstLoadDone) toast('Data refreshed'); _firstLoadDone=true;
+}
+function applyTheme(dark){
+  document.documentElement.classList.toggle('dark',dark);
+  const b=$$('themeBtn'); if(b) b.textContent=dark?'☀️ Light':'🌙 Dark';
+  if(window.Chart){ Chart.defaults.color=dark?'#cbd5e1':'#475569'; Chart.defaults.borderColor=dark?'rgba(255,255,255,.08)':'rgba(0,0,0,.08)'; }
+}
+function toggleTheme(){
+  const dark=!document.documentElement.classList.contains('dark');
+  try{ localStorage.setItem('rpt-theme',dark?'dark':'light'); }catch(e){}
+  applyTheme(dark); renderForCurrentTab();
+}
+try{ applyTheme(localStorage.getItem('rpt-theme')==='dark'); }catch(e){ applyTheme(false); }
+
+/* ---------- generic table enhancer: sort + quick filter ---------- */
+function _cellKey(td){
+  const raw=(td?td.textContent:'').trim(); if(!raw) return {e:true};
+  const n=raw.replace(/[₹,%\s,]/g,'');
+  if(/^-?\d+(\.\d+)?$/.test(n)) return {v:parseFloat(n)};
+  let m=/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/.exec(raw); if(m) return {v:new Date(+m[3],+m[2]-1,+m[1]).getTime()};
+  return {s:raw.toLowerCase()};
+}
+function sortTable(tbl,idx,dir){
+  const tb=tbl.tBodies[0]; const rows=[...tb.rows].filter(r=>r.cells.length>1);
+  const keyed=rows.map(r=>({r,k:_cellKey(r.cells[idx])}));
+  keyed.sort((a,b)=>{
+    if(a.k.e&&b.k.e) return 0; if(a.k.e) return 1; if(b.k.e) return -1;
+    let c; if(a.k.v!==undefined&&b.k.v!==undefined) c=a.k.v-b.k.v;
+    else c=String(a.k.s??a.k.v).localeCompare(String(b.k.s??b.k.v),undefined,{numeric:true});
+    return dir==='ascending'?c:-c;
+  });
+  keyed.forEach(x=>tb.appendChild(x.r));
+}
+function applyTableFilter(tbl){
+  const q=(tbl._q||'').toLowerCase(); let shown=0,total=0;
+  [...tbl.tBodies[0].rows].forEach(r=>{
+    if(r.cells.length<=1){ return; }
+    total++; const ok=!q||r.textContent.toLowerCase().includes(q);
+    r.style.display=ok?'':'none'; if(ok) shown++;
+  });
+  if(tbl._count) tbl._count.textContent=q?`${shown} of ${total} rows`:`${total} rows`;
+}
+function enhanceTables(){
+  const panel=document.querySelector('.panel:not(.hidden)'); if(!panel) return;
+  panel.querySelectorAll('table').forEach(tbl=>{
+    if(!tbl.tBodies.length||!tbl.tHead) return;
+    if(!tbl._enh){
+      tbl._enh=true;
+      const wrap=tbl.closest('.overflow-x-auto')||tbl.parentElement;
+      const bar=document.createElement('div'); bar.className='tbl-bar no-print';
+      bar.innerHTML='<input type="search" class="tbl-search" placeholder="🔍 Filter rows..."><span class="tbl-count"></span>';
+      wrap.parentNode.insertBefore(bar,wrap);
+      tbl._count=bar.querySelector('.tbl-count');
+      bar.querySelector('input').addEventListener('input',e=>{ tbl._q=e.target.value; applyTableFilter(tbl); });
+      if(tbl.tHead.rows.length===1){
+        tbl.tHead.addEventListener('click',e=>{
+          const th=e.target.closest('th'); if(!th) return;
+          const idx=th.cellIndex, dir=th.getAttribute('aria-sort')==='ascending'?'descending':'ascending';
+          tbl.tHead.querySelectorAll('th').forEach(x=>x.removeAttribute('aria-sort'));
+          th.setAttribute('aria-sort',dir); tbl._sort={idx,dir}; sortTable(tbl,idx,dir);
+        });
+      }
+    }
+    if(tbl._sort) sortTable(tbl,tbl._sort.idx,tbl._sort.dir);
+    applyTableFilter(tbl);
+  });
+}
+(function(){
+  const panels=$$('panels'); if(!panels) return; let timer;
+  const mo=new MutationObserver(()=>{ clearTimeout(timer); timer=setTimeout(()=>{ mo.disconnect(); try{ enhanceTables(); }finally{ mo.observe(panels,{childList:true,subtree:true}); } },150); });
+  mo.observe(panels,{childList:true,subtree:true});
+  const _sw=window.switchTab; window.switchTab=function(){ _sw.apply(this,arguments); setTimeout(enhanceTables,250); };
+})();
+
+/* ---------- shared calculations ---------- */
+function computeSlow(days){
+  const lastB=new Map(), lastP=new Map(), pHasBatch=new Set();
+  getTypeFilteredSupplies().forEach(r=>{
+    const d=sDate(r); if(!d) return; const p=sProd(r).toLowerCase(), b=sBatch(r).toLowerCase();
+    if(!lastP.has(p)||d>lastP.get(p)) lastP.set(p,d);
+    if(b){ pHasBatch.add(p); const k=p+'||'+b; if(!lastB.has(k)||d>lastB.get(k)) lastB.set(k,d); }
+  });
+  const t0=today0();
+  return filterByType(inventory,'Type').filter(r=>num(r.Qty)>0).map(r=>{
+    const p=String(r.Product||'').trim().toLowerCase(), b=String(r.Batch||'').trim().toLowerCase();
+    let last=lastB.get(p+'||'+b); if(!last&&!pHasBatch.has(p)) last=lastP.get(p);
+    const idle=last?daysBetween(t0,last):null;
+    return {product:r.Product||'',batch:r.Batch||'',expiry:r.Expiry||'',qty:num(r.Qty),value:num(r.Qty)*num(r.MRP),last,idle,
+      status:!last?'Never supplied':(idle>days?'Non-moving':'Active')};
+  });
+}
+function computeCover(win,target){
+  const t0=today0(), from=new Date(t0); from.setDate(from.getDate()-win);
+  const end=new Date(t0.getTime()+86400000);
+  const used=new Map(), stock=new Map(), names=new Map();
+  getTypeFilteredSupplies().forEach(r=>{ const d=sDate(r); if(!d||d<from||d>=end) return; const p=sProd(r); if(!p) return; const k=p.toLowerCase(); names.set(k,p); used.set(k,(used.get(k)||0)+sQty(r)); });
+  filterByType(inventory,'Type').forEach(r=>{ const p=String(r.Product||'').trim(); if(!p) return; const k=p.toLowerCase(); names.set(k,p); stock.set(k,(stock.get(k)||0)+Math.max(0,num(r.Qty))); });
+  const rows=[];
+  names.forEach((name,k)=>{
+    const qty=stock.get(k)||0, u=used.get(k)||0, daily=u/win;
+    if(qty===0&&u===0) return;
+    const cover=daily>0?qty/daily:null;
+    const status=daily===0?'No movement':(cover<15?'Critical':(cover<30?'Low':'Healthy'));
+    rows.push({name,qty,used:u,daily,cover,status,reorder:daily>0?Math.max(0,Math.ceil(daily*target-qty)):0});
+  });
+  return rows;
+}
+
+/* ---------- Dashboard insights ---------- */
+function renderInsights(){
+  const box=$$('dbInsights'); if(!box) return;
+  const now=new Date(), tk=monthKey(now), pk=monthKey(new Date(now.getFullYear(),now.getMonth()-1,1));
+  let cur=0,prev=0,curN=0; const emps=new Set();
+  getTypeFilteredSupplies().forEach(r=>{ const d=sDate(r); if(!d) return; const k=monthKey(d);
+    if(k===tk){ cur+=sVal(r); curN++; const c=sCode(r); if(c) emps.add(c); } else if(k===pk) prev+=sVal(r); });
+  const chg=prev>0?((cur-prev)/prev*100):null;
+  const cards=[
+    ['from-indigo-500 to-indigo-600','Supplied This Month',inr(cur),`${curN} distributions`],
+    ['from-sky-500 to-blue-600','Supplied Last Month',inr(prev),chg===null?'—':`This month ${chg>=0?'▲':'▼'} ${Math.abs(chg).toFixed(1)}%`],
+    ['from-emerald-500 to-teal-600','Employees Served (This Month)',emps.size,'unique employees'],
+    ['from-amber-500 to-orange-600','Avg Value / Distribution',curN?inr(cur/curN):'₹0.00','this month']
+  ];
+  box.innerHTML=cards.map(c=>`<div class="insight-card bg-gradient-to-br ${c[0]}"><div class="lbl">${c[1]}</div><div class="val">${c[2]}</div><div class="sub">${c[3]}</div></div>`).join('');
+  const slow=computeSlow(90).filter(x=>x.status==='Non-moving');
+  const crit=computeCover(90,60).filter(x=>x.status==='Critical');
+  const t0=today0(); const exp=filterByType(inventory,'Type').filter(r=>num(r.Qty)>0&&(()=>{const d=parseExpiry(r.Expiry); return d&&d<t0;})());
+  const chip=(n,label,cls,tab)=>n?`<span class="alert-chip ${cls}" onclick="switchTab(null,'${tab}')">${n} ${label} →</span>`:'';
+  const chips=[chip(crit.length,'products with critical stock cover','bg-red-100 text-red-700','stockCover'),
+               chip(slow.length,'non-moving batches (90+ days)','bg-amber-100 text-amber-700','slowStock'),
+               chip(exp.length,'expired batches in stock','bg-red-100 text-red-700','expiry')].join('');
+  $$('dbAlerts').innerHTML=chips||'<span class="alert-chip bg-emerald-100 text-emerald-700">✔ No urgent stock alerts</span>';
+}
+
+/* ---------- Monthly Trend ---------- */
+function renderTrend(){
+  const n=Number($$('trendMonths').value||12), now=new Date(), keys=[];
+  for(let i=n-1;i>=0;i--) keys.push(monthKey(new Date(now.getFullYear(),now.getMonth()-i,1)));
+  const m={}; keys.forEach(k=>m[k]={rq:0,rv:0,sq:0,sv:0});
+  filterByType(receipts,'Type').forEach(r=>{ const d=parseDDMMYYYY(r.Date||r['Received Date']||''); if(!d) return; const o=m[monthKey(d)]; if(!o) return; o.rq+=num(r['Received Qty']||r.Qty); o.rv+=num(r['Total Value']||r.Amount); });
+  getTypeFilteredSupplies().forEach(r=>{ const d=sDate(r); if(!d) return; const o=m[monthKey(d)]; if(!o) return; o.sq+=sQty(r); o.sv+=sVal(r); });
+  const tbody=document.querySelector('#trendTable tbody'); tbody.innerHTML='';
+  let tr_=0,ts=0;
+  keys.forEach((k,i)=>{
+    const o=m[k]; tr_+=o.rv; ts+=o.sv;
+    const p=i>0?m[keys[i-1]].sv:0, mom=p>0?((o.sv-p)/p*100):null, net=o.rv-o.sv;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3 font-medium">${monthLabel(k)}</td><td class="p-3 text-right">${o.rq}</td><td class="p-3 text-right">${inr(o.rv)}</td><td class="p-3 text-right">${o.sq}</td><td class="p-3 text-right text-red-600 font-medium">${inr(o.sv)}</td><td class="p-3 text-right ${net>=0?'text-emerald-700':'text-red-600'} font-medium">${inr(net)}</td><td class="p-3 text-right">${mom===null?'—':(mom>=0?'▲ ':'▼ ')+Math.abs(mom).toFixed(1)+'%'}</td>`;
+    tbody.appendChild(tr);
+  });
+  setTxt('trRecv',inr(tr_)); setTxt('trSupp',inr(ts)); setTxt('trNet',inr(tr_-ts));
+  createChart('trendChart','bar',{labels:keys.map(monthLabel),datasets:[
+    {type:'bar',label:'Received (₹)',data:keys.map(k=>m[k].rv),backgroundColor:'rgba(16,185,129,.75)',borderRadius:6},
+    {type:'line',label:'Supplied (₹)',data:keys.map(k=>m[k].sv),borderColor:'#ef4444',backgroundColor:'#ef4444',tension:.3,borderWidth:3,pointRadius:4}
+  ]});
+}
+
+/* ---------- Stock Cover & Reorder ---------- */
+function renderCover(){
+  const win=Number($$('coverWin').value||90), target=Number($$('coverTarget').value||60), st=$$('coverStatus').value;
+  const all=computeCover(win,target);
+  setTxt('cvCritical',all.filter(x=>x.status==='Critical').length);
+  setTxt('cvLow',all.filter(x=>x.status==='Low').length);
+  setTxt('cvHealthy',all.filter(x=>x.status==='Healthy').length);
+  setTxt('cvReorder',all.reduce((a,b)=>a+b.reorder,0));
+  const order={Critical:0,Low:1,Healthy:2,'No movement':3};
+  const rows=all.filter(x=>!st||x.status===st).sort((a,b)=>order[a.status]-order[b.status]||(a.cover??1e9)-(b.cover??1e9));
+  const tbody=document.querySelector('#coverTable tbody'); tbody.innerHTML='';
+  if(!rows.length) return emptyRow(tbody,7,'No products to show.');
+  rows.forEach(x=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(x.name)}</td><td class="p-3 text-right">${x.qty}</td><td class="p-3 text-right">${x.used}</td><td class="p-3 text-right">${x.daily.toFixed(2)}</td><td class="p-3 text-right font-medium">${x.cover===null?'—':Math.round(x.cover)}</td><td class="p-3 text-right font-semibold ${x.reorder?'text-indigo-600':''}">${x.reorder||0}</td><td class="p-3">${badge(x.status,STATUS_CLS[x.status])}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Slow / Non-moving Stock ---------- */
+function renderSlow(){
+  const days=Number($$('slowDays').value||90), st=$$('slowStatus').value;
+  const all=computeSlow(days);
+  const non=all.filter(x=>x.status==='Non-moving'), nev=all.filter(x=>x.status==='Never supplied');
+  setTxt('slNon',non.length); setTxt('slNever',nev.length);
+  setTxt('slNonVal',inr(non.reduce((a,b)=>a+b.value,0))); setTxt('slNeverVal',inr(nev.reduce((a,b)=>a+b.value,0)));
+  const rows=all.filter(x=>!st||x.status===st).sort((a,b)=>(b.idle??99999)-(a.idle??99999));
+  const tbody=document.querySelector('#slowTable tbody'); tbody.innerHTML='';
+  if(!rows.length) return emptyRow(tbody,8,'No batches to show.');
+  rows.forEach(x=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(x.product)}</td><td class="p-3">${escapeHtml(x.batch)}</td><td class="p-3 ${getExpiryStatusClass(x.expiry)}">${escapeHtml(fmtExpiryMMYYYY(x.expiry))}</td><td class="p-3 text-right">${x.qty}</td><td class="p-3 text-right">${inr(x.value)}</td><td class="p-3">${x.last?escapeHtml(fmtDDMMYYYY(x.last)):'—'}</td><td class="p-3 text-right font-medium">${x.idle===null?'—':x.idle}</td><td class="p-3">${badge(x.status,STATUS_CLS[x.status])}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- Manager-wise Supply ---------- */
+let _mgrCtx=null;
+async function renderMgr(){
+  const tbody=document.querySelector('#mgrTable tbody');
+  await ensureHr();
+  if(!hrEmployees.length){ emptyRow(tbody,10,'Employee sheet could not be loaded: '+hrError); return; }
+  const f=$$('mgrFrom').value, t=$$('mgrTo').value, per=new Map(); let grand=0;
+  getTypeFilteredSupplies().forEach(r=>{ if(!inRange(sDate(r),f,t)) return; const c=sCode(r); if(!c) return;
+    const o=per.get(c)||{v:0,n:0,team:''}; o.v+=sVal(r); o.n++; if(r.Team) o.team=r.Team; per.set(c,o); grand+=sVal(r); });
+  const byId=new Map(hrEmployees.map(e=>[e['Employee Code'],e])), kids=new Map();
+  hrEmployees.forEach(e=>{ const m=e['Reporting Manager ID']; if(m&&m!==e['Employee Code']&&byId.has(m)){ if(!kids.has(m)) kids.set(m,[]); kids.get(m).push(e['Employee Code']); } });
+  const down=code=>{ const out=[],seen=new Set([code]),st=[...(kids.get(code)||[])];
+    while(st.length){ const c=st.pop(); if(seen.has(c)) continue; seen.add(c); out.push(c); (kids.get(c)||[]).forEach(x=>st.push(x)); } return out; };
+  const rows=[...kids.keys()].map(code=>{
+    const e=byId.get(code), ds=down(code), own=per.get(code)||{v:0,n:0,team:''}; let dv=0,dn=0;
+    ds.forEach(c=>{ const o=per.get(c); if(o){ dv+=o.v; dn+=o.n; } });
+    return {code,name:e['Employee Name'],desig:e['Designation'],team:e['Team']||own.team,direct:kids.get(code).length,size:ds.length,own:own.v,dv,total:own.v+dv,n:own.n+dn};
+  }).filter(x=>x.total>0||$$('mgrFrom').value==='').sort((a,b)=>b.total-a.total);
+  _mgrCtx={per,byId,down};
+  setTxt('mgCount',rows.length); setTxt('mgTotal',inr(grand)); setTxt('mgTop',rows[0]?`${rows[0].name} (${inr(rows[0].total)})`:'—');
+  tbody.innerHTML='';
+  if(!rows.length) emptyRow(tbody,10,'No supplies found for the selected period.');
+  rows.forEach(x=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(x.code)}</td><td class="p-3"><a href="#" class="text-indigo-600 font-medium hover:underline" onclick="showMgrTeam('${escapeHtml(x.code)}');return false;">${escapeHtml(x.name)}</a></td><td class="p-3">${escapeHtml(x.desig)}</td><td class="p-3 text-right">${x.direct}</td><td class="p-3 text-right">${x.size}</td><td class="p-3 text-right">${inr(x.own)}</td><td class="p-3 text-right">${inr(x.dv)}</td><td class="p-3 text-right font-semibold text-indigo-600">${inr(x.total)}</td><td class="p-3 text-right">${x.n}</td><td class="p-3">${escapeHtml(x.team)}</td>`;
+    tbody.appendChild(tr);
+  });
+  const top=rows.slice(0,10);
+  createChart('mgrChart','bar',{labels:top.map(x=>x.name),datasets:[{label:'Team value (₹)',data:top.map(x=>x.total),backgroundColor:'rgba(99,102,241,.8)',borderRadius:6}]},
+    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true},y:{grid:{display:false}}}});
+}
+function showMgrTeam(code){
+  if(!_mgrCtx) return; const {per,byId,down}=_mgrCtx, m=byId.get(code)||{};
+  const rows=down(code).map(c=>{ const e=byId.get(c)||{}, o=per.get(c)||{v:0,n:0}; return {c,name:e['Employee Name']||'',desig:e['Designation']||'',n:o.n,v:o.v}; }).sort((a,b)=>b.v-a.v);
+  const tot=rows.reduce((a,b)=>a+b.v,0);
+  const body=`<div class="text-sm text-slate-500 mb-3">${rows.length} team members · downline supply value ${inr(tot)}</div><div class="overflow-x-auto border rounded-lg"><table class="min-w-full text-sm"><thead class="table-header-bg"><tr><th class="p-3 text-left">Emp ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Designation</th><th class="p-3 text-right">Distributions</th><th class="p-3 text-right">Value (₹)</th></tr></thead><tbody class="divide-y">${rows.map(r=>`<tr><td class="p-3">${escapeHtml(r.c)}</td><td class="p-3">${escapeHtml(r.name)}</td><td class="p-3">${escapeHtml(r.desig)}</td><td class="p-3 text-right">${r.n}</td><td class="p-3 text-right font-medium">${inr(r.v)}</td></tr>`).join('')}</tbody></table></div>`;
+  openModal(`${m['Employee Name']||code} — Team Supply`,body);
+}
+
+/* ---------- Employee Coverage ---------- */
+async function renderCoverage(){
+  const tbody=document.querySelector('#coverageTable tbody');
+  await ensureHr();
+  let emps=hrEmployees;
+  if(!emps.length){
+    emps=staff.map(x=>({'Employee Code':String(x['Employee Code']||'').trim(),'Employee Name':x['Employee Name']||'','Designation':x['Designation']||'','Resigned':'','Team':'','HQ':'','Department':''}));
+  }
+  if(!emps.length){ emptyRow(tbody,10,'No employee data available.'); return; }
+  const f=$$('covFrom').value, t=$$('covTo').value, per=new Map();
+  getTypeFilteredSupplies().forEach(r=>{ if(!inRange(sDate(r),f,t)) return; const c=sCode(r); if(!c) return;
+    const o=per.get(c)||{v:0,n:0,last:null,team:''}; const d=sDate(r); o.v+=sVal(r); o.n++; if(d&&(!o.last||d>o.last)) o.last=d; if(r.Team) o.team=r.Team; per.set(c,o); });
+  const dsel=$$('covDept'), cur=dsel.value, depts=[...new Set(emps.map(e=>e['Department']).filter(Boolean))].sort();
+  if(dsel.options.length!==depts.length+1){ dsel.innerHTML='<option value="">All</option>'+depts.map(d=>`<option>${escapeHtml(d)}</option>`).join(''); dsel.value=depts.includes(cur)?cur:''; }
+  const incl=$$('covResigned').checked, mode=$$('covMode').value, dept=dsel.value;
+  const base=emps.filter(e=>(incl||!e['Resigned'])&&(!dept||e['Department']===dept));
+  const rows=base.map(e=>{ const o=per.get(e['Employee Code'])||{v:0,n:0,last:null,team:''}; return {e,o,served:o.n>0}; });
+  const served=rows.filter(x=>x.served).length;
+  setTxt('cvTotal',rows.length); setTxt('cvServed',served); setTxt('cvNot',rows.length-served); setTxt('cvPct',rows.length?(served/rows.length*100).toFixed(1)+'%':'0%');
+  const shown=rows.filter(x=>!mode||(mode==='Served')===x.served).sort((a,b)=>(a.served-b.served)||String(a.e['Employee Name']).localeCompare(String(b.e['Employee Name'])));
+  tbody.innerHTML=''; if(!shown.length) return emptyRow(tbody,10,'No employees match the selection.');
+  shown.forEach(x=>{
+    const st=x.served?'Served':'Not served', tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(x.e['Employee Code'])}</td><td class="p-3">${escapeHtml(x.e['Employee Name'])}</td><td class="p-3">${escapeHtml(x.e['Designation'])}</td><td class="p-3">${escapeHtml(x.e['Department']||'')}</td><td class="p-3">${escapeHtml(x.e['Team']||x.o.team)}</td><td class="p-3">${escapeHtml(x.e['HQ']||'')}</td><td class="p-3 text-right">${x.o.n}</td><td class="p-3 text-right">${inr(x.o.v)}</td><td class="p-3">${x.o.last?escapeHtml(fmtDDMMYYYY(x.o.last)):'—'}</td><td class="p-3">${badge(st,STATUS_CLS[st])}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ---------- default month for new date inputs ---------- */
+(function(){
+  const now=new Date(), y=now.getFullYear(), m=now.getMonth(), pad=n=>String(n).padStart(2,'0');
+  const first=`${y}-${pad(m+1)}-01`, last=`${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`;
+  ['mgrFrom','covFrom'].forEach(id=>{ const el=$$(id); if(el&&!el.value) el.value=first; });
+  ['mgrTo','covTo'].forEach(id=>{ const el=$$(id); if(el&&!el.value) el.value=last; });
+})();
+</script>
+
 </body>
 </html>
