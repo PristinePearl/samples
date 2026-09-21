@@ -203,11 +203,9 @@ const EMPLOYEE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${EMPLOYE
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productLedger" onclick="switchTab(event)">Product Ledger</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeLedger" onclick="switchTab(event)">Employee Ledger</button>
       <div class="nav-group">Analytics</div>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="monthlyTrend" onclick="switchTab(event)">Monthly Trend<span class="nav-new">NEW</span></button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="stockCover" onclick="switchTab(event)">Stock Cover &amp; Reorder<span class="nav-new">NEW</span></button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="slowStock" onclick="switchTab(event)">Slow / Non-moving Stock<span class="nav-new">NEW</span></button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="mgrSupply" onclick="switchTab(event)">Manager-wise Supply<span class="nav-new">NEW</span></button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="empCoverage" onclick="switchTab(event)">Employee Coverage<span class="nav-new">NEW</span></button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="monthlyTrend" onclick="switchTab(event)">Monthly Trend</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="slowStock" onclick="switchTab(event)">Slow / Non-moving Stock</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="empCoverage" onclick="switchTab(event)">Employee Coverage</button>
     </div>
 
     <hr class="my-4 border-gray-200" />
@@ -525,25 +523,6 @@ const EMPLOYEE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${EMPLOYE
   </div>
 </div>
 
-<div id="stockCover" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
-    <div><h3 class="text-2xl font-bold text-slate-700">Stock Cover &amp; Reorder</h3><div class="text-sm text-slate-500">How many days the current stock will last at the recent supply rate, with a suggested reorder quantity.</div></div>
-    <div class="flex flex-wrap items-center gap-3 text-sm"><label class="font-medium">Look-back</label><select id="coverWin" class="border rounded-lg px-2 py-1" onchange="renderCover()"><option value="30">30 days</option><option value="60">60 days</option><option value="90" selected>90 days</option><option value="180">180 days</option></select><label class="font-medium">Target cover</label><select id="coverTarget" class="border rounded-lg px-2 py-1" onchange="renderCover()"><option value="30">30 days</option><option value="60" selected>60 days</option><option value="90">90 days</option></select><label class="font-medium">Show</label><select id="coverStatus" class="border rounded-lg px-2 py-1" onchange="renderCover()"><option value="">All</option><option>Critical</option><option>Low</option><option>Healthy</option><option>No movement</option></select></div>
-  </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Critical (&lt; 15 days)</div><div id="cvCritical" class="text-xl font-bold">0</div></div>
-    <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Low (15-30 days)</div><div id="cvLow" class="text-xl font-bold">0</div></div>
-    <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Healthy (30+ days)</div><div id="cvHealthy" class="text-xl font-bold">0</div></div>
-    <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Total Suggested Reorder Qty</div><div id="cvReorder" class="text-xl font-bold">0</div></div>
-  </div>
-  <div class="overflow-x-auto rounded-lg border shadow-md">
-    <table id="coverTable" class="min-w-full text-sm">
-      <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-right font-semibold text-gray-600">Current Stock</th><th class="p-3 text-right font-semibold text-gray-600">Supplied (look-back)</th><th class="p-3 text-right font-semibold text-gray-600">Avg / Day</th><th class="p-3 text-right font-semibold text-gray-600">Days of Cover</th><th class="p-3 text-right font-semibold text-gray-600">Suggested Reorder Qty</th><th class="p-3 text-left font-semibold text-gray-600">Status</th></tr></thead>
-      <tbody class="divide-y divide-gray-100"></tbody>
-    </table>
-  </div>
-</div>
-
 <div id="slowStock" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
   <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
     <div><h3 class="text-2xl font-bold text-slate-700">Slow / Non-moving Stock</h3><div class="text-sm text-slate-500">Batches in stock that have not been supplied recently.</div></div>
@@ -558,25 +537,6 @@ const EMPLOYEE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${EMPLOYE
   <div class="overflow-x-auto rounded-lg border shadow-md">
     <table id="slowTable" class="min-w-full text-sm">
       <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Last Supplied</th><th class="p-3 text-right font-semibold text-gray-600">Days Idle</th><th class="p-3 text-left font-semibold text-gray-600">Status</th></tr></thead>
-      <tbody class="divide-y divide-gray-100"></tbody>
-    </table>
-  </div>
-</div>
-
-<div id="mgrSupply" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
-    <div><h3 class="text-2xl font-bold text-slate-700">Manager-wise Supply</h3><div class="text-sm text-slate-500">Supply value by reporting manager, including their entire downline (uses the Employee sheet hierarchy).</div></div>
-    <div class="flex flex-wrap items-center gap-3 text-sm"><label class="font-medium">From</label><input id="mgrFrom" type="date" class="border rounded-lg px-2 py-1" onchange="renderMgr()"><label class="font-medium">To</label><input id="mgrTo" type="date" class="border rounded-lg px-2 py-1" onchange="renderMgr()"><button class="px-3 py-2 rounded-lg border bg-slate-100 hover:bg-slate-200 text-sm" onclick="renderMgr()">Refresh</button></div>
-  </div>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-    <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Managers</div><div id="mgCount" class="text-xl font-bold">0</div></div>
-    <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Total Supplied Value (₹)</div><div id="mgTotal" class="text-xl font-bold">0</div></div>
-    <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Top Manager (by team value)</div><div id="mgTop" class="text-xl font-bold">0</div></div>
-  </div>
-  <div class="bg-white p-4 rounded-xl border shadow-sm mb-6"><h4 class="font-semibold mb-3">Top 10 Managers - Team Supply Value (₹)</h4><div class="chart-container"><canvas id="mgrChart"></canvas></div></div>
-  <div class="overflow-x-auto rounded-lg border shadow-md">
-    <table id="mgrTable" class="min-w-full text-sm">
-      <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Emp ID</th><th class="p-3 text-left font-semibold text-gray-600">Manager</th><th class="p-3 text-left font-semibold text-gray-600">Designation</th><th class="p-3 text-right font-semibold text-gray-600">Direct Reports</th><th class="p-3 text-right font-semibold text-gray-600">Team Size</th><th class="p-3 text-right font-semibold text-gray-600">Own Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Downline Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Total Value (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Distributions</th><th class="p-3 text-left font-semibold text-gray-600">Team</th></tr></thead>
       <tbody class="divide-y divide-gray-100"></tbody>
     </table>
   </div>
@@ -1159,7 +1119,7 @@ function switchTab(e, force){
     receipts:'Receipts Summary', teamSupply:'Team Supply Report',
     productLedger:'Product Ledger', employeeLedger:'Employee Ledger',
     employeeDistribution:'Employee Distribution', productDistribution:'Product Distribution',
-    dashboard:'Home', monthlyTrend:'Monthly Trend', stockCover:'Stock Cover & Reorder', slowStock:'Slow / Non-moving Stock', mgrSupply:'Manager-wise Supply', empCoverage:'Employee Coverage'
+    dashboard:'Home', monthlyTrend:'Monthly Trend', slowStock:'Slow / Non-moving Stock', empCoverage:'Employee Coverage'
   };
   document.getElementById('activeLabel').textContent = labels[target] || target;
 
@@ -1822,13 +1782,13 @@ function tableToCsv(table){
 function downloadCsv(filename,csv){ const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 
 function exportCsvCurrent(){
-  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',teamSupply:'teamSupplyTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',stockCover:'coverTable',slowStock:'slowTable',mgrSupply:'mgrTable',empCoverage:'coverageTable'};
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',teamSupply:'teamSupplyTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',slowStock:'slowTable',empCoverage:'coverageTable'};
   const tableId=tabMap[currentTab]||'stockTable';
   downloadCsv(`${currentTab}_report_${new Date().toISOString().slice(0,10)}.csv`, tableToCsv(document.getElementById(tableId)));
 }
 
 async function exportExcelCurrent(){
-  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',stockCover:'coverTable',slowStock:'slowTable',mgrSupply:'mgrTable',empCoverage:'coverageTable'};
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',slowStock:'slowTable',empCoverage:'coverageTable'};
   const tableId=tabMap[currentTab]||'stockTable';
   if(currentTab==='teamSupply'){
     const team=document.getElementById('filterTeam').value;
@@ -1877,9 +1837,7 @@ function renderForCurrentTab(){
   if(currentTab==='stock'){ renderStock(); renderProductConsolidatedChart(); }
   else if(currentTab==='dashboard'){ renderDashboard(); renderInsights(); }
   else if(currentTab==='monthlyTrend') renderTrend();
-  else if(currentTab==='stockCover') renderCover();
   else if(currentTab==='slowStock') renderSlow();
-  else if(currentTab==='mgrSupply') renderMgr();
   else if(currentTab==='empCoverage') renderCoverage();
   else if(currentTab==='minStock') renderMinStock();
   else if(currentTab==='expiry') renderExpiredSummary();
@@ -2070,23 +2028,6 @@ function computeSlow(days){
       status:!last?'Never supplied':(idle>days?'Non-moving':'Active')};
   });
 }
-function computeCover(win,target){
-  const t0=today0(), from=new Date(t0); from.setDate(from.getDate()-win);
-  const end=new Date(t0.getTime()+86400000);
-  const used=new Map(), stock=new Map(), names=new Map();
-  getTypeFilteredSupplies().forEach(r=>{ const d=sDate(r); if(!d||d<from||d>=end) return; const p=sProd(r); if(!p) return; const k=p.toLowerCase(); names.set(k,p); used.set(k,(used.get(k)||0)+sQty(r)); });
-  filterByType(inventory,'Type').forEach(r=>{ const p=String(r.Product||'').trim(); if(!p) return; const k=p.toLowerCase(); names.set(k,p); stock.set(k,(stock.get(k)||0)+Math.max(0,num(r.Qty))); });
-  const rows=[];
-  names.forEach((name,k)=>{
-    const qty=stock.get(k)||0, u=used.get(k)||0, daily=u/win;
-    if(qty===0&&u===0) return;
-    const cover=daily>0?qty/daily:null;
-    const status=daily===0?'No movement':(cover<15?'Critical':(cover<30?'Low':'Healthy'));
-    rows.push({name,qty,used:u,daily,cover,status,reorder:daily>0?Math.max(0,Math.ceil(daily*target-qty)):0});
-  });
-  return rows;
-}
-
 /* ---------- Dashboard insights ---------- */
 function renderInsights(){
   const box=$$('dbInsights'); if(!box) return;
@@ -2103,11 +2044,9 @@ function renderInsights(){
   ];
   box.innerHTML=cards.map(c=>`<div class="insight-card bg-gradient-to-br ${c[0]}"><div class="lbl">${c[1]}</div><div class="val">${c[2]}</div><div class="sub">${c[3]}</div></div>`).join('');
   const slow=computeSlow(90).filter(x=>x.status==='Non-moving');
-  const crit=computeCover(90,60).filter(x=>x.status==='Critical');
   const t0=today0(); const exp=filterByType(inventory,'Type').filter(r=>num(r.Qty)>0&&(()=>{const d=parseExpiry(r.Expiry); return d&&d<t0;})());
   const chip=(n,label,cls,tab)=>n?`<span class="alert-chip ${cls}" onclick="switchTab(null,'${tab}')">${n} ${label} →</span>`:'';
-  const chips=[chip(crit.length,'products with critical stock cover','bg-red-100 text-red-700','stockCover'),
-               chip(slow.length,'non-moving batches (90+ days)','bg-amber-100 text-amber-700','slowStock'),
+  const chips=[chip(slow.length,'non-moving batches (90+ days)','bg-amber-100 text-amber-700','slowStock'),
                chip(exp.length,'expired batches in stock','bg-red-100 text-red-700','expiry')].join('');
   $$('dbAlerts').innerHTML=chips||'<span class="alert-chip bg-emerald-100 text-emerald-700">✔ No urgent stock alerts</span>';
 }
@@ -2135,25 +2074,6 @@ function renderTrend(){
   ]});
 }
 
-/* ---------- Stock Cover & Reorder ---------- */
-function renderCover(){
-  const win=Number($$('coverWin').value||90), target=Number($$('coverTarget').value||60), st=$$('coverStatus').value;
-  const all=computeCover(win,target);
-  setTxt('cvCritical',all.filter(x=>x.status==='Critical').length);
-  setTxt('cvLow',all.filter(x=>x.status==='Low').length);
-  setTxt('cvHealthy',all.filter(x=>x.status==='Healthy').length);
-  setTxt('cvReorder',all.reduce((a,b)=>a+b.reorder,0));
-  const order={Critical:0,Low:1,Healthy:2,'No movement':3};
-  const rows=all.filter(x=>!st||x.status===st).sort((a,b)=>order[a.status]-order[b.status]||(a.cover??1e9)-(b.cover??1e9));
-  const tbody=document.querySelector('#coverTable tbody'); tbody.innerHTML='';
-  if(!rows.length) return emptyRow(tbody,7,'No products to show.');
-  rows.forEach(x=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="p-3">${escapeHtml(x.name)}</td><td class="p-3 text-right">${x.qty}</td><td class="p-3 text-right">${x.used}</td><td class="p-3 text-right">${x.daily.toFixed(2)}</td><td class="p-3 text-right font-medium">${x.cover===null?'—':Math.round(x.cover)}</td><td class="p-3 text-right font-semibold ${x.reorder?'text-indigo-600':''}">${x.reorder||0}</td><td class="p-3">${badge(x.status,STATUS_CLS[x.status])}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
 /* ---------- Slow / Non-moving Stock ---------- */
 function renderSlow(){
   const days=Number($$('slowDays').value||90), st=$$('slowStatus').value;
@@ -2169,45 +2089,6 @@ function renderSlow(){
     tr.innerHTML=`<td class="p-3">${escapeHtml(x.product)}</td><td class="p-3">${escapeHtml(x.batch)}</td><td class="p-3 ${getExpiryStatusClass(x.expiry)}">${escapeHtml(fmtExpiryMMYYYY(x.expiry))}</td><td class="p-3 text-right">${x.qty}</td><td class="p-3 text-right">${inr(x.value)}</td><td class="p-3">${x.last?escapeHtml(fmtDDMMYYYY(x.last)):'—'}</td><td class="p-3 text-right font-medium">${x.idle===null?'—':x.idle}</td><td class="p-3">${badge(x.status,STATUS_CLS[x.status])}</td>`;
     tbody.appendChild(tr);
   });
-}
-
-/* ---------- Manager-wise Supply ---------- */
-let _mgrCtx=null;
-async function renderMgr(){
-  const tbody=document.querySelector('#mgrTable tbody');
-  await ensureHr();
-  if(!hrEmployees.length){ emptyRow(tbody,10,'Employee sheet could not be loaded: '+hrError); return; }
-  const f=$$('mgrFrom').value, t=$$('mgrTo').value, per=new Map(); let grand=0;
-  getTypeFilteredSupplies().forEach(r=>{ if(!inRange(sDate(r),f,t)) return; const c=sCode(r); if(!c) return;
-    const o=per.get(c)||{v:0,n:0,team:''}; o.v+=sVal(r); o.n++; if(r.Team) o.team=r.Team; per.set(c,o); grand+=sVal(r); });
-  const byId=new Map(hrEmployees.map(e=>[e['Employee Code'],e])), kids=new Map();
-  hrEmployees.forEach(e=>{ const m=e['Reporting Manager ID']; if(m&&m!==e['Employee Code']&&byId.has(m)){ if(!kids.has(m)) kids.set(m,[]); kids.get(m).push(e['Employee Code']); } });
-  const down=code=>{ const out=[],seen=new Set([code]),st=[...(kids.get(code)||[])];
-    while(st.length){ const c=st.pop(); if(seen.has(c)) continue; seen.add(c); out.push(c); (kids.get(c)||[]).forEach(x=>st.push(x)); } return out; };
-  const rows=[...kids.keys()].map(code=>{
-    const e=byId.get(code), ds=down(code), own=per.get(code)||{v:0,n:0,team:''}; let dv=0,dn=0;
-    ds.forEach(c=>{ const o=per.get(c); if(o){ dv+=o.v; dn+=o.n; } });
-    return {code,name:e['Employee Name'],desig:e['Designation'],team:e['Team']||own.team,direct:kids.get(code).length,size:ds.length,own:own.v,dv,total:own.v+dv,n:own.n+dn};
-  }).filter(x=>x.total>0||$$('mgrFrom').value==='').sort((a,b)=>b.total-a.total);
-  _mgrCtx={per,byId,down};
-  setTxt('mgCount',rows.length); setTxt('mgTotal',inr(grand)); setTxt('mgTop',rows[0]?`${rows[0].name} (${inr(rows[0].total)})`:'—');
-  tbody.innerHTML='';
-  if(!rows.length) emptyRow(tbody,10,'No supplies found for the selected period.');
-  rows.forEach(x=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="p-3">${escapeHtml(x.code)}</td><td class="p-3"><a href="#" class="text-indigo-600 font-medium hover:underline" onclick="showMgrTeam('${escapeHtml(x.code)}');return false;">${escapeHtml(x.name)}</a></td><td class="p-3">${escapeHtml(x.desig)}</td><td class="p-3 text-right">${x.direct}</td><td class="p-3 text-right">${x.size}</td><td class="p-3 text-right">${inr(x.own)}</td><td class="p-3 text-right">${inr(x.dv)}</td><td class="p-3 text-right font-semibold text-indigo-600">${inr(x.total)}</td><td class="p-3 text-right">${x.n}</td><td class="p-3">${escapeHtml(x.team)}</td>`;
-    tbody.appendChild(tr);
-  });
-  const top=rows.slice(0,10);
-  createChart('mgrChart','bar',{labels:top.map(x=>x.name),datasets:[{label:'Team value (₹)',data:top.map(x=>x.total),backgroundColor:'rgba(99,102,241,.8)',borderRadius:6}]},
-    {indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true},y:{grid:{display:false}}}});
-}
-function showMgrTeam(code){
-  if(!_mgrCtx) return; const {per,byId,down}=_mgrCtx, m=byId.get(code)||{};
-  const rows=down(code).map(c=>{ const e=byId.get(c)||{}, o=per.get(c)||{v:0,n:0}; return {c,name:e['Employee Name']||'',desig:e['Designation']||'',n:o.n,v:o.v}; }).sort((a,b)=>b.v-a.v);
-  const tot=rows.reduce((a,b)=>a+b.v,0);
-  const body=`<div class="text-sm text-slate-500 mb-3">${rows.length} team members · downline supply value ${inr(tot)}</div><div class="overflow-x-auto border rounded-lg"><table class="min-w-full text-sm"><thead class="table-header-bg"><tr><th class="p-3 text-left">Emp ID</th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Designation</th><th class="p-3 text-right">Distributions</th><th class="p-3 text-right">Value (₹)</th></tr></thead><tbody class="divide-y">${rows.map(r=>`<tr><td class="p-3">${escapeHtml(r.c)}</td><td class="p-3">${escapeHtml(r.name)}</td><td class="p-3">${escapeHtml(r.desig)}</td><td class="p-3 text-right">${r.n}</td><td class="p-3 text-right font-medium">${inr(r.v)}</td></tr>`).join('')}</tbody></table></div>`;
-  openModal(`${m['Employee Name']||code} — Team Supply`,body);
 }
 
 /* ---------- Employee Coverage ---------- */
@@ -2242,8 +2123,8 @@ async function renderCoverage(){
 (function(){
   const now=new Date(), y=now.getFullYear(), m=now.getMonth(), pad=n=>String(n).padStart(2,'0');
   const first=`${y}-${pad(m+1)}-01`, last=`${y}-${pad(m+1)}-${pad(new Date(y,m+1,0).getDate())}`;
-  ['mgrFrom','covFrom'].forEach(id=>{ const el=$$(id); if(el&&!el.value) el.value=first; });
-  ['mgrTo','covTo'].forEach(id=>{ const el=$$(id); if(el&&!el.value) el.value=last; });
+  ['covFrom'].forEach(id=>{ const el=$$(id); if(el&&!el.value) el.value=first; });
+  ['covTo'].forEach(id=>{ const el=$$(id); if(el&&!el.value) el.value=last; });
 })();
 </script>
 
