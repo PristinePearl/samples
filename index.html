@@ -65,7 +65,11 @@
             <div>
               <label class="block text-sm font-semibold mb-1">Request For (Employee) — optional</label>
             <div class="flex gap-2 items-center w-full">
-  <select id="reqFor" class="border border-gray-200 rounded-md px-2 py-1 w-full" onchange="toggleDoctorInput()">
+  <button type="button" id="reqForBtn" onclick="openEmployeePicker('reqFor')" class="border border-gray-200 rounded-md px-3 py-2 w-full text-left bg-white flex items-center justify-between">
+    <span id="reqForLabel" class="text-slate-500">-- Select Employee (optional) --</span>
+    <span class="text-slate-400 text-sm">🔍</span>
+  </button>
+  <select id="reqFor" class="hidden" onchange="toggleDoctorInput()">
     <option value="">-- Select Employee (optional) --</option>
   </select>
             </div>
@@ -196,7 +200,11 @@
 
         <div class="mt-4">
           <label class="block font-semibold text-sm">Select Employee</label>
-          <select id="supTo" onchange="showEmployeeDetails()" class="border border-gray-200 rounded-md px-2 py-1 w-full max-w-lg"></select>
+          <button type="button" id="supToBtn" onclick="openEmployeePicker('supTo')" class="border border-gray-200 rounded-md px-3 py-2 w-full max-w-lg text-left bg-white flex items-center justify-between">
+            <span id="supToLabel" class="text-slate-500">-- Select Employee --</span>
+            <span class="text-slate-400 text-sm">🔍</span>
+          </button>
+          <select id="supTo" class="hidden" onchange="showEmployeeDetails()"></select>
 
           <div class="mt-3">
             <label class="block font-semibold text-sm">Select Type (inventory)</label>
@@ -395,6 +403,20 @@
     <div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div>
   </div>
 
+  <!-- Generic search-select picker modal (Employees / Products) -->
+  <div id="pickerModal" class="hidden fixed inset-0 z-[60] bg-black/40 flex items-center justify-center p-4" onclick="if(event.target===this) closePicker()">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+      <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 id="pickerTitle" class="font-bold text-slate-700">Select</h3>
+        <button type="button" onclick="closePicker()" class="text-red-500 font-bold text-lg leading-none">✕</button>
+      </div>
+      <div class="p-3 border-b border-gray-100">
+        <input id="pickerSearch" type="text" placeholder="Type to search..." class="border border-gray-200 rounded-md px-3 py-2 w-full" oninput="filterPickerList()" onkeydown="onPickerSearchKeydown(event)" />
+      </div>
+      <div id="pickerList" class="overflow-y-auto flex-1 divide-y divide-gray-50"></div>
+    </div>
+  </div>
+
   <script>
   /* ----------------- CONFIG ----------------- */
   const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxvvaomXCiaA_PqXiWDzBcGrxVqGzdfICEBk6yyngzeIEMkK6IOVifQRTm82ZD_mucA/exec";
@@ -404,25 +426,85 @@
   let currentRequestId = null;
   let lastSavedPo = null;
 
-  function showLoading(){ const el=document.getElementById('loading'); if(el) el.style.display='flex'; }
-  function hideLoading(){ const el=document.getElementById('loading'); if(el) el.style.display='none'; }
+  /* Reference-counted loading overlay: fixes the spinner disappearing early /
+     getting stuck when multiple post() calls overlap (e.g. tab switches that
+     fire several fetches at once). */
+  let loadingCount = 0;
+  function showLoading(){ loadingCount++; const el=document.getElementById('loading'); if(el) el.style.display='flex'; }
+  function hideLoading(){ loadingCount = Math.max(0, loadingCount - 1); if(loadingCount === 0){ const el=document.getElementById('loading'); if(el) el.style.display='none'; } }
 
   async function post(action, payload={}) {
     showLoading();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(()=>controller.abort(), 30000);
     try {
       const res = await fetch(WEB_APP_URL, {
         method: 'POST',
         headers: {'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify(Object.assign({action}, payload))
+        body: JSON.stringify(Object.assign({action}, payload)),
+        signal: controller.signal
       });
       const json = await res.json();
-      hideLoading();
       return json;
     } catch (err) {
-      hideLoading();
       console.error(err);
-      return { success:false, message: String(err) };
+      const msg = (err && err.name === 'AbortError') ? 'Request timed out. Please check your connection and try again.' : String(err);
+      return { success:false, message: msg };
+    } finally {
+      clearTimeout(timeoutId);
+      hideLoading();
     }
+  }
+
+  /* ===================== GENERIC SEARCH PICKER ===================== */
+  let pickerAllItems = [];
+  let pickerCurrentList = [];
+  let pickerOnSelect = null;
+
+  function openPicker(title, items, onSelect){
+    pickerAllItems = items || [];
+    pickerOnSelect = onSelect;
+    document.getElementById('pickerTitle').textContent = title || 'Select';
+    const search = document.getElementById('pickerSearch');
+    search.value = '';
+    renderPickerList(pickerAllItems);
+    document.getElementById('pickerModal').classList.remove('hidden');
+    setTimeout(()=>search.focus(), 50);
+  }
+
+  function closePicker(){
+    document.getElementById('pickerModal').classList.add('hidden');
+    pickerOnSelect = null;
+  }
+
+  function renderPickerList(items){
+    pickerCurrentList = items;
+    const list = document.getElementById('pickerList');
+    if(!items.length){ list.innerHTML = '<div class="p-4 text-sm text-slate-400 text-center">No matches found</div>'; return; }
+    list.innerHTML = items.map((it,i)=>`
+      <button type="button" class="w-full text-left px-4 py-2 hover:bg-emerald-50 transition" onclick="selectPickerItem(${i})">
+        <div class="font-medium text-sm text-slate-800">${it.label}</div>
+        ${it.sub ? `<div class="text-xs text-slate-500 mt-0.5">${it.sub}</div>` : ''}
+      </button>`).join('');
+  }
+
+  function filterPickerList(){
+    const q = document.getElementById('pickerSearch').value.toLowerCase().trim();
+    const filtered = q ? pickerAllItems.filter(it => it.searchText.includes(q)) : pickerAllItems;
+    renderPickerList(filtered);
+  }
+
+  function onPickerSearchKeydown(e){
+    if(e.key === 'Escape'){ closePicker(); }
+    if(e.key === 'Enter' && pickerCurrentList.length){ selectPickerItem(0); }
+  }
+
+  function selectPickerItem(i){
+    const item = pickerCurrentList[i];
+    if(!item) return;
+    const cb = pickerOnSelect;
+    closePicker();
+    if(cb) cb(item);
   }
 
   function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -467,12 +549,61 @@
 
   async function loadEmployees(){ 
     const r = await post('getEmployeeList',{}); 
-    employees = (r && r.success) ? r.employees.sort((a,b)=>a["Employee Name"].localeCompare(b["Employee Name"])) : []; 
+    const raw = (r && r.success) ? (r.employees || []) : [];
+    // Remove blank rows: an employee must have BOTH a code and a name to be selectable.
+    employees = raw
+      .filter(e => (e && (e["Employee Code"]||'').toString().trim() && (e["Employee Name"]||'').toString().trim()))
+      .sort((a,b)=>a["Employee Name"].localeCompare(b["Employee Name"]));
+
+    // Hidden <select> elements are kept in sync so existing save/lookup logic
+    // (which reads .value and .options[selectedIndex].text) keeps working.
     const supSel = document.getElementById('supTo'); 
     const reqSel = document.getElementById('reqFor');
     const options = `<option value="">-- Select Employee (optional) --</option>` + employees.map(e=>`<option value="${escapeHtml(e["Employee Code"])}">${escapeHtml(e["Employee Code"])} - ${escapeHtml(e["Employee Name"])}</option>`).join('');
-    if(supSel) supSel.innerHTML = options.replace('-- Select Employee (optional) --','Select Employee');
+    if(supSel) supSel.innerHTML = options.replace('-- Select Employee (optional) --','-- Select Employee --');
     if(reqSel) reqSel.innerHTML = options;
+
+    resetEmployeePickerLabel('reqFor');
+    resetEmployeePickerLabel('supTo');
+  }
+
+  /* ===================== EMPLOYEE PICKER (dialog + search) ===================== */
+  function resetEmployeePickerLabel(fieldId){
+    const labelEl = document.getElementById(fieldId + 'Label');
+    if(!labelEl) return;
+    labelEl.textContent = fieldId === 'reqFor' ? '-- Select Employee (optional) --' : '-- Select Employee --';
+    labelEl.classList.add('text-slate-500');
+    labelEl.classList.remove('text-slate-800');
+  }
+
+  function setEmployeeSelection(fieldId, code, displayText){
+    const sel = document.getElementById(fieldId);
+    sel.value = code || '';
+    sel.dispatchEvent(new Event('change'));
+    const labelEl = document.getElementById(fieldId + 'Label');
+    if(labelEl){
+      labelEl.textContent = displayText || (fieldId === 'reqFor' ? '-- Select Employee (optional) --' : '-- Select Employee --');
+      labelEl.classList.toggle('text-slate-500', !code);
+      labelEl.classList.toggle('text-slate-800', !!code);
+    }
+  }
+
+  function openEmployeePicker(fieldId){
+    const isOptional = (fieldId === 'reqFor');
+    const items = employees.map(e => {
+      const label = `${escapeHtml(e["Employee Code"])} - ${escapeHtml(e["Employee Name"])}`;
+      const sub = [e["Designation"], e["Division"], e["HQ"]].filter(Boolean).map(escapeHtml).join(' • ');
+      return {
+        label, sub, code: e["Employee Code"], text: `${e["Employee Code"]} - ${e["Employee Name"]}`,
+        searchText: `${e["Employee Code"]||''} ${e["Employee Name"]||''} ${e["Designation"]||''} ${e["Division"]||''}`.toLowerCase()
+      };
+    });
+    if(isOptional){
+      items.unshift({ label: '— None (optional) —', sub: '', code: '', text: '', searchText: '' });
+    }
+    openPicker('Select Employee', items, (item)=>{
+      setEmployeeSelection(fieldId, item.code, item.code ? item.text : null);
+    });
   }
 
   async function loadInventory(){ 
@@ -546,7 +677,12 @@
     const tr = document.createElement('tr');
     const types = [...new Set(products.map(p=>p.Type).filter(Boolean))].sort();
     tr.innerHTML = `<td class="p-2"><select class="typeSel border border-gray-200 rounded-md px-2 py-1"><option value="">-- Type --</option>${types.map(t=>`<option>${escapeHtml(t)}</option>`).join('')}</select></td>
-      <td class="p-2"><select class="productSel border border-gray-200 rounded-md px-2 py-1" disabled><option value="">-- Product --</option></select></td>
+      <td class="p-2">
+        <button type="button" class="productBtn border border-gray-200 rounded-md px-2 py-1 w-full min-w-[200px] text-left bg-gray-50 flex items-center justify-between" disabled>
+          <span class="productLabel text-slate-400">-- Product --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button>
+        <input type="hidden" class="productSel" />
+      </td>
       <td class="p-2"><input class="division border border-gray-200 rounded-md px-2 py-1" readonly></td>
       <td class="p-2"><input class="mrp border border-gray-200 rounded-md px-2 py-1" readonly></td>
       <td class="p-2"><input class="qty border border-gray-200 rounded-md px-2 py-1" type="number" min="0"></td>
@@ -556,20 +692,44 @@
     tbody.appendChild(tr);
 
     const typeSel = tr.querySelector('.typeSel');
-    const prodSel = tr.querySelector('.productSel');
+    const prodBtn = tr.querySelector('.productBtn');
+    const prodLabel = tr.querySelector('.productLabel');
+    const prodHidden = tr.querySelector('.productSel');
     const qty = tr.querySelector('.qty');
+
+    function setProduct(name){
+      prodHidden.value = name || '';
+      prodLabel.textContent = name || '-- Product --';
+      prodLabel.classList.toggle('text-slate-400', !name);
+      prodLabel.classList.toggle('text-slate-800', !!name);
+      if(name){
+        const p = products.find(x=>x.Product===name);
+        if(p){ tr.querySelector('.division').value=p.Division||''; tr.querySelector('.mrp').value=p.MRP||''; computeRowTotal(tr); }
+      } else {
+        tr.querySelector('.division').value=''; tr.querySelector('.mrp').value=''; tr.querySelector('.total').value='';
+      }
+    }
 
     typeSel.addEventListener('change', () => {
       const val = typeSel.value;
-      if(!val){ prodSel.disabled=true; prodSel.innerHTML='<option>-- Product --</option>'; return; }
-      prodSel.disabled=false;
-      const list = products.filter(p=>p.Type===val).sort((a,b)=>a.Product.localeCompare(b.Product));
-      prodSel.innerHTML = '<option>-- Product --</option>' + list.map(p=>`<option>${escapeHtml(p.Product)}</option>`).join('');
+      setProduct('');
+      if(!val){ prodBtn.disabled = true; prodBtn.classList.add('bg-gray-50'); return; }
+      prodBtn.disabled = false; prodBtn.classList.remove('bg-gray-50');
     });
 
-    prodSel.addEventListener('change', () => {
-      const p = products.find(x=>x.Product===prodSel.value);
-      if(p){ tr.querySelector('.division').value=p.Division||''; tr.querySelector('.mrp').value=p.MRP||''; computeRowTotal(tr); } else { tr.querySelector('.division').value=''; tr.querySelector('.mrp').value=''; tr.querySelector('.total').value=''; }
+    prodBtn.addEventListener('click', () => {
+      const val = typeSel.value;
+      if(!val) return;
+      const list = products
+        .filter(p => p.Type===val && (p.Product||'').toString().trim())
+        .sort((a,b)=>a.Product.localeCompare(b.Product));
+      const items = list.map(p => ({
+        label: escapeHtml(p.Product),
+        sub: p.Division ? `Division: ${escapeHtml(p.Division)}` : '',
+        value: p.Product,
+        searchText: `${p.Product}`.toLowerCase()
+      }));
+      openPicker('Select Product', items, (item)=> setProduct(item.value));
     });
 
     qty.addEventListener('input', ()=>computeRowTotal(tr));
@@ -631,6 +791,7 @@
 
   function clearRequestForm(){
     document.getElementById('reqFor').value = '';
+    resetEmployeePickerLabel('reqFor');
     document.getElementById('reqPurpose').value = '';
     document.getElementById('reqRemarks').value = '';
     document.querySelector('#reqTable tbody').innerHTML = '';
@@ -796,25 +957,15 @@
    * FIX: Build item options filtered by the currently selected type.
    * Each existing row in the table also gets its dropdown refreshed.
    */
-  function buildSupplyItemOptions(selectedType) {
-    const list = inventory
-      .filter(r => Number(r.Qty) > 0 && (selectedType ? r.Type === selectedType : true))
-      .sort((a, b) => a.Product.localeCompare(b.Product));
-
-    return '<option value="">--select--</option>' + list
-      .map(r => `<option value='${encodeURIComponent(JSON.stringify(r))}'>
-          ${escapeHtml(r.Product)} (Batch:${escapeHtml(r.Batch||'-')} | Exp:${escapeHtml(r.Expiry||'')} | Avl:${escapeHtml(String(r.Qty||'0'))})
-        </option>`)
-      .join('');
-  }
-
   function addSupplyRow(){
-    const type = document.getElementById('sType').value;
-    const opts = buildSupplyItemOptions(type);
-
     const tb = document.querySelector('#supTable tbody');
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="p-2"><select class="s-prod border border-gray-200 rounded-md px-2 py-1 w-full min-w-[260px]"><option value="">--select--</option></select></td>
+    tr.innerHTML = `<td class="p-2">
+        <button type="button" class="s-prod-btn border border-gray-200 rounded-md px-2 py-1 w-full min-w-[260px] text-left bg-white flex items-center justify-between">
+          <span class="s-prod-label text-slate-500">-- Select Product --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button>
+        <input type="hidden" class="s-prod" value="" />
+      </td>
       <td class="p-2"><input class="s-batch border border-gray-200 rounded-md px-2 py-1" readonly></td>
       <td class="p-2"><input class="s-exp border border-gray-200 rounded-md px-2 py-1" readonly></td>
       <td class="p-2"><input class="s-qty border border-gray-200 rounded-md px-2 py-1" type="number" min="0"></td>
@@ -823,41 +974,59 @@
       <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
     tb.appendChild(tr);
 
-    const sel = tr.querySelector('.s-prod');
-    // Set the filtered options
-    sel.innerHTML = opts;
-
+    const btn = tr.querySelector('.s-prod-btn');
+    const label = tr.querySelector('.s-prod-label');
+    const hidden = tr.querySelector('.s-prod');
     const qty = tr.querySelector('.s-qty');
 
-    sel.addEventListener('change', ()=>{
-      if(!sel.value){ 
-        tr.querySelector('.s-batch').value=''; 
-        tr.querySelector('.s-exp').value=''; 
-        tr.querySelector('.s-mrp').value=''; 
-        tr.querySelector('.s-total').value=''; 
-        return; 
+    function applySelection(o){
+      if(!o){
+        hidden.value = '';
+        label.textContent = '-- Select Product --';
+        label.classList.add('text-slate-500'); label.classList.remove('text-slate-800');
+        tr.querySelector('.s-batch').value='';
+        tr.querySelector('.s-exp').value='';
+        tr.querySelector('.s-mrp').value='';
+        tr.querySelector('.s-total').value='';
+        return;
       }
-      const o = JSON.parse(decodeURIComponent(sel.value));
+      hidden.value = encodeURIComponent(JSON.stringify(o));
+      label.textContent = o.Product;
+      label.classList.remove('text-slate-500'); label.classList.add('text-slate-800');
       tr.querySelector('.s-batch').value = o.Batch || '';
       tr.querySelector('.s-exp').value = o.Expiry || '';
       tr.querySelector('.s-mrp').value = o.MRP || '';
       const available = num(o.Qty);
       if(num(qty.value) > available){ qty.value = available; alert('Not enough stock available — quantity reduced to available stock.'); }
       qty.dispatchEvent(new Event('input'));
+    }
+
+    btn.addEventListener('click', ()=>{
+      const type = document.getElementById('sType').value;
+      const list = inventory
+        .filter(r => Number(r.Qty) > 0 && (type ? r.Type === type : true) && (r.Product||'').toString().trim())
+        .sort((a,b)=>a.Product.localeCompare(b.Product));
+      const items = list.map(r => ({
+        label: escapeHtml(r.Product),
+        sub: `Batch: ${escapeHtml(r.Batch||'-')} | Exp: ${escapeHtml(r.Expiry||'-')} | Avl Qty: ${escapeHtml(String(r.Qty||'0'))}`,
+        searchText: `${r.Product||''} ${r.Batch||''} ${r.Type||''}`.toLowerCase(),
+        raw: r
+      }));
+      openPicker('Select Product', items, (item)=> applySelection(item.raw));
     });
 
     qty.addEventListener('input', ()=>{
-      const selVal = sel.value; 
-      const q = num(qty.value); 
+      const selVal = hidden.value;
+      const q = num(qty.value);
       let available = Infinity;
-      if(selVal){ 
-        try{ const o = JSON.parse(decodeURIComponent(selVal)); available = num(o.Qty); }catch(e){ available = Infinity; } 
+      if(selVal){
+        try{ const o = JSON.parse(decodeURIComponent(selVal)); available = num(o.Qty); }catch(e){ available = Infinity; }
       }
-      if(available !== Infinity && q > available){ 
-        qty.value = available; 
-        alert('Not enough stock available — quantity reduced to available stock.'); 
+      if(available !== Infinity && q > available){
+        qty.value = available;
+        alert('Not enough stock available — quantity reduced to available stock.');
       }
-      const qFinal = num(qty.value); 
+      const qFinal = num(qty.value);
       const m = num(tr.querySelector('.s-mrp').value) || 0;
       tr.querySelector('.s-total').value = to2(qFinal * m);
     });
