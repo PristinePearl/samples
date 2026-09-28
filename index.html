@@ -826,6 +826,11 @@
 
   function onReceiptTypeChange(value){
     const isMedicine = (value === 'Medicine');
+    // Manual mode: item list depends on receipt type, so restart rows
+    if((document.getElementById('receiptMode')?.value) === 'manual'){
+      const tbm = document.querySelector('#recTable tbody');
+      if(tbm){ tbm.innerHTML = ''; addReceiptRow(); }
+    }
     const headerBatch = document.querySelectorAll('#recTable thead th')[5];
     const headerExp = document.querySelectorAll('#recTable thead th')[6];
     if(isMedicine){
@@ -876,13 +881,17 @@
 
     const rows = [...document.querySelectorAll('#recTable tbody tr')].map((tr,i)=>{
       return {
-        itemName: tr.children[0].firstChild.value,
+        itemName: (tr.children[0].firstChild.value||'').toString().trim(),
         qtyReq: tr.children[1].firstChild.value,
         mrp: tr.children[2].firstChild.value,
         total: tr.children[3].firstChild.value,
         remarksReq: tr.children[4].firstChild.value,
-        batchNo: tr.children[5].firstChild.value,
-        expiry: tr.children[6].firstChild.value,
+        batchNo: (tr.querySelector('.r-batch')?.value ?? tr.children[5].firstChild.value).toString().trim(),
+        expiry: (()=>{ const e = tr.children[6].firstChild;
+                       // existing batch & expiry untouched -> send inventory's exact expiry text so it matches the row
+                       return (e.dataset && e.dataset.raw && e.value === e.dataset.month) ? e.dataset.raw : e.value; })(),
+        existingBatch: !!(tr.children[6].firstChild.dataset && tr.children[6].firstChild.dataset.existing),
+        invType: (tr.querySelector('.r-item') ? ((inventory.find(x=>x.Product===tr.querySelector('.r-item').value)||{}).Type||'') : ''),
         recQty: tr.children[7].firstChild.value,
         remarks: tr.children[8].firstChild.value
       };
@@ -1581,30 +1590,131 @@
     }
   }
 
+  /* ---- Manual receipt: inventory-driven item + batch dropdowns ---- */
+  // Medicine receipt = "Sample" type in inventory
+  function receiptInventoryProducts(){
+    const rt = document.querySelector('input[name="receiptType"]:checked')?.value || 'Medicine';
+    const match = (t)=>{
+      t = (t||'').toString().trim().toLowerCase();
+      if(rt === 'Medicine') return ['sample','samples','medicine'].includes(t);
+      if(rt === 'Gift') return ['gift','gifts'].includes(t);
+      return !['sample','samples','medicine','gift','gifts'].includes(t); // Other
+    };
+    const map = new Map();
+    inventory.forEach(r=>{
+      const name = (r.Product||'').toString().trim();
+      if(!name || !match(r.Type)) return;
+      if(!map.has(name)) map.set(name, { name, division: r.Division||'', mrp: r.MRP||'', batches: [] });
+      const p = map.get(name);
+      const b = (r.Batch||'').toString().trim();
+      if(b && !p.batches.some(x=>x.batch===b)) p.batches.push({ batch:b, expiry:r.Expiry||'', qty:r.Qty, mrp:r.MRP });
+      if(!p.mrp && r.MRP) p.mrp = r.MRP;
+    });
+    return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  }
+
+  function normExpiryMonth(v){
+    if(!v) return '';
+    const s = String(v).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}`;
+    m = s.match(/^(\d{1,2})[-\/](\d{4})$/); if(m) return `${m[2]}-${m[1].padStart(2,'0')}`;
+    const d = new Date(s);
+    if(!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    return '';
+  }
+
   /* Add a new manual receipt row */
   function addReceiptRow() {
     const tb = document.querySelector('#recTable tbody');
     const tr = document.createElement('tr');
+    const cls = 'border border-gray-200 rounded-md px-2 py-1';
+    // NOTE: first child of each cell holds the value read by saveReceipt()
     tr.innerHTML = `
-      <td class="p-2"><input class="r-item border border-gray-200 rounded-md px-2 py-1" placeholder="Item Name" /></td>
-      <td class="p-2"><input class="r-req border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Req Qty" /></td>
-      <td class="p-2"><input class="r-mrp border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="MRP" /></td>
-      <td class="p-2"><input class="r-total border border-gray-200 rounded-md px-2 py-1" readonly /></td>
-      <td class="p-2"><input class="r-remreq border border-gray-200 rounded-md px-2 py-1" placeholder="Req Remarks" /></td>
-      <td class="p-2"><input class="r-batch border border-gray-200 rounded-md px-2 py-1" placeholder="Batch No" /></td>
-      <td class="p-2"><input class="r-exp border border-gray-200 rounded-md px-2 py-1" type="month" /></td>
-      <td class="p-2"><input class="r-rec border border-gray-200 rounded-md px-2 py-1" type="number" min="0" placeholder="Received Qty" /></td>
-      <td class="p-2"><input class="r-rem border border-gray-200 rounded-md px-2 py-1" placeholder="Remarks" /></td>
+      <td class="p-2"><input type="hidden" class="r-item" value="" />
+        <button type="button" class="r-item-btn ${cls} w-full min-w-[260px] text-left bg-white flex items-center justify-between">
+          <span class="r-item-label text-slate-500">-- Select Item --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button></td>
+      <td class="p-2"><input class="r-req ${cls}" type="number" min="0" placeholder="Req Qty" /></td>
+      <td class="p-2"><input class="r-mrp ${cls}" type="number" min="0" placeholder="MRP" /></td>
+      <td class="p-2"><input class="r-total ${cls}" readonly /></td>
+      <td class="p-2"><input class="r-remreq ${cls}" placeholder="Req Remarks" /></td>
+      <td class="p-2"><input type="hidden" class="r-batch" value="" />
+        <select class="r-batch-sel ${cls} min-w-[200px]" disabled><option value="">-- Select item first --</option></select>
+        <input class="r-batch-new ${cls} mt-1 hidden w-full" placeholder="Enter new batch no" /></td>
+      <td class="p-2"><input class="r-exp ${cls}" type="month" /></td>
+      <td class="p-2"><input class="r-rec ${cls}" type="number" min="0" placeholder="Received Qty" /></td>
+      <td class="p-2"><input class="r-rem ${cls}" placeholder="Remarks" /></td>
       <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
     tb.appendChild(tr);
 
+    const itemBtn = tr.querySelector('.r-item-btn');
+    const itemLbl = tr.querySelector('.r-item-label');
+    const itemVal = tr.querySelector('.r-item');
+    const batchSel = tr.querySelector('.r-batch-sel');
+    const batchNew = tr.querySelector('.r-batch-new');
+    const batchVal = tr.querySelector('.r-batch');
+    const exp = tr.querySelector('.r-exp');
     const mrp = tr.querySelector('.r-mrp');
     const qty = tr.querySelector('.r-rec');
-    function recalc() {
-      tr.querySelector('.r-total').value = to2(num(mrp.value) * num(qty.value));
-    }
+    let curProduct = null;
+    const NEW = '__new__';
+
+    function recalc(){ tr.querySelector('.r-total').value = to2(num(mrp.value) * num(qty.value)); }
     mrp.addEventListener('input', recalc);
     qty.addEventListener('input', recalc);
+
+    function showNewBatch(on){
+      batchNew.classList.toggle('hidden', !on);
+      if(on){ batchNew.focus(); }
+    }
+
+    function fillBatches(p){
+      let html = `<option value="">-- Select Batch --</option>`;
+      p.batches.forEach(b=>{
+        html += `<option value="${escapeHtml(b.batch)}">${escapeHtml(b.batch)}${b.expiry?` | Exp: ${escapeHtml(b.expiry)}`:''} | Avl: ${escapeHtml(String(b.qty||0))}</option>`;
+      });
+      html += `<option value="${NEW}">➕ Add new batch…</option>`;
+      batchSel.innerHTML = html;
+      batchSel.disabled = false;
+      batchVal.value = ''; batchNew.value = ''; showNewBatch(false); exp.value = '';
+      delete exp.dataset.raw; delete exp.dataset.existing;
+      if(!p.batches.length){ batchSel.value = NEW; showNewBatch(true); }
+    }
+
+    itemBtn.addEventListener('click', ()=>{
+      const list = receiptInventoryProducts();
+      const items = list.map(p=>({
+        label: escapeHtml(p.name),
+        sub: `${p.division?`Division: ${escapeHtml(p.division)} | `:''}Batches: ${p.batches.length}`,
+        searchText: `${p.name} ${p.division} ${p.batches.map(b=>b.batch).join(' ')}`.toLowerCase(),
+        raw: p
+      }));
+      openPicker('Select Item', items, (it)=>{
+        curProduct = it.raw;
+        itemVal.value = curProduct.name;
+        itemLbl.textContent = curProduct.name;
+        itemLbl.classList.remove('text-slate-500'); itemLbl.classList.add('text-slate-800');
+        mrp.value = curProduct.mrp || '';
+        fillBatches(curProduct);
+        recalc();
+      });
+    });
+
+    batchSel.addEventListener('change', ()=>{
+      if(batchSel.value === NEW){
+        batchVal.value = batchNew.value.trim(); exp.value = ''; showNewBatch(true);
+        delete exp.dataset.raw; delete exp.dataset.existing;
+      } else {
+        showNewBatch(false); batchVal.value = batchSel.value;
+        const b = curProduct && curProduct.batches.find(x=>x.batch===batchSel.value);
+        if(b){
+          exp.value = normExpiryMonth(b.expiry);
+          exp.dataset.raw = b.expiry || ''; exp.dataset.month = exp.value; exp.dataset.existing = '1';
+          if(b.mrp){ mrp.value = b.mrp; recalc(); }
+        } else { exp.value = ''; delete exp.dataset.raw; delete exp.dataset.existing; }
+      }
+    });
+    batchNew.addEventListener('input', ()=>{ batchVal.value = batchNew.value.trim(); });
   }
   </script>
 
