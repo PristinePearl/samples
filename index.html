@@ -7,6 +7,7 @@
   <link rel="icon" type="image/png" href="https://pristinepearl.github.io/Home/alt-logo.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
@@ -48,12 +49,15 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold">Request Entry</h2>
-            <p class="text-sm text-slate-500">Select Type → Product. Division & MRP auto-fill.</p>
+            <p class="text-sm text-slate-500">Select Type → Product, or upload the template. Division & MRP auto-fill.</p>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <label class="text-sm text-slate-500">Date</label>
             <input id="reqDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" onclick="downloadRequestTemplate()">⬇ Template</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="document.getElementById('reqTemplateFile').click()">⬆ Upload Template</button>
+            <input id="reqTemplateFile" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleRequestTemplateUpload(this)" />
             <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addRequestRow()">+ Add</button>
             <button id="saveRequestBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveRequest()">Save</button>
             <button id="sendMailBtn" class="px-3 py-2 rounded-md bg-emerald-700 text-white font-bold hidden" onclick="sendRequestMailUI()">Send Mail</button>
@@ -733,6 +737,106 @@
     });
 
     qty.addEventListener('input', ()=>computeRowTotal(tr));
+
+    /* Prefill (used by template upload): Division & MRP come from the products list via setProduct */
+    if (data && (data.type || data.product)) {
+      if (data.type) { typeSel.value = data.type; typeSel.dispatchEvent(new Event('change')); }
+      if (data.product) setProduct(data.product);
+      if (data.qty) qty.value = data.qty;
+      if (data.remarks) tr.querySelector('.remarks').value = data.remarks;
+      computeRowTotal(tr);
+    }
+    return tr;
+  }
+
+  /* REQUEST TEMPLATE (download / upload) */
+  function normKey(v){ return String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g,' '); }
+
+  function downloadRequestTemplate(){
+    if (typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    const wb = XLSX.utils.book_new();
+
+    const ws = XLSX.utils.aoa_to_sheet([['Type','Product','Qty','Remarks']]);
+    ws['!cols'] = [{wch:20},{wch:38},{wch:8},{wch:32}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+
+    const ref = [['Type','Product','Division','MRP']]
+      .concat(products.filter(p => (p.Product||'').toString().trim())
+        .map(p => [p.Type||'', p.Product, p.Division||'', p.MRP||'']));
+    const ws2 = XLSX.utils.aoa_to_sheet(ref);
+    ws2['!cols'] = [{wch:20},{wch:38},{wch:18},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Product List (reference)');
+
+    XLSX.writeFile(wb, 'Request_Template.xlsx');
+  }
+
+  async function handleRequestTemplateUpload(input){
+    const file = input.files && input.files[0];
+    input.value = '';               // allow re-uploading the same file
+    if (!file) return;
+    if (typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    if (!products.length) return alert('Product list is not loaded yet. Please wait a moment and try again.');
+
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const ws = wb.Sheets['Template'] || wb.Sheets[wb.SheetNames[0]];
+      const grid = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+
+      // find header row (must contain "Product" and "Qty")
+      let hIdx = -1, col = {};
+      for (let i = 0; i < Math.min(grid.length, 10); i++) {
+        const c = {};
+        (grid[i] || []).forEach((h, j) => {
+          const k = normKey(h);
+          if (k === 'type') c.type = j;
+          else if (k === 'product' || k === 'item') c.product = j;
+          else if (k === 'qty' || k === 'quantity') c.qty = j;
+          else if (k === 'remarks' || k === 'remark') c.remarks = j;
+        });
+        if (c.product !== undefined && c.qty !== undefined) { hIdx = i; col = c; break; }
+      }
+      if (hIdx < 0) return alert('Template format not recognised. Columns must be: Type | Product | Qty | Remarks');
+
+      // lookups
+      const byTypeName = new Map(), byName = new Map();
+      products.forEach(p => {
+        const name = normKey(p.Product); if (!name) return;
+        byTypeName.set(normKey(p.Type) + '||' + name, p);
+        if (!byName.has(name)) byName.set(name, p);
+      });
+
+      const good = [], errors = [];
+      for (let i = hIdx + 1; i < grid.length; i++) {
+        const r = grid[i] || [];
+        const get = k => (col[k] === undefined ? '' : String(r[col[k]] == null ? '' : r[col[k]]).trim());
+        const type = get('type'), prod = get('product'), qtyRaw = get('qty'), remarks = get('remarks');
+        if (!type && !prod && !qtyRaw && !remarks) continue;          // blank line
+        const line = i + 1;
+        if (!prod) { errors.push(`Row ${line}: Product is empty`); continue; }
+        const p = byTypeName.get(normKey(type) + '||' + normKey(prod)) || byName.get(normKey(prod));
+        if (!p) { errors.push(`Row ${line}: product "${prod}" not found`); continue; }
+        const q = Number(qtyRaw.replace(/,/g, ''));
+        if (!(q > 0)) { errors.push(`Row ${line}: invalid Qty "${qtyRaw}"`); continue; }
+        good.push({ type: p.Type, product: p.Product, qty: q, remarks });
+      }
+
+      if (!good.length) return alert('No valid rows found in the template.' + (errors.length ? '\n\n' + errors.slice(0,10).join('\n') : ''));
+
+      // drop untouched blank rows, then append uploaded rows
+      const tbody = document.querySelector('#reqTable tbody');
+      [...tbody.querySelectorAll('tr')].forEach(tr => {
+        if (!tr.querySelector('.productSel').value && !num(tr.querySelector('.qty').value)) tr.remove();
+      });
+      good.forEach(g => addRequestRow(g));
+
+      let msg = `${good.length} row(s) loaded into the request.`;
+      if (errors.length) msg += `\n\n${errors.length} row(s) skipped:\n` + errors.slice(0,10).join('\n') + (errors.length > 10 ? `\n...and ${errors.length-10} more` : '');
+      alert(msg);
+    } catch (err) {
+      console.error(err);
+      alert('Could not read the file: ' + (err && err.message ? err.message : err));
+    }
   }
 
   function computeRowTotal(tr){
