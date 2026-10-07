@@ -119,6 +119,7 @@
   <select id="receiptMode" class="border border-gray-200 rounded-md px-2 py-1 text-sm ml-2" onchange="toggleReceiptMode()">
     <option value="fetch">Fetch from Request</option>
     <option value="manual">Manual Entry</option>
+    <option value="po">Fetch from Pending PO</option>
   </select>
 </div>
           <div class="flex items-center gap-2 flex-wrap">
@@ -128,6 +129,19 @@
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveReceipt()">Save</button>
 <button id="addReceiptRowBtn" class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold hidden" onclick="addReceiptRow()">+ Add Item</button>
           </div>
+        </div>
+
+        <div id="poReceiptBox" class="hidden mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold mb-1">Pending Purchase Orders</label>
+              <select id="pendingPOs" class="border border-gray-200 rounded-md px-2 py-1 w-full" onchange="loadPoIntoReceipt()">
+                <option value="">-- Loading pending POs... --</option>
+              </select>
+            </div>
+            <div id="poReceiptInfo" class="text-sm text-slate-600"></div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">Select a PO to load its pending items. Enter Batch &amp; Expiry, adjust Received Qty (partial receipts allowed), then Save. Stock is added to Inventory and any balance stays pending on the PO.</p>
         </div>
 
         <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
@@ -672,7 +686,7 @@
     if(tab==='po'){ loadVendors(); fetchNextPoNumber(); }
     if(tab==='live'){ loadInventory().then(renderLiveInventory); }
     if(tab==='supply'){ loadInventory(); loadEmployees(); }
-    if(tab==='receipt'){ loadPendingRequests(); }
+    if(tab==='receipt'){ loadPendingRequests(); if((document.getElementById('receiptMode')?.value)==='po'){ loadPendingPOs(); } }
   }
 
   /* REQUEST */
@@ -947,6 +961,7 @@
   }
 
   async function fetchRequestDetails(){
+    if((document.getElementById('receiptMode')?.value) === 'po'){ return loadPoIntoReceipt(); }
     const id = document.getElementById('recReqId').value;
     if(!id) return alert('Enter Request ID');
     const r = await post('getRequestDetails',{ reqId: id });
@@ -978,7 +993,10 @@
   async function saveReceipt(){
     const date = document.getElementById('recDate').value || '';
     const mode = document.getElementById('receiptMode')?.value || 'fetch';
-    const reqId = (mode === 'manual') ? 'MANUAL' : (document.getElementById('recReqId').value || '');
+    const reqId = (mode === 'manual') ? 'MANUAL'
+                : (mode === 'po') ? (document.getElementById('pendingPOs').value || '')
+                : (document.getElementById('recReqId').value || '');
+    if(mode === 'po' && !reqId) return alert('Select a pending PO first.');
     const purchasedFrom = document.getElementById('recPurchasedFrom').value || '';
     const remarksOverall = document.getElementById('recRemarks').value || '';
     const receiptType = document.querySelector('input[name="receiptType"]:checked').value || 'Medicine';
@@ -995,13 +1013,21 @@
                        // existing batch & expiry untouched -> send inventory's exact expiry text so it matches the row
                        return (e.dataset && e.dataset.raw && e.value === e.dataset.month) ? e.dataset.raw : e.value; })(),
         existingBatch: !!(tr.children[6].firstChild.dataset && tr.children[6].firstChild.dataset.existing),
-        invType: (tr.querySelector('.r-item') ? ((inventory.find(x=>x.Product===tr.querySelector('.r-item').value)||{}).Type||'') : ''),
+        invType: tr.dataset.invType || (tr.querySelector('.r-item') ? ((inventory.find(x=>x.Product===tr.querySelector('.r-item').value)||{}).Type||'') : ''),
         recQty: tr.children[7].firstChild.value,
         remarks: tr.children[8].firstChild.value
       };
     }).filter(r=> r.itemName && num(r.recQty) > 0);
 
     if(!rows.length) return alert('No rows');
+
+    if(mode === 'po'){
+      const over = [...document.querySelectorAll('#recTable tbody tr')].filter(tr=>{
+        const p = num(tr.dataset.pending);
+        return p > 0 && num(tr.querySelector('.r-rec')?.value) > p;
+      });
+      if(over.length && !confirm(over.length + ' item(s) have Received Qty greater than the pending PO qty. Save anyway?')) return;
+    }
 
     if(receiptType === 'Medicine'){
       for(const [idx,row] of rows.entries()){
@@ -1021,9 +1047,87 @@
       document.getElementById('recRemarks').value = '';
       await loadInventory();
       await loadPendingRequests();
+      if(mode === 'po'){
+        await loadPendingPOs();
+        document.getElementById('poReceiptInfo').innerHTML = '';
+      }
     } else {
       alert('Save failed: '+(res.message||''));
     }
+  }
+
+  /* ===================== RECEIPT FROM PENDING PO ===================== */
+  let pendingPOs = [];
+
+  async function loadPendingPOs(){
+    const sel = document.getElementById('pendingPOs');
+    sel.innerHTML = `<option value="">Loading...</option>`;
+    const r = await post('getPendingPOs', {});
+    pendingPOs = (r && r.success) ? (r.pos || []) : [];
+    if(!r || !r.success){ sel.innerHTML = `<option value="">Could not load POs: ${escapeHtml((r && r.message) || '')}</option>`; return; }
+    if(!pendingPOs.length){ sel.innerHTML = `<option value="">No pending POs</option>`; return; }
+    sel.innerHTML = `<option value="">-- Select Pending PO --</option>` + pendingPOs.map(p =>
+      `<option value="${escapeHtml(p.poNumber)}">${escapeHtml(p.poNumber)} | ${escapeHtml(p.supplier)} | ${escapeHtml(p.date)} | ${p.lines.length} item(s) pending</option>`
+    ).join('');
+  }
+
+  function loadPoIntoReceipt(){
+    const poNum = document.getElementById('pendingPOs').value;
+    const tb = document.querySelector('#recTable tbody');
+    const info = document.getElementById('poReceiptInfo');
+    tb.innerHTML = '';
+    info.innerHTML = '';
+    if(!poNum) return;
+    const po = pendingPOs.find(p => p.poNumber === poNum);
+    if(!po) return;
+
+    info.innerHTML = `<b>${escapeHtml(po.supplier)}</b><br>PO date: ${escapeHtml(po.date)}`;
+
+    // Pre-select supplier in "Purchased From"
+    const nk = v => String(v == null ? '' : v).trim().toLowerCase();
+    const vi = vendors.findIndex(v => nk(v['Supplier Name'] || v['Vendor']) === nk(po.supplier));
+    document.getElementById('recPurchasedFrom').value = vi >= 0 ? String(vi) : '';
+    document.getElementById('recRemarks').value = 'Against ' + po.poNumber;
+
+    // Guess receipt type from Products master (only if every line is found)
+    const prods = po.lines.map(l => products.find(p => nk(p.Product) === nk(l.item)));
+    if(prods.every(Boolean)){
+      const kinds = new Set(prods.map(p => {
+        const t = nk(p.Type);
+        return ['sample','samples','medicine'].includes(t) ? 'Medicine' : (['gift','gifts'].includes(t) ? 'Gift' : 'Other');
+      }));
+      if(kinds.size === 1){
+        const kind = [...kinds][0];
+        const radio = document.querySelector(`input[name="receiptType"][value="${kind}"]`);
+        if(radio) radio.checked = true;
+      }
+    }
+
+    po.lines.forEach((l, i) => {
+      const prod = prods[i] || {};
+      const mrp = num(prod.MRP) || num(l.rate);
+      const tr = document.createElement('tr');
+      tr.dataset.pending = l.pending;
+      tr.dataset.invType = prod.Type || '';
+      const note = `${po.poNumber} | PO rate ${to2(l.rate)} | Ordered ${l.ordered}` + (l.received ? ` | Prev rec ${l.received}` : '');
+      const cls = 'border border-gray-200 rounded-md px-2 py-1';
+      tr.innerHTML = `<td class="p-2"><input value="${escapeHtml(l.item)}" readonly class="${cls} min-w-[260px]" /></td>
+        <td class="p-2"><input value="${escapeHtml(l.ordered)}" readonly class="${cls}" /></td>
+        <td class="p-2"><input class="r-mrp ${cls}" type="number" min="0" step="any" value="${escapeHtml(mrp)}" /></td>
+        <td class="p-2"><input class="r-total ${cls}" readonly value="${to2(mrp * l.pending)}" /></td>
+        <td class="p-2"><input value="${escapeHtml(note)}" readonly class="${cls}" /></td>
+        <td class="p-2"><input class="r-batch ${cls}" /></td>
+        <td class="p-2"><input class="r-exp ${cls}" type="month" /></td>
+        <td class="p-2"><input class="r-rec ${cls}" type="number" min="0" value="${escapeHtml(l.pending)}" title="Pending: ${escapeHtml(l.pending)}" /></td>
+        <td class="p-2"><input class="r-rem ${cls}" /></td>
+        <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+      const mrpEl = tr.querySelector('.r-mrp'), recEl = tr.querySelector('.r-rec'), totEl = tr.querySelector('.r-total');
+      const recalc = () => { totEl.value = to2(num(mrpEl.value) * num(recEl.value)); };
+      mrpEl.addEventListener('input', recalc);
+      recEl.addEventListener('input', recalc);
+      tb.appendChild(tr);
+    });
+    onReceiptTypeChange(document.querySelector('input[name="receiptType"]:checked').value);
   }
 
   /* ===================== SUPPLY ===================== */
@@ -1678,19 +1782,19 @@
   /* Receipt: Switch between manual and fetch modes */
   function toggleReceiptMode() {
     const mode = document.getElementById('receiptMode').value;
-    const fetchControls = ['pendingRequests', 'recReqId'];
     const addBtn = document.getElementById('addReceiptRowBtn');
     const recTableBody = document.querySelector('#recTable tbody');
 
-    if (mode === 'manual') {
-      fetchControls.forEach(id => document.getElementById(id).disabled = true);
-      addBtn.classList.remove('hidden');
-      recTableBody.innerHTML = '';
-      addReceiptRow();
-    } else {
-      fetchControls.forEach(id => document.getElementById(id).disabled = false);
-      addBtn.classList.add('hidden');
-      recTableBody.innerHTML = '';
+    recTableBody.innerHTML = '';
+    ['pendingRequests', 'recReqId'].forEach(id => document.getElementById(id).disabled = (mode !== 'fetch'));
+    addBtn.classList.toggle('hidden', mode !== 'manual');
+    document.getElementById('poReceiptBox').classList.toggle('hidden', mode !== 'po');
+    document.getElementById('poReceiptInfo').innerHTML = '';
+
+    if (mode === 'manual') { addReceiptRow(); }
+    if (mode === 'po') {
+      if (!vendors.length) { loadVendors(); }
+      loadPendingPOs();
     }
   }
 
