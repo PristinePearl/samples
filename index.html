@@ -128,6 +128,7 @@
             <button class="px-3 py-2 rounded-md border border-gray-200 text-sm" onclick="fetchRequestDetails()">Fetch</button>
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveReceipt()">Save</button>
 <button id="addReceiptRowBtn" class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold hidden" onclick="addReceiptRow()">+ Add Item</button>
+            <button class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold" onclick="openReceiptViewer()">🖨 Print / Reprint</button>
           </div>
         </div>
 
@@ -198,6 +199,31 @@
             </thead>
             <tbody class="bg-white"></tbody>
           </table>
+        </div>
+
+        <!-- Modal: saved receipts (print / reprint) -->
+        <div id="receiptViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div class="bg-white rounded-xl shadow-xl w-11/12 md:w-3/4 max-h-[90vh] overflow-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold text-slate-700">Saved Receipts</h2>
+              <button onclick="closeReceiptViewer()" class="text-red-500 text-lg font-bold">✕</button>
+            </div>
+            <input id="receiptSearch" onkeyup="filterReceiptList()" placeholder="Search Receipt ID / PO / Request / Item / Date"
+              class="border rounded-md px-3 py-2 w-full mb-3" />
+            <table id="receiptListTable" class="w-full border-collapse text-sm">
+              <thead class="bg-slate-100">
+                <tr>
+                  <th class="border px-2 py-1">Receipt ID</th>
+                  <th class="border px-2 py-1">Date</th>
+                  <th class="border px-2 py-1">Reference</th>
+                  <th class="border px-2 py-1">Items</th>
+                  <th class="border px-2 py-1 text-right">Value</th>
+                  <th class="border px-2 py-1 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -453,23 +479,37 @@
 
   async function post(action, payload={}) {
     showLoading();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(()=>controller.abort(), 30000);
+    // Read-only calls are retried once (Apps Script cold starts can be slow).
+    // Save/write calls are NEVER retried, to avoid duplicate records.
+    const isRead = /^get/.test(action);
+    const attempts = isRead ? 2 : 1;
+    const TIMEOUT_MS = 60000;
+    let lastErr = null;
     try {
-      const res = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        headers: {'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify(Object.assign({action}, payload)),
-        signal: controller.signal
-      });
-      const json = await res.json();
-      return json;
-    } catch (err) {
-      console.error(err);
-      const msg = (err && err.name === 'AbortError') ? 'Request timed out. Please check your connection and try again.' : String(err);
+      for (let i = 0; i < attempts; i++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(()=>controller.abort(), TIMEOUT_MS);
+        try {
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            headers: {'Content-Type':'text/plain;charset=utf-8'},
+            body: JSON.stringify(Object.assign({action}, payload)),
+            signal: controller.signal
+          });
+          return await res.json();
+        } catch (err) {
+          lastErr = err;
+          console.error('[' + action + '] attempt ' + (i+1) + ' failed:', err);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      }
+      const timedOut = lastErr && lastErr.name === 'AbortError';
+      const msg = timedOut
+        ? 'Server took too long to respond (' + action + '). Please check your connection and try again.'
+        : String(lastErr);
       return { success:false, message: msg };
     } finally {
-      clearTimeout(timeoutId);
       hideLoading();
     }
   }
@@ -548,12 +588,16 @@
     activateTabVisuals(document.querySelectorAll('.tab')[0]);
     ['request','receipt','supply','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
 
-    await loadProducts();
-    await loadEmployees();
-    await loadInventory();
-    await loadVendors();
-    await fetchNextPoNumber();
-    await loadPendingRequests();
+    // Parallel load: total wait = slowest call, not the sum of all calls.
+    // allSettled => one failing call can't block the page from opening.
+    await Promise.allSettled([
+      loadProducts(),
+      loadEmployees(),
+      loadInventory(),
+      loadVendors(),
+      fetchNextPoNumber(),
+      loadPendingRequests()
+    ]);
 
     addRequestRow();
     addSupplyRow();
@@ -1041,6 +1085,13 @@
 
     const res = await post('saveReceipt', payload);
     if(res && res.success) {
+      const printData = {
+        receiptId: ((res.message || '').match(/ID:\s*([A-Za-z0-9-]+)/) || [])[1] || '',
+        date: formatDateForPrint(date) || formatDateForPrint(new Date().toISOString()),
+        ref: reqId,
+        remarks: remarksOverall,
+        rows: rows.map(r => ({ item: r.itemName, batch: r.batchNo, expiry: r.expiry, qty: num(r.recQty), mrp: num(r.mrp), value: num(r.recQty) * num(r.mrp) }))
+      };
       alert(res.message || 'Saved');
       document.querySelector('#recTable tbody').innerHTML = '';
       document.getElementById('recPurchasedFrom').value = '';
@@ -1051,9 +1102,158 @@
         await loadPendingPOs();
         document.getElementById('poReceiptInfo').innerHTML = '';
       }
+      if(confirm('Receipt saved. Print the Goods Receipt Note now?')) printReceiptDoc(printData);
     } else {
       alert('Save failed: '+(res.message||''));
     }
+  }
+
+  /* ===================== RECEIPT PRINT (GRN) ===================== */
+  let receiptGroups = {};
+
+  // Any expiry form (YYYY-MM, MM-YYYY, ISO datetime from Sheets, Date text) -> MM-YYYY
+  function fmtExpiryPrint(v){
+    if(!v) return '';
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})[-\/](\d{4})$/); if(m) return `${m[1].padStart(2,'0')}-${m[2]}`;
+    if(/T\d{2}:\d{2}/.test(s)){ const d = new Date(s); if(!isNaN(d)) return `${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`; }
+    m = s.match(/^(\d{4})-(\d{1,2})/); if(m) return `${m[2].padStart(2,'0')}-${m[1]}`;
+    const d = new Date(s); if(!isNaN(d)) return `${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+    return s;
+  }
+
+  function receiptRefLabel(ref){
+    ref = String(ref || '').trim();
+    if(!ref || ref.toUpperCase() === 'MANUAL') return 'Manual Entry';
+    if(/^PO/i.test(ref)) return 'Against PO: ' + ref;
+    return 'Against Request: ' + ref;
+  }
+
+  function buildReceiptHtml(d){
+    const esc = escapeHtml;
+    let total = 0, totalQty = 0;
+    const rowsHtml = d.rows.map((r,i)=>{
+      const val = (r.value != null && r.value !== '') ? num(r.value) : num(r.qty) * num(r.mrp);
+      total += val; totalQty += num(r.qty);
+      return `<tr>
+        <td style="text-align:center">${i+1}</td>
+        <td>${esc(r.item)}</td>
+        <td>${esc(r.batch || '-')}</td>
+        <td style="text-align:center">${esc(fmtExpiryPrint(r.expiry) || '-')}</td>
+        <td style="text-align:right">${esc(r.qty)}</td>
+        <td style="text-align:right">${to2(r.mrp)}</td>
+        <td style="text-align:right">${to2(val)}</td>
+      </tr>`;
+    }).join('');
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Goods Receipt Note ${esc(d.receiptId)}</title>
+    <style>
+      @page { size: A4; margin: 14mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+      .hdr { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #059669; padding-bottom:10px; margin-bottom:14px; }
+      .co { font-size:14pt; font-weight:bold; color:#059669; }
+      .sm { font-size:8pt; color:#555; }
+      h1 { font-size:20pt; margin:0; color:#333; text-align:right; }
+      .meta { display:flex; justify-content:space-between; margin-bottom:12px; font-size:10pt; }
+      .meta b { color:#555; }
+      table { width:100%; border-collapse:collapse; }
+      th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:6px; font-size:9pt; text-align:left; }
+      td { border:1px solid #cbd5e1; padding:6px; font-size:9pt; }
+      tfoot td { font-weight:bold; background:#f0fdf4; }
+      .sign { display:flex; justify-content:space-between; margin-top:70px; font-size:9pt; }
+      .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
+      .foot { margin-top:24px; text-align:center; font-size:8pt; color:#777; }
+    </style></head><body>
+      <div class="hdr">
+        <div>
+          <div class="co">PRISTINE PEARL PHARMA PVT LTD</div>
+          <div class="sm">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+          <div class="sm">Perur Village, Coimbatore - 641010</div>
+          <div class="sm">samples.pearl@gmail.com | +91 8838001387</div>
+        </div>
+        <div><h1>GOODS RECEIPT NOTE</h1></div>
+      </div>
+      <div class="meta">
+        <div><b>Receipt No:</b> ${esc(d.receiptId || '-')}<br><b>Date:</b> ${esc(d.date || '')}</div>
+        <div style="text-align:right"><b>Reference:</b> ${esc(receiptRefLabel(d.ref))}${d.remarks ? `<br><b>Remarks:</b> ${esc(d.remarks)}` : ''}</div>
+      </div>
+      <table>
+        <thead><tr><th style="width:30px;text-align:center">#</th><th>Item</th><th>Batch No</th><th style="text-align:center">Expiry</th><th style="text-align:right">Rec Qty</th><th style="text-align:right">MRP</th><th style="text-align:right">Value</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right">Total</td><td style="text-align:right">${esc(totalQty)}</td><td></td><td style="text-align:right">₹${to2(total)}</td></tr></tfoot>
+      </table>
+      <div class="sign"><div>Received By</div><div>Store In-charge</div><div>Authorised Signatory</div></div>
+      <div class="foot">This is a system generated document.</div>
+    </body></html>`;
+  }
+
+  // Prints through a hidden iframe (not blocked by popup blockers)
+  function printReceiptDoc(d){
+    if(!d || !d.rows || !d.rows.length) return alert('Nothing to print.');
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open(); doc.write(buildReceiptHtml(d)); doc.close();
+    setTimeout(()=>{
+      try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }catch(e){ alert('Print failed: ' + e); }
+      setTimeout(()=> iframe.remove(), 60000);
+    }, 500);
+  }
+
+  function openReceiptViewer(){
+    document.getElementById('receiptViewerModal').classList.remove('hidden');
+    loadSavedReceiptList();
+  }
+  function closeReceiptViewer(){
+    document.getElementById('receiptViewerModal').classList.add('hidden');
+  }
+
+  async function loadSavedReceiptList(){
+    const tbody = document.querySelector('#receiptListTable tbody');
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-slate-500">Loading...</td></tr>`;
+    document.getElementById('receiptSearch').value = '';
+    const r = await post('getReceiptReport', {});
+    if(!r || !r.success || !(r.rows || []).length){
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-slate-500">${r && r.success ? 'No saved receipts' : escapeHtml((r && r.message) || 'Could not load receipts')}</td></tr>`;
+      return;
+    }
+    receiptGroups = {};
+    const order = [];
+    r.rows.forEach(x=>{
+      const id = String(x.receiptId || '').trim();
+      if(!id) return;
+      if(!receiptGroups[id]){ receiptGroups[id] = { receiptId: id, date: x.date, ref: x.reqId, remarks: '', rows: [] }; order.push(id); }
+      receiptGroups[id].rows.push({ item: x.item, batch: x.batch, expiry: x.expiry, qty: num(x.qty), mrp: num(x.mrp), value: num(x.total) || num(x.qty) * num(x.mrp) });
+    });
+    tbody.innerHTML = '';
+    order.reverse().forEach(id=>{
+      const g = receiptGroups[id];
+      const val = g.rows.reduce((a,b)=> a + num(b.value), 0);
+      const tr = document.createElement('tr');
+      tr.dataset.search = (id + ' ' + g.date + ' ' + g.ref + ' ' + g.rows.map(x=>x.item).join(' ')).toLowerCase();
+      tr.innerHTML = `
+        <td class="border px-2 py-1">${escapeHtml(id)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.date)}</td>
+        <td class="border px-2 py-1">${escapeHtml(receiptRefLabel(g.ref))}</td>
+        <td class="border px-2 py-1">${g.rows.length}</td>
+        <td class="border px-2 py-1 text-right">${to2(val)}</td>
+        <td class="border px-2 py-1 text-center"><button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm" onclick="printSavedReceipt('${escapeHtml(id)}')">Print</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function filterReceiptList(){
+    const val = document.getElementById('receiptSearch').value.toLowerCase();
+    document.querySelectorAll('#receiptListTable tbody tr').forEach(tr=>{
+      tr.style.display = (tr.dataset.search || tr.textContent.toLowerCase()).includes(val) ? '' : 'none';
+    });
+  }
+
+  function printSavedReceipt(id){
+    const g = receiptGroups[id];
+    if(!g) return alert('Receipt not found.');
+    printReceiptDoc(g);
   }
 
   /* ===================== RECEIPT FROM PENDING PO ===================== */
