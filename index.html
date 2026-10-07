@@ -167,6 +167,9 @@
             <button class="px-3 py-2 rounded-md border border-gray-200 text-sm" onclick="fetchRequestDetails()">Fetch</button>
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveReceipt()">Save</button>
 <button id="addReceiptRowBtn" class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold hidden" onclick="addReceiptRow()">+ Add Item</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" onclick="downloadReceiptTemplate()">⬇ Template</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="document.getElementById('recTemplateFile').click()">⬆ Bulk Upload</button>
+            <input id="recTemplateFile" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleReceiptUpload(this)" />
             <button class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold" onclick="openReceiptViewer()">🖨 Print / Reprint</button>
           </div>
         </div>
@@ -273,9 +276,12 @@
             <p class="text-sm text-slate-500">Only show items in inventory with stock &gt; 0.</p>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <label class="text-sm text-slate-500">Date</label>
             <input id="supDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" onclick="downloadSupplyTemplate()">⬇ Template</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="document.getElementById('supTemplateFile').click()">⬆ Bulk Upload</button>
+            <input id="supTemplateFile" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleSupplyUpload(this)" />
             <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addSupplyRow()">+ Add</button>
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveSupply()">Save</button>
           </div>
@@ -307,6 +313,7 @@
                 <th class="p-2 text-left font-semibold text-slate-600">Qty</th>
                 <th class="p-2 text-left font-semibold text-slate-600">MRP</th>
                 <th class="p-2 text-left font-semibold text-slate-600">Total</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Remarks</th>
                 <th class="p-2"></th>
               </tr>
             </thead>
@@ -531,7 +538,10 @@
     const TIMEOUT_MS = 60000;
     let lastErr = null;
     try {
-      for (let i = 0; i < attempts; i++) {
+      // No loop around the network await (preview sandboxes abort loops that run >400ms).
+      let attemptNo = 0;
+      const runOnce = async () => {
+        attemptNo++;
         const controller = new AbortController();
         const timeoutId = setTimeout(()=>controller.abort(), TIMEOUT_MS);
         try {
@@ -541,14 +551,18 @@
             body: JSON.stringify(Object.assign({action}, payload)),
             signal: controller.signal
           });
-          return await res.json();
+          return { ok: true, data: await res.json() };
         } catch (err) {
           lastErr = err;
-          console.error('[' + action + '] attempt ' + (i+1) + ' failed:', err);
+          console.error('[' + action + '] attempt ' + attemptNo + ' failed:', err);
+          return { ok: false };
         } finally {
           clearTimeout(timeoutId);
         }
-      }
+      };
+      let r = await runOnce();
+      if(!r.ok && attempts > 1) r = await runOnce();
+      if(r.ok) return r.data;
       const timedOut = lastErr && lastErr.name === 'AbortError';
       const msg = timedOut
         ? 'Server took too long to respond (' + action + '). Please check your connection and try again.'
@@ -594,7 +608,7 @@
 
   function filterPickerList(){
     const q = document.getElementById('pickerSearch').value.toLowerCase().trim();
-    const filtered = q ? pickerAllItems.filter(it => it.searchText.includes(q)) : pickerAllItems;
+    const filtered = q ? pickerAllItems.filter(it => it.alwaysShow || it.searchText.includes(q)) : pickerAllItems;
     renderPickerList(filtered);
   }
 
@@ -1665,6 +1679,7 @@
       <td class="p-2"><input class="s-qty border border-gray-200 rounded-md px-2 py-1" type="number" min="0"></td>
       <td class="p-2"><input class="s-mrp border border-gray-200 rounded-md px-2 py-1" readonly></td>
       <td class="p-2"><input class="s-total border border-gray-200 rounded-md px-2 py-1" readonly></td>
+      <td class="p-2"><input class="s-rem border border-gray-200 rounded-md px-2 py-1" placeholder="Remarks"></td>
       <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
     tb.appendChild(tr);
 
@@ -1733,7 +1748,7 @@
     const rows = [...document.querySelectorAll('#supTable tbody tr')].map(tr=>{
       const s = tr.querySelector('.s-prod'); if(!s || !s.value) return null;
       const o = JSON.parse(decodeURIComponent(s.value));
-      return { item: o.Product, batchNo: o.Batch||'', expiry: o.Expiry||'', qty: tr.querySelector('.s-qty').value, mrp: o.MRP||0, total: tr.querySelector('.s-total').value };
+      return { item: o.Product, batchNo: o.Batch||'', expiry: o.Expiry||'', qty: tr.querySelector('.s-qty').value, mrp: o.MRP||0, total: tr.querySelector('.s-total').value, remarks: (tr.querySelector('.s-rem')?.value || '').trim() };
     }).filter(r=> r && num(r.qty) > 0);
     if(!rows.length) return alert('No rows');
 
@@ -2307,11 +2322,17 @@
     inventory.forEach(r=>{
       const name = (r.Product||'').toString().trim();
       if(!name || !match(r.Type)) return;
-      if(!map.has(name)) map.set(name, { name, division: r.Division||'', mrp: r.MRP||'', batches: [] });
+      if(!map.has(name)) map.set(name, { name, division: r.Division||'', mrp: r.MRP||'', type: r.Type||'', batches: [] });
       const p = map.get(name);
       const b = (r.Batch||'').toString().trim();
       if(b && !p.batches.some(x=>x.batch===b)) p.batches.push({ batch:b, expiry:r.Expiry||'', qty:r.Qty, mrp:r.MRP });
       if(!p.mrp && r.MRP) p.mrp = r.MRP;
+    });
+    // products master: items never received before (no stock / no batch yet) can also be received
+    products.forEach(r=>{
+      const name = (r.Product||'').toString().trim();
+      if(!name || !match(r.Type) || map.has(name)) return;
+      map.set(name, { name, division: r.Division||'', mrp: r.MRP||'', type: r.Type||'', batches: [] });
     });
     return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name));
   }
@@ -2327,7 +2348,7 @@
   }
 
   /* Add a new manual receipt row */
-  function addReceiptRow() {
+  function addReceiptRow(pre) {
     const tb = document.querySelector('#recTable tbody');
     const tr = document.createElement('tr');
     const cls = 'border border-gray-200 rounded-md px-2 py-1';
@@ -2384,22 +2405,36 @@
       if(!p.batches.length){ batchSel.value = NEW; showNewBatch(true); }
     }
 
+    function selectItem(p){
+      curProduct = p;
+      itemVal.value = curProduct.name;
+      itemLbl.textContent = curProduct.name;
+      itemLbl.classList.remove('text-slate-500'); itemLbl.classList.add('text-slate-800');
+      if(curProduct.type) tr.dataset.invType = curProduct.type; else delete tr.dataset.invType;
+      mrp.value = curProduct.mrp || '';
+      fillBatches(curProduct);
+      recalc();
+    }
+
     itemBtn.addEventListener('click', ()=>{
       const list = receiptInventoryProducts();
       const items = list.map(p=>({
         label: escapeHtml(p.name),
-        sub: `${p.division?`Division: ${escapeHtml(p.division)} | `:''}Batches: ${p.batches.length}`,
+        sub: `${p.division?`Division: ${escapeHtml(p.division)} | `:''}${p.batches.length ? `Batches: ${p.batches.length}` : 'New - no stock yet'}`,
         searchText: `${p.name} ${p.division} ${p.batches.map(b=>b.batch).join(' ')}`.toLowerCase(),
         raw: p
       }));
+      items.push({ label: '➕ New product (not in list)', sub: 'Type the product name manually', searchText: '', alwaysShow: true, raw: { __new: true } });
       openPicker('Select Item', items, (it)=>{
-        curProduct = it.raw;
-        itemVal.value = curProduct.name;
-        itemLbl.textContent = curProduct.name;
-        itemLbl.classList.remove('text-slate-500'); itemLbl.classList.add('text-slate-800');
-        mrp.value = curProduct.mrp || '';
-        fillBatches(curProduct);
-        recalc();
+        if(!it.raw.__new) return selectItem(it.raw);
+        const name = (prompt('New product name:') || '').trim().replace(/\s+/g,' ');
+        if(!name) return;
+        const dup = list.find(p => p.name.toLowerCase() === name.toLowerCase());
+        if(dup) return selectItem(dup);
+        const rt = document.querySelector('input[name="receiptType"]:checked')?.value || 'Medicine';
+        let type = rt === 'Medicine' ? 'Sample' : rt === 'Gift' ? 'Gift' : (prompt('Type for this product (as used in inventory):') || '').trim();
+        if(!type) return alert('Type is required for a new product.');
+        selectItem({ name, division: '', mrp: '', type, batches: [] });
       });
     });
 
@@ -2418,6 +2453,377 @@
       }
     });
     batchNew.addEventListener('input', ()=>{ batchVal.value = batchNew.value.trim(); });
+
+    /* Prefill (used by bulk upload) */
+    if(pre && pre.product){
+      selectItem(pre.product);
+      if(pre.invType) tr.dataset.invType = pre.invType;
+      const want = String(pre.batch || '').trim(), wantExp = pre.expiry || '';
+      const ex = want ? curProduct.batches.find(b => b.batch.toLowerCase() === want.toLowerCase()) : null;
+      if(ex && (!wantExp || buParseExpiry(ex.expiry) === wantExp)){
+        batchSel.value = ex.batch;
+        batchSel.dispatchEvent(new Event('change'));
+      } else {
+        if(ex) tr.dataset.expDiff = '1';
+        batchSel.value = NEW; showNewBatch(true);
+        batchNew.value = want; batchVal.value = want;
+        exp.value = wantExp;
+        delete exp.dataset.raw; delete exp.dataset.existing;
+      }
+      if(pre.qty) qty.value = pre.qty;
+      if(pre.mrp !== '' && pre.mrp != null) mrp.value = pre.mrp;   // MRP from file overrides master/batch MRP
+      recalc();
+    }
+    return tr;
+  }
+
+  /* ===================== BULK UPLOAD (Receipt / Supply via Excel) ===================== */
+  const BU_ROWS = 500;
+  function buStr(v){ return String(v == null ? '' : v).trim(); }
+  function buKey(h){ return String(h == null ? '' : h).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  function buYM(y, m){ y = Number(y); m = Number(m); if(y < 100) y += 2000; return (m >= 1 && m <= 12 && y >= 1990 && y <= 2100) ? `${y}-${String(m).padStart(2,'0')}` : ''; }
+  const BU_MON = { jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12 };
+
+  /* any expiry style -> "YYYY-MM" ('' when unreadable) */
+  function buParseExpiry(v){
+    if(v == null || v === '') return '';
+    if(v instanceof Date) return isNaN(v) ? '' : buYM(v.getFullYear(), v.getMonth() + 1);
+    if(typeof v === 'number'){
+      if(v >= 20000 && v < 80000){ const d = XLSX.SSF.parse_date_code(v); if(d) return buYM(d.y, d.m); }
+      return '';
+    }
+    const s = String(v).trim(); if(!s) return '';
+    let m;
+    if(/^\d{4}-\d{2}-\d{2}T/.test(s)){ const d = new Date(s); return isNaN(d) ? '' : buYM(d.getFullYear(), d.getMonth() + 1); }
+    if((m = s.match(/^(\d{4})[-\/.](\d{1,2})(?:[-\/.]\d{1,2})?$/))) return buYM(m[1], m[2]);
+    if((m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/))) return buYM(m[3], m[2]);
+    if((m = s.match(/^(\d{1,2})[-\/.](\d{4})$/))) return buYM(m[2], m[1]);
+    if((m = s.match(/^(\d{1,2})[-\/.](\d{2})$/))) return buYM(m[2], m[1]);
+    if((m = s.match(/^([A-Za-z]{3,9})[\s\-\/.,]*(\d{2}|\d{4})$/)) && BU_MON[m[1].slice(0,3).toLowerCase()]) return buYM(m[2], BU_MON[m[1].slice(0,3).toLowerCase()]);
+    if((m = s.match(/^\d{1,2}[\s\-\/.]([A-Za-z]{3,9})[\s\-\/.,]*(\d{2}|\d{4})$/)) && BU_MON[m[1].slice(0,3).toLowerCase()]) return buYM(m[2], BU_MON[m[1].slice(0,3).toLowerCase()]);
+    return normExpiryMonth(s);
+  }
+
+  function buFindHeader(grid, spec, required){
+    for(let i = 0; i < Math.min(grid.length, 10); i++){
+      const col = {};
+      (grid[i] || []).forEach((h, j) => {
+        const k = buKey(h);
+        for(const f in spec){ if(col[f] === undefined && spec[f].includes(k)) col[f] = j; }
+      });
+      if(required.every(f => col[f] !== undefined)) return { hIdx: i, col };
+    }
+    return null;
+  }
+
+  async function buReadGrid(file){
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets['Template'] || wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
+  }
+
+  /* blank cells pre-formatted as Text so Excel doesn't turn "03-2027" or "007" into dates/numbers */
+  function buTextCols(ws, cols, lastCol){
+    for(let r = 1; r <= BU_ROWS; r++) cols.forEach(c => { ws[XLSX.utils.encode_cell({ r, c })] = { t: 's', v: '', z: '@' }; });
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: BU_ROWS, c: lastCol } });
+  }
+  function buReadMe(lines){
+    const ws = XLSX.utils.aoa_to_sheet(lines.map(l => [l]));
+    ws['!cols'] = [{ wch: 110 }];
+    return ws;
+  }
+  function buKindOf(type){
+    const t = buStr(type).toLowerCase();
+    if(['sample','samples','medicine'].includes(t)) return 'Medicine';
+    if(['gift','gifts'].includes(t)) return 'Gift';
+    return 'Other';
+  }
+
+  /* ---------- RECEIPT ---------- */
+  async function downloadReceiptTemplate(){
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    if(!products.length) await loadProducts();
+    const wb = XLSX.utils.book_new();
+
+    const ws = XLSX.utils.aoa_to_sheet([['TYPE','ITEM','BATCH','EXPIRY','QTY','MRP']]);
+    ws['!cols'] = [{wch:14},{wch:42},{wch:18},{wch:14},{wch:10},{wch:10}];
+    buTextCols(ws, [0,1,2,3], 5);
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+
+    const ref = [['TYPE','ITEM','DIVISION','MRP']].concat(
+      products.filter(p => buStr(p.Product))
+        .sort((a,b) => buStr(a.Type).localeCompare(buStr(b.Type)) || buStr(a.Product).localeCompare(buStr(b.Product)))
+        .map(p => [p.Type || '', p.Product, p.Division || '', p.MRP || '']));
+    const ws2 = XLSX.utils.aoa_to_sheet(ref);
+    ws2['!cols'] = [{wch:14},{wch:42},{wch:18},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Product List (reference)');
+
+    XLSX.utils.book_append_sheet(wb, buReadMe([
+      'RECEIPT BULK UPLOAD - HOW TO FILL',
+      'Columns: TYPE | ITEM | BATCH | EXPIRY | QTY | MRP  (fill the "Template" sheet only). MRP blank = product list MRP is used.',
+      'ITEM should match the "Product List (reference)" sheet. An item not in the list is created automatically (give its TYPE and MRP).',
+      'EXPIRY format: MM-YYYY (e.g. 03-2027). Medicine/Sample receipts need BATCH and EXPIRY.',
+      'One file = one receipt type (all Sample/Medicine, or all Gift, or all Other).',
+      'Existing batch -> stock is added to it. New batch -> created as a new batch.',
+      'After upload the rows load into Receipt > Manual Entry for review. Click Save to post.'
+    ]), 'Read Me');
+
+    XLSX.writeFile(wb, 'Receipt_Bulk_Template.xlsx');
+  }
+
+  function buReceiptPlan(grid){
+    const hd = buFindHeader(grid, {
+      type:['type','itemtype'], item:['item','product','itemname','productname'],
+      batch:['batch','batchno','batchnumber'], expiry:['expiry','expirydate','exp','expdate'],
+      qty:['qty','quantity','receivedqty'], mrp:['mrp','rate','price']
+    }, ['item','qty']);
+    if(!hd) return { fatal: 'Template format not recognised. Columns must be: TYPE | ITEM | BATCH | EXPIRY | QTY | MRP' };
+    const col = hd.col;
+
+    const byTN = new Map(), byN = new Map();
+    const add = (name, type, division, mrp) => {
+      name = buStr(name); if(!name) return;
+      const e = { name, type: buStr(type), division: division || '', mrp: mrp || '' };
+      const k = normKey(type) + '||' + normKey(name);
+      if(!byTN.has(k)) byTN.set(k, e);
+      if(!byN.has(normKey(name))) byN.set(normKey(name), e);
+    };
+    products.forEach(p => add(p.Product, p.Type, p.Division, p.MRP));
+    inventory.forEach(r => add(r.Product, r.Type, r.Division, r.MRP));
+
+    const rows = [], errors = [];
+    for(let i = hd.hIdx + 1; i < grid.length; i++){
+      const r = grid[i] || [];
+      const get = k => col[k] === undefined ? '' : r[col[k]];
+      const type = buStr(get('type')), item = buStr(get('item')), batch = buStr(get('batch'));
+      const expRaw = get('expiry'), qtyRaw = buStr(get('qty'));
+      if(!type && !item && !batch && buStr(expRaw) === '' && !qtyRaw) continue;
+      const line = i + 1;
+      if(!item){ errors.push(`Row ${line}: ITEM is empty`); continue; }
+      let entry = byTN.get(normKey(type) + '||' + normKey(item)) || byN.get(normKey(item));
+      if(!entry){
+        // not in master/inventory -> auto-create as a new item (same entry reused by later rows of the same item)
+        entry = { name: item, type, division: '', mrp: '', isNew: true };
+        byN.set(normKey(item), entry);
+        if(type) byTN.set(normKey(type) + '||' + normKey(item), entry);
+      }
+      const qty = Number(qtyRaw.replace(/,/g, ''));
+      if(!(qty > 0)){ errors.push(`Row ${line}: invalid QTY "${qtyRaw}"`); continue; }
+      const expiry = buParseExpiry(expRaw);
+      if(buStr(expRaw) !== '' && !expiry){ errors.push(`Row ${line}: invalid EXPIRY "${buStr(expRaw)}" (use MM-YYYY)`); continue; }
+      const mrpRaw = buStr(get('mrp'));
+      let mrp = '';
+      if(mrpRaw !== ''){
+        mrp = Number(mrpRaw.replace(/,/g, ''));
+        if(!(mrp > 0)){ errors.push(`Row ${line}: invalid MRP "${mrpRaw}"`); continue; }
+      }
+      rows.push({ line, entry, batch, expiry, qty, mrp });
+    }
+
+    // new items with blank TYPE take the type used by the other rows (default: Sample)
+    const knownType = (rows.find(x => x.entry.type) || { entry: { type: 'Sample' } }).entry.type;
+    rows.forEach(x => { if(!x.entry.type) x.entry.type = knownType; });
+    const newItems = [...new Set(rows.filter(x => x.entry.isNew).map(x => x.entry.name))];
+
+    const kinds = [...new Set(rows.map(x => buKindOf(x.entry.type)))];
+    if(kinds.length > 1) return { fatal: `File mixes receipt types (${kinds.join(', ')}). Keep one type per file and upload separately.` };
+    const kind = kinds[0] || 'Medicine';
+
+    const good = [];
+    rows.forEach(x => {
+      if(kind === 'Medicine' && (!x.batch || !x.expiry)){ errors.push(`Row ${x.line}: BATCH and EXPIRY are mandatory for Medicine receipt`); return; }
+      good.push(x);
+    });
+    return { kind, rows: good, errors, newItems };
+  }
+
+  async function handleReceiptUpload(input){
+    const file = input.files && input.files[0];
+    input.value = '';
+    if(!file) return;
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    try{
+      if(!products.length) await loadProducts();
+      if(!inventory.length) await loadInventory();
+      const plan = buReceiptPlan(await buReadGrid(file));
+      if(plan.fatal) return alert(plan.fatal);
+      if(!plan.rows.length) return alert('No valid rows found in the file.' + (plan.errors.length ? '\n\n' + plan.errors.slice(0,10).join('\n') : ''));
+
+      const modeSel = document.getElementById('receiptMode');
+      const tb = document.querySelector('#recTable tbody');
+      const curKind = document.querySelector('input[name="receiptType"]:checked').value;
+      const modeChange = modeSel.value !== 'manual', kindChange = curKind !== plan.kind;
+      const hasData = [...tb.querySelectorAll('tr')].some(tr => modeChange ? true : !!(tr.querySelector('.r-item')?.value || tr.querySelector('.r-rec')?.value));
+      if(hasData && (modeChange || kindChange) && !confirm('Current receipt rows will be cleared and replaced by the uploaded file. Continue?')) return;
+
+      if(modeChange){ modeSel.value = 'manual'; toggleReceiptMode(); }
+      if(kindChange){
+        document.querySelector(`input[name="receiptType"][value="${plan.kind}"]`).checked = true;
+        onReceiptTypeChange(plan.kind);
+      }
+      [...tb.querySelectorAll('tr')].forEach(tr => { if(!tr.querySelector('.r-item')?.value && !num(tr.querySelector('.r-rec')?.value)) tr.remove(); });
+
+      const invList = receiptInventoryProducts();
+      let diffExp = 0;
+      plan.rows.forEach(x => {
+        const inv = invList.find(p => normKey(p.name) === normKey(x.entry.name));
+        const product = inv ? Object.assign({}, inv, { mrp: inv.mrp || x.entry.mrp })
+                            : { name: x.entry.name, division: x.entry.division, mrp: x.entry.mrp, type: x.entry.type, batches: [] };
+        const tr = addReceiptRow({ product, invType: x.entry.type, batch: x.batch, expiry: x.expiry, qty: x.qty, mrp: x.mrp });
+        if(tr.dataset.expDiff) diffExp++;
+      });
+
+      let msg = `${plan.rows.length} row(s) loaded into Receipt (${plan.kind}). Review and click Save.`;
+      const created = (plan.newItems || []).filter(n => plan.rows.some(x => x.entry.name === n));
+      if(created.length) msg += `\n\n${created.length} new item(s) auto-created (not in master): ` + created.slice(0,10).join(', ') + (created.length > 10 ? ', ...' : '');
+      if(diffExp) msg += `\n\n${diffExp} row(s): batch already exists with a different expiry - loaded as a new batch entry.`;
+      if(plan.errors.length) msg += `\n\n${plan.errors.length} row(s) skipped:\n` + plan.errors.slice(0,10).join('\n') + (plan.errors.length > 10 ? `\n...and ${plan.errors.length-10} more` : '');
+      alert(msg);
+    }catch(err){
+      console.error(err);
+      alert('Could not read the file: ' + (err && err.message ? err.message : err));
+    }
+  }
+
+  /* ---------- SUPPLY ---------- */
+  async function downloadSupplyTemplate(){
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    if(!inventory.length) await loadInventory();
+    if(!employees.length) await loadEmployees();
+    const wb = XLSX.utils.book_new();
+
+    const ws = XLSX.utils.aoa_to_sheet([['EMP ID','TYPE','ITEM','BATCH','EXPIRY','QTY','REMARKS']]);
+    ws['!cols'] = [{wch:14},{wch:14},{wch:42},{wch:18},{wch:14},{wch:10},{wch:32}];
+    buTextCols(ws, [0,1,2,3,4,6], 6);
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+
+    const ref = [['TYPE','ITEM','BATCH','EXPIRY','AVL QTY','MRP']].concat(
+      inventory.filter(r => num(r.Qty) > 0 && buStr(r.Product))
+        .sort((a,b) => buStr(a.Type).localeCompare(buStr(b.Type)) || buStr(a.Product).localeCompare(buStr(b.Product)) || buStr(a.Expiry).localeCompare(buStr(b.Expiry)))
+        .map(r => [r.Type || '', r.Product, r.Batch || '', r.Expiry || '', num(r.Qty), r.MRP || '']));
+    const ws2 = XLSX.utils.aoa_to_sheet(ref);
+    ws2['!cols'] = [{wch:14},{wch:42},{wch:18},{wch:14},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Product List (reference)');
+
+    const eref = [['EMP ID','NAME','DESIGNATION','DIVISION','HQ']].concat(
+      employees.map(e => [e['Employee Code'] || '', e['Employee Name'] || '', e['Designation'] || '', e['Division'] || '', e['HQ'] || '']));
+    const ws3 = XLSX.utils.aoa_to_sheet(eref);
+    ws3['!cols'] = [{wch:14},{wch:28},{wch:20},{wch:18},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws3, 'Employee List (reference)');
+
+    XLSX.utils.book_append_sheet(wb, buReadMe([
+      'SUPPLY BULK UPLOAD - HOW TO FILL',
+      'Columns: EMP ID | TYPE | ITEM | BATCH | EXPIRY | QTY | REMARKS  (fill the "Template" sheet only). REMARKS is optional.',
+      'Rows with the same EMP ID are saved together as ONE supply entry (one Supply ID).',
+      'ITEM / BATCH / EXPIRY must match the "Product List (reference)" sheet (current stock). EXPIRY format: MM-YYYY.',
+      'BATCH may be left blank only if the item has a single batch in stock.',
+      'EMP ID must match the "Employee List (reference)" sheet.',
+      'Supply date = the Date field on the Supply tab. If any row has an error, nothing is saved and the errors are listed.'
+    ]), 'Read Me');
+
+    XLSX.writeFile(wb, 'Supply_Bulk_Template.xlsx');
+  }
+
+  function buSupplyPlan(grid){
+    const hd = buFindHeader(grid, {
+      emp:['empid','employeeid','empcode','employeecode','empno'], type:['type','itemtype'],
+      item:['item','product','itemname','productname'], batch:['batch','batchno','batchnumber'],
+      expiry:['expiry','expirydate','exp','expdate'], qty:['qty','quantity'], remarks:['remarks','remark','note','notes']
+    }, ['emp','item','qty']);
+    if(!hd) return { fatal: 'Template format not recognised. Columns must be: EMP ID | TYPE | ITEM | BATCH | EXPIRY | QTY | REMARKS' };
+    const col = hd.col;
+
+    const empMap = new Map(); employees.forEach(e => empMap.set(normKey(e['Employee Code']), e));
+    const stock = inventory.filter(r => num(r.Qty) > 0 && buStr(r.Product));
+    const groups = new Map(), need = new Map(), errors = [];
+    let rowCount = 0;
+
+    for(let i = hd.hIdx + 1; i < grid.length; i++){
+      const r = grid[i] || [];
+      const get = k => col[k] === undefined ? '' : r[col[k]];
+      const empRaw = buStr(get('emp')), type = buStr(get('type')), item = buStr(get('item')), batch = buStr(get('batch'));
+      const expRaw = get('expiry'), qtyRaw = buStr(get('qty')), remarks = buStr(get('remarks'));
+      if(!empRaw && !type && !item && !batch && buStr(expRaw) === '' && !qtyRaw && !remarks) continue;
+      const line = i + 1;
+
+      const emp = empRaw ? empMap.get(normKey(empRaw)) : null;
+      if(!empRaw){ errors.push(`Row ${line}: EMP ID is empty`); continue; }
+      if(!emp){ errors.push(`Row ${line}: EMP ID "${empRaw}" not found`); continue; }
+      if(!item){ errors.push(`Row ${line}: ITEM is empty`); continue; }
+      const qty = Number(qtyRaw.replace(/,/g, ''));
+      if(!(qty > 0)){ errors.push(`Row ${line}: invalid QTY "${qtyRaw}"`); continue; }
+      const expiry = buParseExpiry(expRaw);
+      if(buStr(expRaw) !== '' && !expiry){ errors.push(`Row ${line}: invalid EXPIRY "${buStr(expRaw)}" (use MM-YYYY)`); continue; }
+
+      let cand = stock.filter(x => normKey(x.Product) === normKey(item));
+      if(!cand.length){ errors.push(`Row ${line}: "${item}" has no stock in inventory`); continue; }
+      if(type){
+        const c2 = cand.filter(x => normKey(x.Type) === normKey(type));
+        if(!c2.length){ errors.push(`Row ${line}: "${item}" is not in stock under TYPE "${type}"`); continue; }
+        cand = c2;
+      }
+      if(batch) cand = cand.filter(x => normKey(x.Batch) === normKey(batch));
+      if(expiry) cand = cand.filter(x => buParseExpiry(x.Expiry) === expiry);
+      if(!cand.length){ errors.push(`Row ${line}: no stock for "${item}"${batch ? ' batch ' + batch : ''}${expiry ? ' expiry ' + buStr(expRaw) : ''}`); continue; }
+      if(cand.length > 1){ errors.push(`Row ${line}: "${item}" has ${cand.length} batches in stock - give BATCH (and EXPIRY)`); continue; }
+
+      const inv = cand[0];
+      const ik = [inv.Product, inv.Batch, inv.Expiry].map(v => normKey(v)).join('|');
+      if(!need.has(ik)) need.set(ik, { inv, want: 0 });
+      need.get(ik).want += qty;
+
+      const gk = normKey(emp['Employee Code']);
+      if(!groups.has(gk)) groups.set(gk, { code: emp['Employee Code'], name: emp['Employee Name'] || '', rows: [] });
+      groups.get(gk).rows.push({ inv, qty, line, remarks });
+      rowCount++;
+    }
+
+    need.forEach(n => {
+      if(n.want > num(n.inv.Qty)) errors.push(`Not enough stock: ${n.inv.Product} (batch ${n.inv.Batch || '-'}) available ${num(n.inv.Qty)}, total requested ${n.want}`);
+    });
+    return { groups: [...groups.values()], errors, rowCount };
+  }
+
+  async function handleSupplyUpload(input){
+    const file = input.files && input.files[0];
+    input.value = '';
+    if(!file) return;
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    try{
+      if(!employees.length) await loadEmployees();
+      await loadInventory();   // fresh stock before validating
+      const plan = buSupplyPlan(await buReadGrid(file));
+      if(plan.fatal) return alert(plan.fatal);
+      if(plan.errors.length){
+        return alert(`Nothing saved. Fix ${plan.errors.length} issue(s) in the file and upload again:\n\n` + plan.errors.slice(0,15).join('\n') + (plan.errors.length > 15 ? `\n...and ${plan.errors.length-15} more` : ''));
+      }
+      if(!plan.groups.length) return alert('No valid rows found in the file.');
+
+      const date = document.getElementById('supDate').value || '';
+      const list = plan.groups.slice(0,12).map(g => `${g.code} - ${g.name}: ${g.rows.length} item(s)`).join('\n') + (plan.groups.length > 12 ? `\n...and ${plan.groups.length-12} more` : '');
+      if(!confirm(`Save ${plan.groups.length} supply entr${plan.groups.length === 1 ? 'y' : 'ies'} (${plan.rowCount} item rows)${date ? ' dated ' + date : ''}?\n\n${list}`)) return;
+
+      const results = [];
+      // one supply per employee, strictly one after another (promise chain, no loop around the awaits)
+      await plan.groups.reduce((chain, g) => chain.then(async () => {
+        const rows = g.rows.map(x => ({ item: x.inv.Product, batchNo: x.inv.Batch || '', expiry: x.inv.Expiry || '', qty: x.qty, mrp: x.inv.MRP || 0, total: to2(x.qty * num(x.inv.MRP)), remarks: x.remarks || '' }));
+        let res;
+        try{ res = await post('saveSupply', { date, supTo: g.code, rows }); }
+        catch(e){ res = { success: false, message: String(e && e.message || e) }; }
+        results.push({ g, res });
+      }), Promise.resolve());
+      await loadInventory();
+
+      const ok = results.filter(x => x.res && x.res.success), bad = results.filter(x => !(x.res && x.res.success));
+      let msg = `${ok.length} of ${results.length} supply entr${results.length === 1 ? 'y' : 'ies'} saved.`;
+      if(ok.length) msg += '\n\n' + ok.slice(0,20).map(x => `✔ ${x.g.code} - ${x.g.name}: ${x.res.message || 'Saved'}`).join('\n') + (ok.length > 20 ? `\n...and ${ok.length-20} more` : '');
+      if(bad.length) msg += '\n\nFAILED (not saved):\n' + bad.map(x => `✖ ${x.g.code} - ${x.g.name}: ${(x.res && x.res.message) || 'Unknown error'}`).join('\n');
+      alert(msg);
+    }catch(err){
+      console.error(err);
+      alert('Could not process the file: ' + (err && err.message ? err.message : err));
+    }
   }
   </script>
 
