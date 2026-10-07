@@ -61,6 +61,7 @@
             <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addRequestRow()">+ Add</button>
             <button id="saveRequestBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveRequest()">Save</button>
             <button id="sendMailBtn" class="px-3 py-2 rounded-md bg-emerald-700 text-white font-bold hidden" onclick="sendRequestMailUI()">Send Mail</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="openRequestViewer()">🖨 Saved Requests</button>
           </div>
         </div>
 
@@ -105,6 +106,44 @@
             </thead>
             <tbody class="bg-white"></tbody>
           </table>
+        </div>
+
+        <!-- Modal: saved requests (view status / print) -->
+        <div id="requestViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div class="bg-white rounded-xl shadow-xl w-11/12 md:w-5/6 max-h-[90vh] overflow-auto p-6">
+            <div class="flex justify-between items-center mb-3">
+              <h2 class="text-xl font-bold text-slate-700">Saved Requests</h2>
+              <button onclick="closeRequestViewer()" class="text-red-500 text-lg font-bold">✕</button>
+            </div>
+            <div class="flex flex-col md:flex-row gap-2 mb-2">
+              <input id="requestSearch" onkeyup="filterRequestList()" placeholder="Search Request ID / Employee / Team / Item / Date"
+                class="border rounded-md px-3 py-2 w-full" />
+              <select id="requestStatusFilter" onchange="filterRequestList()" class="border rounded-md px-3 py-2">
+                <option value="">All</option>
+                <option value="Open">Open (not received)</option>
+                <option value="Closed">Closed (received)</option>
+              </select>
+              <button class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold whitespace-nowrap" onclick="printRequestList()">🖨 Print List</button>
+            </div>
+            <div id="requestSummary" class="text-xs text-slate-500 mb-2"></div>
+            <div class="overflow-x-auto">
+            <table id="requestListTable" class="w-full border-collapse text-sm">
+              <thead class="bg-slate-100">
+                <tr>
+                  <th class="border px-2 py-1">Request ID</th>
+                  <th class="border px-2 py-1">Date</th>
+                  <th class="border px-2 py-1">Request For</th>
+                  <th class="border px-2 py-1">Team</th>
+                  <th class="border px-2 py-1">Items</th>
+                  <th class="border px-2 py-1 text-right">Value</th>
+                  <th class="border px-2 py-1 text-center">Status</th>
+                  <th class="border px-2 py-1 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1113,6 +1152,237 @@
     } else {
       alert('Save failed: '+(res.message||''));
     }
+  }
+
+  /* ===================== SAVED REQUESTS: STATUS + PRINT ===================== */
+  // Status rule (same as the Receipt tab's "pending requests"):
+  //   Closed = at least one receipt has been saved against the Request ID
+  //   Open   = no receipt yet
+  let requestGroups = {};
+  let requestStatusKnown = true;
+
+  function printHtml(html){
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(()=>{
+      try{ iframe.contentWindow.focus(); iframe.contentWindow.print(); }catch(e){ alert('Print failed: ' + e); }
+      setTimeout(()=> iframe.remove(), 60000);
+    }, 500);
+  }
+
+  function statusBadge(st){
+    if(st === 'Closed') return '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">CLOSED</span>';
+    if(st === 'Open') return '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">OPEN</span>';
+    return '<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500">UNKNOWN</span>';
+  }
+
+  function openRequestViewer(){
+    document.getElementById('requestViewerModal').classList.remove('hidden');
+    loadSavedRequestList();
+  }
+  function closeRequestViewer(){
+    document.getElementById('requestViewerModal').classList.add('hidden');
+  }
+
+  async function loadSavedRequestList(){
+    const tbody = document.querySelector('#requestListTable tbody');
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center p-2 text-slate-500">Loading...</td></tr>`;
+    document.getElementById('requestSearch').value = '';
+    document.getElementById('requestStatusFilter').value = '';
+    document.getElementById('requestSummary').textContent = '';
+
+    const [rq, rc] = await Promise.all([ post('getRequestReport', {}), post('getReceiptReport', {}) ]);
+    if(!rq || !rq.success){
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center p-2 text-red-600">${escapeHtml((rq && rq.message) || 'Could not load requests')}</td></tr>`;
+      return;
+    }
+    if(!(rq.rows || []).length){
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center p-2 text-slate-500">No saved requests</td></tr>`;
+      return;
+    }
+
+    // receipts keyed by Request ID
+    requestStatusKnown = !!(rc && rc.success);
+    const recBy = {};
+    if(requestStatusKnown){
+      (rc.rows || []).forEach(x=>{
+        const id = String(x.reqId || '').trim();
+        if(!id) return;
+        if(!recBy[id]) recBy[id] = { ids: [], date: '' };
+        const rid = String(x.receiptId || '').trim();
+        if(rid && !recBy[id].ids.includes(rid)) recBy[id].ids.push(rid);
+        if(x.date) recBy[id].date = x.date;
+      });
+    }
+
+    requestGroups = {};
+    const order = [];
+    rq.rows.forEach(x=>{
+      const id = String(x.reqId || '').trim();
+      if(!id) return;
+      if(!requestGroups[id]){
+        requestGroups[id] = { reqId: id, date: x.date, requestFor: x.requestFor, team: x.team, purpose: x.purpose, remarks: x.remarksOverall, rows: [] };
+        order.push(id);
+      }
+      requestGroups[id].rows.push({ item: x.item, qty: num(x.qty), mrp: num(x.mrp), total: num(x.total) || num(x.qty) * num(x.mrp), remarks: x.remarks });
+    });
+    order.forEach(id=>{
+      const g = requestGroups[id];
+      const r = recBy[id];
+      g.status = !requestStatusKnown ? 'Unknown' : (r ? 'Closed' : 'Open');
+      g.receiptIds = r ? r.ids : [];
+      g.receivedOn = r ? r.date : '';
+      g.value = g.rows.reduce((a,b)=> a + num(b.total), 0);
+    });
+
+    tbody.innerHTML = '';
+    order.reverse().forEach(id=>{
+      const g = requestGroups[id];
+      const tr = document.createElement('tr');
+      tr.dataset.id = id;
+      tr.dataset.status = g.status;
+      tr.dataset.search = [id, g.date, g.requestFor, g.team, g.purpose, g.rows.map(x=>x.item).join(' ')].join(' ').toLowerCase();
+      tr.innerHTML = `
+        <td class="border px-2 py-1">${escapeHtml(id)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.date)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.requestFor)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.team)}</td>
+        <td class="border px-2 py-1">${g.rows.length}</td>
+        <td class="border px-2 py-1 text-right">${to2(g.value)}</td>
+        <td class="border px-2 py-1 text-center" title="${g.status === 'Closed' ? 'Received on ' + escapeHtml(g.receivedOn) + ' | ' + escapeHtml(g.receiptIds.join(', ')) : ''}">${statusBadge(g.status)}</td>
+        <td class="border px-2 py-1 text-center"><button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm" onclick="printSavedRequest('${escapeHtml(id)}')">Print</button></td>`;
+      tbody.appendChild(tr);
+    });
+    if(!requestStatusKnown){
+      document.getElementById('requestSummary').textContent = 'Receipt data could not be loaded, so Open/Closed status is unknown. Close and reopen to retry.';
+    }
+    filterRequestList();
+  }
+
+  function filterRequestList(){
+    const val = (document.getElementById('requestSearch').value || '').toLowerCase();
+    const st = document.getElementById('requestStatusFilter').value;
+    let shown = 0, open = 0, closed = 0;
+    document.querySelectorAll('#requestListTable tbody tr').forEach(tr=>{
+      if(!tr.dataset.id) return;
+      const ok = (!val || (tr.dataset.search || '').includes(val)) && (!st || tr.dataset.status === st);
+      tr.style.display = ok ? '' : 'none';
+      if(ok){ shown++; if(tr.dataset.status === 'Open') open++; else if(tr.dataset.status === 'Closed') closed++; }
+    });
+    if(requestStatusKnown){
+      document.getElementById('requestSummary').textContent = `Showing ${shown} request(s) — Open: ${open} | Closed: ${closed}`;
+    }
+  }
+
+  function buildRequestHtml(g){
+    const esc = escapeHtml;
+    let totalQty = 0;
+    const rowsHtml = g.rows.map((r,i)=>{
+      totalQty += num(r.qty);
+      return `<tr>
+        <td style="text-align:center">${i+1}</td>
+        <td>${esc(r.item)}</td>
+        <td style="text-align:right">${esc(r.qty)}</td>
+        <td style="text-align:right">${to2(r.mrp)}</td>
+        <td style="text-align:right">${to2(r.total)}</td>
+        <td>${esc(r.remarks || '')}</td>
+      </tr>`;
+    }).join('');
+
+    const closed = g.status === 'Closed';
+    const stColor = closed ? '#047857' : (g.status === 'Open' ? '#b45309' : '#64748b');
+    const stText = closed ? 'CLOSED' : (g.status === 'Open' ? 'OPEN' : 'STATUS UNKNOWN');
+    const stSub = closed
+      ? `Received${g.receivedOn ? ' on ' + esc(g.receivedOn) : ''}${g.receiptIds && g.receiptIds.length ? ' | Receipt: ' + esc(g.receiptIds.join(', ')) : ''}`
+      : (g.status === 'Open' ? 'Pending receipt' : '');
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Request ${esc(g.reqId)}</title>
+    <style>
+      @page { size: A4; margin: 14mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+      .hdr { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #059669; padding-bottom:10px; margin-bottom:14px; }
+      .co { font-size:14pt; font-weight:bold; color:#059669; }
+      .sm { font-size:8pt; color:#555; }
+      h1 { font-size:20pt; margin:0; color:#333; text-align:right; }
+      .stamp { display:inline-block; margin-top:6px; padding:3px 12px; border:2px solid ${stColor}; color:${stColor}; font-weight:bold; font-size:12pt; border-radius:4px; letter-spacing:1px; }
+      .stsub { font-size:8pt; color:${stColor}; margin-top:3px; }
+      .meta { display:flex; justify-content:space-between; gap:20px; margin-bottom:12px; font-size:10pt; line-height:1.5; }
+      .meta b { color:#555; }
+      table { width:100%; border-collapse:collapse; }
+      th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:6px; font-size:9pt; text-align:left; }
+      td { border:1px solid #cbd5e1; padding:6px; font-size:9pt; }
+      tfoot td { font-weight:bold; background:#f0fdf4; }
+      .sign { display:flex; justify-content:space-between; margin-top:70px; font-size:9pt; }
+      .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
+      .foot { margin-top:24px; text-align:center; font-size:8pt; color:#777; }
+    </style></head><body>
+      <div class="hdr">
+        <div>
+          <div class="co">PRISTINE PEARL PHARMA PVT LTD</div>
+          <div class="sm">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+          <div class="sm">Perur Village, Coimbatore - 641010</div>
+          <div class="sm">samples.pearl@gmail.com | +91 8838001387</div>
+        </div>
+        <div style="text-align:right">
+          <h1>SAMPLE REQUEST</h1>
+          <div class="stamp">${stText}</div>
+          <div class="stsub">${stSub}</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div><b>Request ID:</b> ${esc(g.reqId)}<br><b>Date:</b> ${esc(g.date || '')}<br><b>Request For:</b> ${esc(g.requestFor || '-')}<br><b>Team:</b> ${esc(g.team || '-')}</div>
+        <div style="text-align:right">${g.purpose ? `<b>Purpose:</b> ${esc(g.purpose)}<br>` : ''}${g.remarks ? `<b>Remarks:</b> ${esc(g.remarks)}` : ''}</div>
+      </div>
+      <table>
+        <thead><tr><th style="width:30px;text-align:center">#</th><th>Item</th><th style="text-align:right">Qty</th><th style="text-align:right">MRP</th><th style="text-align:right">Total</th><th>Remarks</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr><td colspan="2" style="text-align:right">Total</td><td style="text-align:right">${esc(totalQty)}</td><td></td><td style="text-align:right">₹${to2(g.value)}</td><td></td></tr></tfoot>
+      </table>
+      <div class="sign"><div>Requested By</div><div>Approved By</div><div>Authorised Signatory</div></div>
+      <div class="foot">This is a system generated document.</div>
+    </body></html>`;
+  }
+
+  function printSavedRequest(id){
+    const g = requestGroups[id];
+    if(!g) return alert('Request not found.');
+    printHtml(buildRequestHtml(g));
+  }
+
+  // Prints the list exactly as currently filtered (search + status)
+  function printRequestList(){
+    const rows = [...document.querySelectorAll('#requestListTable tbody tr')]
+      .filter(tr => tr.dataset.id && tr.style.display !== 'none')
+      .map(tr => requestGroups[tr.dataset.id]).filter(Boolean);
+    if(!rows.length) return alert('No requests to print.');
+    const esc = escapeHtml;
+    const st = document.getElementById('requestStatusFilter').value;
+    const total = rows.reduce((a,g)=> a + num(g.value), 0);
+    const body = rows.map((g,i)=>`<tr>
+      <td style="text-align:center">${i+1}</td><td>${esc(g.reqId)}</td><td>${esc(g.date)}</td><td>${esc(g.requestFor)}</td><td>${esc(g.team)}</td>
+      <td style="text-align:center">${g.rows.length}</td><td style="text-align:right">${to2(g.value)}</td>
+      <td style="text-align:center;font-weight:bold;color:${g.status==='Closed'?'#047857':(g.status==='Open'?'#b45309':'#64748b')}">${g.status.toUpperCase()}</td>
+      <td>${g.status==='Closed' ? esc(g.receivedOn || '') : ''}</td></tr>`).join('');
+    printHtml(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Requests List</title>
+    <style>
+      @page { size: A4 landscape; margin: 12mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+      h2 { margin:0 0 4px; color:#059669; } .sm { font-size:9pt; color:#555; margin-bottom:10px; }
+      table { width:100%; border-collapse:collapse; }
+      th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:5px; font-size:9pt; text-align:left; }
+      td { border:1px solid #cbd5e1; padding:5px; font-size:9pt; }
+      tfoot td { font-weight:bold; background:#f0fdf4; }
+    </style></head><body>
+      <h2>PRISTINE PEARL PHARMA PVT LTD — Sample Requests</h2>
+      <div class="sm">Filter: ${st ? esc(st) : 'All'} | ${rows.length} request(s) | Printed: ${esc(formatDateForPrint(new Date().toISOString()))}</div>
+      <table>
+        <thead><tr><th>#</th><th>Request ID</th><th>Date</th><th>Request For</th><th>Team</th><th style="text-align:center">Items</th><th style="text-align:right">Value</th><th style="text-align:center">Status</th><th>Received On</th></tr></thead>
+        <tbody>${body}</tbody>
+        <tfoot><tr><td colspan="6" style="text-align:right">Total</td><td style="text-align:right">₹${to2(total)}</td><td colspan="2"></td></tr></tfoot>
+      </table></body></html>`);
   }
 
   /* ===================== RECEIPT PRINT (GRN) ===================== */
