@@ -34,6 +34,7 @@
         <button data-tab="request" class="tab px-3 py-2 rounded-md font-semibold text-emerald-600 hover:bg-emerald-50" onclick="switchTab(event)">Request</button>
         <button data-tab="receipt" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Receipt</button>
         <button data-tab="supply" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Supply</button>
+        <button data-tab="sreturn" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Return</button>
         <button data-tab="live" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Live Inventory</button>
         <button data-tab="po" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">PO Generation</button>
         <button onclick="window.location.href='Invoice.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Sup-Inv & DC</button>
@@ -322,6 +323,122 @@
         </div>
       </section>
 
+      <section id="sreturn" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Stock Return to Supplier</h2>
+            <p class="text-sm text-slate-500">Pick stock from inventory, choose the supplier &amp; reason. Saving deducts the stock and lets you print the Stock Return Note.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="text-sm text-slate-500">Return Date</label>
+            <input id="srDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addSrRow()">+ Add</button>
+            <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="clearSr()">Clear</button>
+            <button id="srSaveBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveStockReturn()">Save Return</button>
+            <button id="srPrintBtn" class="px-3 py-2 rounded-md bg-emerald-700 text-white font-bold hidden" onclick="printLastSr()">🖨 Print Return Note</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="openSrViewer()">📄 Saved Returns</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-semibold mb-1 required-star">Supplier</label>
+            <select id="srSupplier" class="border border-gray-200 rounded-md px-2 py-2 w-full"><option value="">Select Supplier</option></select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Reference (Invoice / GRN / DC No) — optional</label>
+            <input id="srRef" type="text" placeholder="e.g. INV-1234" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1 required-star">Reason for Return</label>
+            <select id="srReason" class="border border-gray-200 rounded-md px-2 py-2 w-full">
+              <option value="">-- Select Reason --</option>
+              <option>Expired / Near expiry</option>
+              <option>Damaged</option>
+              <option>Quality issue</option>
+              <option>Wrong item supplied</option>
+              <option>Excess stock</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Inventory Type (filter)</label>
+            <select id="srType" onchange="onSrTypeChange()" class="border border-gray-200 rounded-md px-2 py-2 w-full"><option value="">(All types)</option></select>
+          </div>
+          <div class="flex gap-3 items-end">
+            <div>
+              <label class="block text-sm font-semibold mb-1">GST %</label>
+              <input id="srGst" type="number" value="18" min="0" step="0.01" class="border border-gray-200 rounded-md px-2 py-2 w-24" oninput="srRecalc()" />
+            </div>
+            <div class="pb-2 text-sm flex gap-3">
+              <label><input type="radio" name="srTax" value="none" checked onchange="srRecalc()" /> No GST</label>
+              <label><input type="radio" name="srTax" value="cgst" onchange="srRecalc()" /> CGST + SGST</label>
+              <label><input type="radio" name="srTax" value="igst" onchange="srRecalc()" /> IGST</label>
+            </div>
+          </div>
+          <div class="md:col-span-3">
+            <label class="block text-sm font-semibold mb-1">Remarks — optional</label>
+            <input id="srRemarks" type="text" placeholder="Remarks (optional)" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+          <table id="srTable" class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="p-2 text-left font-semibold text-slate-600">Item</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Batch</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Expiry</th>
+                <th class="p-2 text-left font-semibold text-slate-600">In Stock</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Return Qty</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Rate</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Amount</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Remarks</th>
+                <th class="p-2"></th>
+              </tr>
+            </thead>
+            <tbody class="bg-white"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <div class="w-full max-w-md border border-gray-100 rounded-md p-3 bg-gray-50">
+            <div class="flex justify-between text-sm text-slate-500"><div>Sub Total</div><div id="srSubtotal">0.00</div></div>
+            <div id="srTaxRows" class="mt-2"></div>
+            <div class="flex justify-between text-sm text-slate-500 mt-2"><div>Round Off</div><div id="srRound">0.00</div></div>
+            <hr class="my-2" />
+            <div class="flex justify-between font-bold"><div>Total ₹</div><div id="srTotal">0.00</div></div>
+          </div>
+        </div>
+
+        <!-- Modal: saved stock returns -->
+        <div id="srViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div class="bg-white rounded-xl shadow-xl w-11/12 md:w-5/6 max-h-[90vh] overflow-auto p-6">
+            <div class="flex justify-between items-center mb-3">
+              <h2 class="text-xl font-bold text-slate-700">Saved Stock Returns</h2>
+              <button onclick="closeSrViewer()" class="text-red-500 text-lg font-bold">✕</button>
+            </div>
+            <input id="srSearch" onkeyup="filterSrList()" placeholder="Search Return ID / Supplier / Item / Reason / Date" class="border rounded-md px-3 py-2 w-full mb-3" />
+            <div class="overflow-x-auto">
+              <table id="srListTable" class="w-full border-collapse text-sm">
+                <thead class="bg-slate-100">
+                  <tr>
+                    <th class="border px-2 py-1">Return ID</th>
+                    <th class="border px-2 py-1">Date</th>
+                    <th class="border px-2 py-1">Supplier</th>
+                    <th class="border px-2 py-1">Reason</th>
+                    <th class="border px-2 py-1">Items</th>
+                    <th class="border px-2 py-1 text-right">Total</th>
+                    <th class="border px-2 py-1 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="live" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
@@ -489,6 +606,345 @@
     </div>
   </main>
 
+  <!-- ===================== STOCK RETURN (to supplier) ===================== -->
+  <script>
+  let srLast = null;
+  let srGroups = {};
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('srDate').value = new Date().toISOString().slice(0,10);
+    addSrRow();
+    srRecalc();
+  });
+
+  function fillSrSuppliers(){
+    const sel = document.getElementById('srSupplier');
+    if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">Select Supplier</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join('');
+    sel.value = cur;
+  }
+
+  function onSrTypeChange(){
+    // item list depends on the type filter -> restart rows
+    document.querySelector('#srTable tbody').innerHTML = '';
+    addSrRow();
+    srRecalc();
+  }
+
+  function srStockList(){
+    const type = document.getElementById('srType').value;
+    return inventory
+      .filter(r => num(r.Qty) > 0 && (type ? r.Type === type : true) && (r.Product||'').toString().trim())
+      .sort((a,b)=> String(a.Product).localeCompare(String(b.Product)));
+  }
+
+  function addSrRow(){
+    const tb = document.querySelector('#srTable tbody');
+    const tr = document.createElement('tr');
+    const cls = 'border border-gray-200 rounded-md px-2 py-1';
+    tr.innerHTML = `<td class="p-2">
+        <button type="button" class="sr-btn ${cls} w-full min-w-[260px] text-left bg-white flex items-center justify-between">
+          <span class="sr-label text-slate-500">-- Select Product --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button>
+        <input type="hidden" class="sr-prod" value="" />
+      </td>
+      <td class="p-2"><input class="sr-batch ${cls}" readonly></td>
+      <td class="p-2"><input class="sr-exp ${cls}" readonly></td>
+      <td class="p-2"><input class="sr-avl ${cls} w-24" readonly></td>
+      <td class="p-2"><input class="sr-qty ${cls} w-24" type="number" min="0"></td>
+      <td class="p-2"><input class="sr-rate ${cls} w-28" type="number" min="0" step="0.01"></td>
+      <td class="p-2"><input class="sr-amt ${cls} w-28" readonly></td>
+      <td class="p-2"><input class="sr-rem ${cls}" placeholder="Remarks"></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove();srRecalc()">✕</button></td>`;
+    tb.appendChild(tr);
+
+    const btn = tr.querySelector('.sr-btn'), label = tr.querySelector('.sr-label'), hidden = tr.querySelector('.sr-prod');
+    const qty = tr.querySelector('.sr-qty'), rate = tr.querySelector('.sr-rate');
+
+    function recalcRow(){
+      tr.querySelector('.sr-amt').value = to2(num(qty.value) * num(rate.value));
+      srRecalc();
+    }
+
+    btn.addEventListener('click', ()=>{
+      const items = srStockList().map(r => ({
+        label: escapeHtml(r.Product),
+        sub: `Batch: ${escapeHtml(r.Batch||'-')} | Exp: ${escapeHtml(r.Expiry||'-')} | Avl Qty: ${escapeHtml(String(r.Qty||'0'))}`,
+        searchText: `${r.Product||''} ${r.Batch||''} ${r.Type||''}`.toLowerCase(),
+        raw: r
+      }));
+      openPicker('Select Stock to Return', items, (item)=>{
+        const o = item.raw;
+        hidden.value = encodeURIComponent(JSON.stringify(o));
+        label.textContent = o.Product;
+        label.classList.remove('text-slate-500'); label.classList.add('text-slate-800');
+        tr.querySelector('.sr-batch').value = o.Batch || '';
+        tr.querySelector('.sr-exp').value = o.Expiry || '';
+        tr.querySelector('.sr-avl').value = num(o.Qty);
+        rate.value = num(o.MRP) || '';
+        if(num(qty.value) > num(o.Qty)) qty.value = num(o.Qty);
+        recalcRow();
+      });
+    });
+
+    qty.addEventListener('input', ()=>{
+      if(hidden.value){
+        try{
+          const avl = num(JSON.parse(decodeURIComponent(hidden.value)).Qty);
+          if(num(qty.value) > avl){ qty.value = avl; alert('Not enough stock available — quantity reduced to available stock.'); }
+        }catch(e){}
+      }
+      recalcRow();
+    });
+    rate.addEventListener('input', recalcRow);
+  }
+
+  function srTotals(rows, gst, taxType){
+    const sub = Math.round((rows.reduce((s,r)=> s + num(r.amount), 0) + Number.EPSILON) * 100) / 100;
+    const noTax = taxType === 'none';
+    const tax = noTax ? 0 : sub * num(gst) / 100;
+    const isCgst = taxType === 'cgst';
+    const gross = sub + tax;
+    const rounded = Math.round(gross);
+    return { sub, cgst: isCgst ? tax/2 : 0, sgst: isCgst ? tax/2 : 0, igst: (!isCgst && !noTax) ? tax : 0, round: rounded - gross, total: rounded, isCgst, noTax };
+  }
+
+  function srRecalc(){
+    const rows = [...document.querySelectorAll('#srTable tbody tr')].map(tr => ({ amount: num(tr.querySelector('.sr-amt')?.value) }));
+    const gst = num(document.getElementById('srGst').value);
+    const taxType = document.querySelector('input[name="srTax"]:checked').value;
+    const t = srTotals(rows, gst, taxType);
+    document.getElementById('srGst').disabled = t.noTax;
+    document.getElementById('srSubtotal').textContent = to2(t.sub);
+    document.getElementById('srTaxRows').innerHTML = t.noTax ? '' : t.isCgst
+      ? `<div class="flex justify-between text-sm text-slate-500"><div>CGST (${gst/2}%)</div><div>${to2(t.cgst)}</div></div>
+         <div class="flex justify-between text-sm text-slate-500 mt-1"><div>SGST (${gst/2}%)</div><div>${to2(t.sgst)}</div></div>`
+      : `<div class="flex justify-between text-sm text-slate-500"><div>IGST (${gst}%)</div><div>${to2(t.igst)}</div></div>`;
+    document.getElementById('srRound').textContent = to2(t.round);
+    document.getElementById('srTotal').textContent = to2(t.total);
+  }
+
+  function clearSr(){
+    document.querySelector('#srTable tbody').innerHTML = '';
+    addSrRow();
+    document.getElementById('srSupplier').value = '';
+    document.getElementById('srRef').value = '';
+    document.getElementById('srReason').value = '';
+    document.getElementById('srRemarks').value = '';
+    document.getElementById('srGst').value = '18';
+    document.querySelector('input[name="srTax"][value="none"]').checked = true;
+    document.getElementById('srDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('srSaveBtn').classList.remove('hidden');
+    document.getElementById('srPrintBtn').classList.add('hidden');
+    srLast = null;
+    srRecalc();
+  }
+
+  async function saveStockReturn(){
+    const si = document.getElementById('srSupplier').value;
+    if(si === '') return alert('Select a supplier.');
+    const supplier = vendors[si];
+    const reason = document.getElementById('srReason').value;
+    if(!reason) return alert('Select a reason for the return.');
+
+    const rows = [];
+    const need = {};
+    [...document.querySelectorAll('#srTable tbody tr')].forEach(tr => {
+      const h = tr.querySelector('.sr-prod'); if(!h || !h.value) return;
+      const o = JSON.parse(decodeURIComponent(h.value));
+      const q = num(tr.querySelector('.sr-qty').value); if(q <= 0) return;
+      const rate = num(tr.querySelector('.sr-rate').value);
+      rows.push({ item: o.Product, type: o.Type || '', batchNo: o.Batch || '', expiry: o.Expiry || '', qty: q, rate, amount: Math.round(q*rate*100)/100, remarks: (tr.querySelector('.sr-rem').value || '').trim() });
+      const k = [o.Product, o.Batch, o.Expiry].map(v => String(v == null ? '' : v).trim().toLowerCase()).join('|');
+      if(!need[k]) need[k] = { name: o.Product, batch: o.Batch || '-', have: num(o.Qty), want: 0 };
+      need[k].want += q;
+    });
+    if(!rows.length) return alert('Add at least one item with a return quantity.');
+    const short = Object.values(need).filter(n => n.want > n.have);
+    if(short.length) return alert('Not enough stock:\n' + short.map(n => `${n.name} (batch ${n.batch}): available ${n.have}, returning ${n.want}`).join('\n'));
+
+    const payload = {
+      date: document.getElementById('srDate').value || '',
+      supplier, reason,
+      reference: document.getElementById('srRef').value.trim(),
+      remarks: document.getElementById('srRemarks').value.trim(),
+      taxType: document.querySelector('input[name="srTax"]:checked').value,
+      rows
+    };
+    payload.gst = payload.taxType === 'none' ? 0 : num(document.getElementById('srGst').value);
+
+    const res = await post('saveStockReturn', payload);
+    if(res && res.success){
+      const id = ((res.message || '').match(/ID:\s*([A-Za-z0-9-]+)/) || [])[1] || '';
+      srLast = { returnId: id, date: payload.date, supplier: {
+          name: supplier['Supplier Name'] || '', address: supplier['Address'] || '',
+          gstin: supplier['GSTIN / UIN'] || supplier['GSTIN'] || '', state: supplier['State'] || '', code: supplier['Code'] || ''
+        }, reference: payload.reference, reason, remarks: payload.remarks, gst: payload.gst, taxType: payload.taxType, rows };
+      document.getElementById('srSaveBtn').classList.add('hidden');
+      document.getElementById('srPrintBtn').classList.remove('hidden');
+      alert(res.message || 'Saved');
+      await loadInventory();
+      if(confirm('Stock return saved. Print the Stock Return Note now?')) printLastSr();
+    } else {
+      alert('Save failed: ' + ((res && res.message) || '')); // rows are kept so nothing needs re-entering
+    }
+  }
+
+  function printLastSr(){
+    if(!srLast) return alert('Save the return first.');
+    printHtml(buildSrHtml(srLast));
+  }
+
+  function buildSrHtml(d){
+    const esc = escapeHtml;
+    const t = srTotals(d.rows, d.gst, d.taxType);
+    let totalQty = 0;
+    const rowsHtml = d.rows.map((r,i)=>{
+      totalQty += num(r.qty);
+      return `<tr>
+        <td style="text-align:center">${i+1}</td>
+        <td>${esc(r.item)}</td>
+        <td>${esc(r.batchNo || '-')}</td>
+        <td style="text-align:center">${esc(fmtExpiryPrint(r.expiry) || '-')}</td>
+        <td style="text-align:right">${esc(r.qty)}</td>
+        <td style="text-align:right">${to2(r.rate)}</td>
+        <td style="text-align:right">${to2(r.amount)}</td>
+        <td>${esc(r.remarks || '')}</td>
+      </tr>`;
+    }).join('');
+    const s = d.supplier || {};
+    const taxRows = t.noTax ? '' : t.isCgst
+      ? `<tr><td>CGST (${d.gst/2}%)</td><td style="text-align:right">${to2(t.cgst)}</td></tr><tr><td>SGST (${d.gst/2}%)</td><td style="text-align:right">${to2(t.sgst)}</td></tr>`
+      : `<tr><td>IGST (${d.gst}%)</td><td style="text-align:right">${to2(t.igst)}</td></tr>`;
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Stock Return Note ${esc(d.returnId)}</title>
+    <style>
+      @page { size: A4; margin: 14mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+      .hdr { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #059669; padding-bottom:10px; margin-bottom:14px; }
+      .co { font-size:14pt; font-weight:bold; color:#059669; }
+      .sm { font-size:8pt; color:#555; }
+      h1 { font-size:18pt; margin:0; color:#333; text-align:right; }
+      .parties { display:flex; justify-content:space-between; gap:16px; background:#f3f4f6; border:1px solid #ddd; border-radius:4px; padding:10px; margin-bottom:12px; }
+      .parties > div { width:48%; font-size:9pt; line-height:1.5; }
+      .lbl { font-weight:bold; text-transform:uppercase; color:#555; font-size:8pt; margin-bottom:3px; }
+      .meta { margin-bottom:10px; font-size:9.5pt; line-height:1.6; }
+      .meta b { color:#555; }
+      table.items { width:100%; border-collapse:collapse; }
+      table.items th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:6px; font-size:9pt; text-align:left; }
+      table.items td { border:1px solid #cbd5e1; padding:6px; font-size:9pt; }
+      table.items tfoot td { font-weight:bold; background:#f0fdf4; }
+      table.tot { width:38%; margin-left:auto; margin-top:12px; border-collapse:collapse; font-size:9.5pt; }
+      table.tot td { padding:4px 6px; border-bottom:1px solid #e5e7eb; }
+      table.tot tr.g td { font-weight:bold; font-size:11pt; color:#059669; border-top:2px solid #059669; border-bottom:none; }
+      .words { margin-top:12px; border:1px solid #ddd; background:#fafafa; border-radius:4px; padding:8px; font-size:9.5pt; }
+      .sign { display:flex; justify-content:space-between; margin-top:70px; font-size:9pt; }
+      .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
+      .foot { margin-top:24px; text-align:center; font-size:8pt; color:#777; }
+    </style></head><body>
+      <div class="hdr">
+        <div>
+          <div class="co">PRISTINE PEARL PHARMA PVT LTD</div>
+          <div class="sm">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+          <div class="sm">Perur Village, Coimbatore - 641010</div>
+          <div class="sm">samples.pearl@gmail.com | +91 8838001387</div>
+          <div class="sm">GSTIN/UIN: 33AAGCB2183C1Z6 | State: Tamil Nadu (33)</div>
+        </div>
+        <div>
+          <h1>STOCK RETURN NOTE</h1>
+          <div style="text-align:right;font-size:9pt;margin-top:4px"><b>Return No:</b> <span style="color:#059669;font-weight:bold">${esc(d.returnId || '-')}</span><br><b>Date:</b> ${esc(formatDateForPrint(d.date || ''))}</div>
+        </div>
+      </div>
+      <div class="parties">
+        <div><div class="lbl">Returned To (Supplier)</div><b>${esc(s.name)}</b><br>${esc(s.address)}<br>GSTIN/UIN: ${esc(s.gstin)}<br>State: ${esc(s.state)}${s.code ? ' (' + esc(s.code) + ')' : ''}</div>
+        <div><div class="lbl">Returned From</div><b>PRISTINE PEARL PHARMA PVT LTD</b><br>Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road, Perur Village, Coimbatore - 641010<br>GSTIN: 33AAGCB2183C1Z6</div>
+      </div>
+      <div class="meta">
+        <b>Reason for Return:</b> ${esc(d.reason)}${d.reference ? `<br><b>Reference:</b> ${esc(d.reference)}` : ''}${d.remarks ? `<br><b>Remarks:</b> ${esc(d.remarks)}` : ''}
+      </div>
+      <table class="items">
+        <thead><tr><th style="width:30px;text-align:center">#</th><th>Description of Goods</th><th>Batch No</th><th style="text-align:center">Expiry</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate (₹)</th><th style="text-align:right">Amount (₹)</th><th>Remarks</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right">Total</td><td style="text-align:right">${esc(totalQty)}</td><td></td><td style="text-align:right">${to2(t.sub)}</td><td></td></tr></tfoot>
+      </table>
+      <table class="tot">
+        <tr><td>Sub Total</td><td style="text-align:right">₹ ${to2(t.sub)}</td></tr>
+        ${taxRows}
+        <tr><td>Round Off</td><td style="text-align:right">₹ ${to2(t.round)}</td></tr>
+        <tr class="g"><td>TOTAL VALUE</td><td style="text-align:right">₹ ${to2(t.total)}</td></tr>
+      </table>
+      <div class="words"><div class="lbl">Amount (in words)</div>${esc(numberToWords(Math.round(t.total)))} Only</div>
+      <div class="sign"><div>Prepared By</div><div>Authorised Signatory</div><div>Supplier's Acknowledgement</div></div>
+      <div class="foot">Goods returned as per the reason stated above. This is a system generated document.</div>
+    </body></html>`;
+  }
+
+  /* ----- Saved returns viewer / reprint ----- */
+  function openSrViewer(){
+    document.getElementById('srViewerModal').classList.remove('hidden');
+    loadSrList();
+  }
+  function closeSrViewer(){
+    document.getElementById('srViewerModal').classList.add('hidden');
+  }
+
+  async function loadSrList(){
+    const tbody = document.querySelector('#srListTable tbody');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-2 text-slate-500">Loading...</td></tr>`;
+    document.getElementById('srSearch').value = '';
+    const r = await post('getStockReturnReport', {});
+    if(!r || !r.success){
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center p-2 text-red-600">${escapeHtml((r && r.message) || 'Could not load stock returns')}</td></tr>`;
+      return;
+    }
+    if(!(r.rows || []).length){
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center p-2 text-slate-500">No saved stock returns</td></tr>`;
+      return;
+    }
+    srGroups = {};
+    const order = [];
+    r.rows.forEach(x=>{
+      const id = String(x.returnId || '').trim(); if(!id) return;
+      if(!srGroups[id]){
+        srGroups[id] = { returnId: id, date: x.date, supplier: { name: x.supplierName, address: x.address, gstin: x.gstin, state: x.state, code: x.code },
+          reference: x.reference, reason: x.reason, remarks: x.remarksOverall, gst: num(x.gst), taxType: ['igst','none'].includes(x.taxType) ? x.taxType : 'cgst', rows: [] };
+        order.push(id);
+      }
+      srGroups[id].rows.push({ item: x.item, batchNo: x.batch, expiry: x.expiry, qty: num(x.qty), rate: num(x.rate), amount: num(x.amount) || num(x.qty) * num(x.rate), remarks: x.remarks });
+    });
+    tbody.innerHTML = '';
+    order.reverse().forEach(id=>{
+      const g = srGroups[id];
+      const t = srTotals(g.rows, g.gst, g.taxType);
+      const tr = document.createElement('tr');
+      tr.dataset.search = [id, g.date, g.supplier.name, g.reason, g.reference, g.rows.map(x=>x.item).join(' ')].join(' ').toLowerCase();
+      tr.innerHTML = `
+        <td class="border px-2 py-1">${escapeHtml(id)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.date)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.supplier.name)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.reason)}</td>
+        <td class="border px-2 py-1">${g.rows.length}</td>
+        <td class="border px-2 py-1 text-right">${to2(t.total)}</td>
+        <td class="border px-2 py-1 text-center"><button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm" onclick="printSavedSr('${escapeHtml(id)}')">Print</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function filterSrList(){
+    const val = document.getElementById('srSearch').value.toLowerCase();
+    document.querySelectorAll('#srListTable tbody tr').forEach(tr=>{
+      tr.style.display = (tr.dataset.search || tr.textContent.toLowerCase()).includes(val) ? '' : 'none';
+    });
+  }
+
+  function printSavedSr(id){
+    const g = srGroups[id];
+    if(!g) return alert('Return not found.');
+    printHtml(buildSrHtml(g));
+  }
+  </script>
+
   <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/20">
     <div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div>
   </div>
@@ -646,7 +1102,7 @@
     document.getElementById('poDate').value = todayISO;
 
     activateTabVisuals(document.querySelectorAll('.tab')[0]);
-    ['request','receipt','supply','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
+    ['request','receipt','supply','sreturn','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
 
     // Parallel load: total wait = slowest call, not the sum of all calls.
     // allSettled => one failing call can't block the page from opening.
@@ -737,6 +1193,10 @@
     const tSel = document.getElementById('sType'); 
     if(tSel) tSel.innerHTML = `<option value="">(All types)</option>` + types.map(t=>`<option>${t}</option>`).join(''); 
 
+    // Populate Stock Return type filter
+    const srT = document.getElementById('srType');
+    if(srT){ const cur = srT.value; srT.innerHTML = `<option value="">(All types)</option>` + types.map(t=>`<option>${t}</option>`).join(''); srT.value = cur; }
+
     // Populate Live Inventory filter
     const f=document.getElementById('filterType'); 
     if(f) f.innerHTML=`<option value="">All</option>`+types.map(t=>`<option>${t}</option>`).join(''); 
@@ -753,7 +1213,8 @@
 
   async function loadVendors(){ 
     const r = await post('getVendors',{}); 
-    vendors = (r && r.success) ? r.vendors : []; 
+    vendors = (r && r.success) ? r.vendors : [];
+    if(typeof fillSrSuppliers === 'function') fillSrSuppliers(); 
     const sel = document.getElementById('poSupplier'); 
     const recSel = document.getElementById('recPurchasedFrom'); 
     if(sel) sel.innerHTML = `<option value="">Select Supplier</option>` + vendors.map((v,i)=>`<option value="${i}">${escapeHtml(v['Supplier Name']||v['Vendor']||('Vendor '+(i+1)))}</option>`).join(''); 
@@ -786,7 +1247,8 @@
     const tab = e.currentTarget ? e.currentTarget.dataset.tab : e.dataset.tab;
     const clicked = e.currentTarget ? e.currentTarget : e;
     activateTabVisuals(clicked);
-    ['request','receipt','supply','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
+    ['request','receipt','supply','sreturn','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
+    if(tab==='sreturn'){ loadInventory(); loadVendors(); }
     if(tab==='po'){ loadVendors(); fetchNextPoNumber(); }
     if(tab==='live'){ loadInventory().then(renderLiveInventory); }
     if(tab==='supply'){ loadInventory(); loadEmployees(); }
