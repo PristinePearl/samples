@@ -35,6 +35,7 @@
         <button data-tab="receipt" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Receipt</button>
         <button data-tab="supply" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Supply</button>
         <button data-tab="sreturn" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Return</button>
+        <button data-tab="sadj" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Adjustment</button>
         <button data-tab="live" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Live Inventory</button>
         <button data-tab="po" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">PO Generation</button>
         <button onclick="window.location.href='Invoice.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Sup-Inv & DC</button>
@@ -435,6 +436,175 @@
                 <tbody></tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="sadj" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Stock Adjustment</h2>
+            <p class="text-sm text-slate-500">Correct batch details, write off expired stock or adjust quantities. Each save updates Inventory and generates a document.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="openAdjViewer()">📄 Saved Adjustments</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-red-600 text-red-700 font-bold bg-white" onclick="openExrViewer()">📄 Saved Expiry Removals</button>
+          </div>
+        </div>
+
+        <div class="mt-4 flex gap-2 border-b border-gray-100 pb-3 overflow-x-auto">
+          <button type="button" id="sadjTab_batch" class="px-3 py-2 rounded-md font-semibold whitespace-nowrap bg-emerald-600 text-white" onclick="sadjSwitch('batch')">1. Batch Adjustment</button>
+          <button type="button" id="sadjTab_exr" class="px-3 py-2 rounded-md font-semibold whitespace-nowrap text-slate-600 hover:bg-emerald-50" onclick="sadjSwitch('exr')">2. Expiry Removal</button>
+          <button type="button" id="sadjTab_qty" class="px-3 py-2 rounded-md font-semibold whitespace-nowrap text-slate-600 hover:bg-emerald-50" onclick="sadjSwitch('qty')">3. Quantity Adjustment</button>
+        </div>
+
+        <!-- 1. BATCH ADJUSTMENT -->
+        <div id="sadjPane_batch" class="mt-4">
+          <p class="text-sm text-slate-500">Pick stock and correct its batch no, expiry and/or quantity. If the corrected batch already exists for the product, the stock is merged into it.</p>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs font-semibold mb-1">Adjustment Date</label>
+              <input id="baDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1 required-star">Reason</label>
+              <select id="baReason" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm">
+                <option value="">-- Select Reason --</option>
+                <option>Wrong batch no entered</option>
+                <option>Wrong expiry entered</option>
+                <option>Batch / expiry data correction</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-semibold mb-1">Remarks — optional</label>
+              <input id="baRemarks" type="text" placeholder="Remarks (optional)" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm" />
+            </div>
+          </div>
+          <div class="mt-3 flex gap-2 flex-wrap">
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addBaRow()">+ Add</button>
+            <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="clearBa()">Clear</button>
+            <button class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="baPreview()">👁 Preview Document</button>
+            <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="baSave()">Save &amp; Generate Document</button>
+          </div>
+          <div class="mt-3 overflow-x-auto rounded-lg border border-gray-100">
+            <table id="baTable" class="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="p-2 text-left font-semibold text-slate-600">Stock (Product)</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Current Batch</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Current Expiry</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Current Qty</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">New Batch</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">New Expiry</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">New Qty</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Remarks</th>
+                  <th class="p-2"></th>
+                </tr>
+              </thead>
+              <tbody class="bg-white"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2. EXPIRY REMOVAL -->
+        <div id="sadjPane_exr" class="mt-4 hidden">
+          <p class="text-sm text-slate-500">Add expired stock one by one with <b>+ Add</b>, or use <b>Auto Select Expired</b> to load all expired stock at once. Untick or remove (✕) what you want to keep. Saving deducts the ticked rows from inventory and generates the Inventory - Expiry Removal document.</p>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <label class="block text-xs font-semibold mb-1">Removal Date</label>
+              <input id="exrDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1">Type (for Add / Auto Select)</label>
+              <select id="exrType" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm"></select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-semibold mb-1">Remarks — optional</label>
+              <input id="exrRemarks" type="text" placeholder="Remarks (optional)" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm" />
+            </div>
+          </div>
+          <div class="mt-3 flex items-center gap-2 flex-wrap">
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addExrItem()">+ Add</button>
+            <button class="px-3 py-2 rounded-md bg-red-600 text-white font-bold" onclick="exrAutoSelect()">⚡ Auto Select Expired</button>
+            <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="exrClear()">Clear</button>
+            <label class="text-sm ml-2"><input id="exrIncCurrent" type="checkbox" onchange="exrIncChanged()" /> Include stock expiring this month</label>
+            <span id="exrSummary" class="text-slate-500 text-xs"></span>
+          </div>
+          <div class="mt-3 overflow-auto max-h-[55vh] rounded-lg border border-gray-100">
+            <table id="exrTable" class="min-w-full text-sm">
+              <thead class="bg-slate-100 sticky top-0">
+                <tr>
+                  <th class="p-2 w-10 text-center"><input id="exrAll" type="checkbox" onchange="exrToggleAll(this.checked)" /></th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Type</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Product</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Batch</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Expiry</th>
+                  <th class="p-2 text-right font-semibold text-slate-600">Qty</th>
+                  <th class="p-2 text-right font-semibold text-slate-600">MRP</th>
+                  <th class="p-2 text-right font-semibold text-slate-600">Value</th>
+                  <th class="p-2"></th>
+                </tr>
+              </thead>
+              <tbody class="bg-white"></tbody>
+            </table>
+          </div>
+          <div class="mt-3 flex items-center justify-between gap-3 flex-wrap">
+            <div id="exrSelInfo" class="text-sm font-semibold text-slate-700"></div>
+            <div class="flex gap-2">
+              <button id="exrPreviewBtn" type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="previewExpiryRemoval()">👁 Preview Document</button>
+              <button id="exrGenBtn" type="button" class="px-3 py-2 rounded-md bg-red-600 text-white font-bold" onclick="saveExpiryRemoval()">Remove &amp; Generate Document</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. QUANTITY ADJUSTMENT -->
+        <div id="sadjPane_qty" class="mt-4 hidden">
+          <p class="text-sm text-slate-500">Add the items to adjust and enter the physical (counted) quantity against the system quantity.</p>
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs font-semibold mb-1">Adjustment Date</label>
+              <input id="qaDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold mb-1 required-star">Reason</label>
+              <select id="qaReason" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm">
+                <option value="">-- Select Reason --</option>
+                <option>Physical stock count</option>
+                <option>Damaged</option>
+                <option>Lost / Missing</option>
+                <option>Excess found</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-semibold mb-1">Remarks — optional</label>
+              <input id="qaRemarks" type="text" placeholder="Remarks (optional)" class="border border-gray-200 rounded-md px-2 py-1 w-full text-sm" />
+            </div>
+          </div>
+          <div class="mt-3 flex gap-2 flex-wrap">
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addQaRow()">+ Add Item</button>
+            <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="clearQa()">Clear</button>
+            <button class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="qaPreview()">👁 Preview Document</button>
+            <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="qaSave()">Save &amp; Generate Document</button>
+            <span id="qaInfo" class="text-sm font-semibold text-slate-700 self-center ml-2"></span>
+          </div>
+          <div class="mt-3 overflow-x-auto rounded-lg border border-gray-100">
+            <table id="qaTable" class="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="p-2 text-left font-semibold text-slate-600">Stock (Product)</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Batch</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Expiry</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">System Qty</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Physical Qty</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Difference</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Remarks</th>
+                  <th class="p-2"></th>
+                </tr>
+              </thead>
+              <tbody class="bg-white"></tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -945,6 +1115,71 @@
   }
   </script>
 
+  <!-- Modal: document preview -->
+  <div id="docPreviewModal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[92vh] flex flex-col">
+      <div class="p-3 border-b border-gray-100 flex items-center justify-between">
+        <h3 id="docPreviewTitle" class="font-bold text-slate-700">Document Preview</h3>
+        <div class="flex gap-2">
+          <button type="button" class="px-3 py-1.5 rounded-md bg-emerald-600 text-white text-sm font-bold" onclick="printPreviewFrame()">🖨 Print</button>
+          <button type="button" class="px-3 py-1.5 rounded-md border border-gray-200 text-sm font-semibold" onclick="closeDocPreview()">Close</button>
+        </div>
+      </div>
+      <iframe id="docPreviewFrame" class="flex-1 w-full bg-white" style="border:0"></iframe>
+    </div>
+  </div>
+
+  <!-- Modal: saved stock adjustments -->
+  <div id="adjViewerModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto p-6">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xl font-bold text-slate-700">Saved Stock Adjustments</h2>
+        <button onclick="closeAdjViewer()" class="text-red-500 text-lg font-bold">✕</button>
+      </div>
+      <input id="adjListSearch" onkeyup="filterAdjList()" placeholder="Search Adjustment ID / Type / Item / Reason / Date" class="border rounded-md px-3 py-2 w-full mb-3" />
+      <div class="overflow-x-auto">
+      <table id="adjListTable" class="w-full border-collapse text-sm">
+        <thead class="bg-slate-100">
+          <tr>
+            <th class="border px-2 py-1">Adjustment ID</th>
+            <th class="border px-2 py-1">Date</th>
+            <th class="border px-2 py-1">Type</th>
+            <th class="border px-2 py-1">Reason</th>
+            <th class="border px-2 py-1">Items</th>
+            <th class="border px-2 py-1 text-right">Net Qty</th>
+            <th class="border px-2 py-1 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: saved expiry removals -->
+  <div id="exrViewerModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto p-6">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xl font-bold text-slate-700">Saved Expiry Removals</h2>
+        <button onclick="closeExrViewer()" class="text-red-500 text-lg font-bold">✕</button>
+      </div>
+      <input id="exrListSearch" onkeyup="filterExrList()" placeholder="Search Removal ID / Item / Date" class="border rounded-md px-3 py-2 w-full mb-3" />
+      <table id="exrListTable" class="w-full border-collapse text-sm">
+        <thead class="bg-slate-100">
+          <tr>
+            <th class="border px-2 py-1">Removal ID</th>
+            <th class="border px-2 py-1">Date</th>
+            <th class="border px-2 py-1">Items</th>
+            <th class="border px-2 py-1 text-right">Qty</th>
+            <th class="border px-2 py-1 text-right">Value</th>
+            <th class="border px-2 py-1 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
   <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/20">
     <div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div>
   </div>
@@ -1102,7 +1337,7 @@
     document.getElementById('poDate').value = todayISO;
 
     activateTabVisuals(document.querySelectorAll('.tab')[0]);
-    ['request','receipt','supply','sreturn','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
+    ['request','receipt','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
 
     // Parallel load: total wait = slowest call, not the sum of all calls.
     // allSettled => one failing call can't block the page from opening.
@@ -1247,7 +1482,8 @@
     const tab = e.currentTarget ? e.currentTarget.dataset.tab : e.dataset.tab;
     const clicked = e.currentTarget ? e.currentTarget : e;
     activateTabVisuals(clicked);
-    ['request','receipt','supply','sreturn','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
+    ['request','receipt','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
+    if(tab==='sadj'){ openSadjTab(); }
     if(tab==='sreturn'){ loadInventory(); loadVendors(); }
     if(tab==='po'){ loadVendors(); fetchNextPoNumber(); }
     if(tab==='live'){ loadInventory().then(renderLiveInventory); }
@@ -2236,6 +2472,719 @@
     }
     loadInventory();
   }
+
+  /* ===================== EXPIRY STOCK REMOVAL ===================== */
+  let exrRows = [];       // candidate rows (expired stock) currently listed
+  let exrSel = new Set(); // keys of ticked rows
+  let exrGroups = {};
+  let exrLast = null;
+
+  function exrKey(r){ return [r.Product, r.Batch, r.Expiry].map(v => String(v == null ? '' : v).trim().toLowerCase()).join('|'); }
+
+  function exrCurrentYM(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+
+  // expired = expiry month is before the current month (stock is valid through the last day of its expiry month)
+  function exrIsExpired(r, includeCurrent){
+    const ym = buParseExpiry(r.Expiry);
+    if(!ym) return false;
+    const cur = exrCurrentYM();
+    return includeCurrent ? ym <= cur : ym < cur;
+  }
+
+  function openExpiryRemoval(){
+    const dt = document.getElementById('exrDate');
+    if(!dt.value) dt.value = new Date().toISOString().slice(0,10);
+    exrFillTypes();
+    // refresh already-added rows against the latest stock (drop rows that no longer exist / have no stock)
+    exrRows = exrRows.map(r => inventory.find(x => exrKey(x) === exrKey(r))).filter(r => r && num(r.Qty) > 0);
+    exrSel = new Set([...exrSel].filter(k => exrRows.some(r => exrKey(r) === k)));
+    renderExpiryRemoval();
+  }
+
+  function exrFillTypes(){
+    const sel = document.getElementById('exrType');
+    const cur = sel.value;
+    const types = [...new Set(inventory.map(x=>x.Type).filter(Boolean))].sort();
+    sel.innerHTML = `<option value="">All types</option>` + types.map(t=>`<option>${escapeHtml(t)}</option>`).join('');
+    sel.value = cur;
+  }
+
+  // expired stock the user can add / auto-select (respects the Type filter and "this month" option)
+  function exrExpiredPool(){
+    const inc = document.getElementById('exrIncCurrent').checked;
+    const type = document.getElementById('exrType').value;
+    return inventory
+      .filter(r => num(r.Qty) > 0 && buStr(r.Product) && (!type || r.Type === type) && exrIsExpired(r, inc))
+      .sort((a,b)=> buParseExpiry(a.Expiry).localeCompare(buParseExpiry(b.Expiry)) || String(a.Product).localeCompare(String(b.Product)));
+  }
+
+  function addExrItem(){
+    const have = new Set(exrRows.map(exrKey));
+    const pool = exrExpiredPool().filter(r => !have.has(exrKey(r)));
+    if(!pool.length) return alert('No more expired stock available to add.');
+    const items = pool.map(r => ({
+      label: escapeHtml(r.Product),
+      sub: `${escapeHtml(r.Type||'')} | Batch: ${escapeHtml(r.Batch||'-')} | Exp: ${escapeHtml(r.Expiry||'-')} | Qty: ${escapeHtml(String(r.Qty||'0'))}`,
+      searchText: `${r.Product||''} ${r.Batch||''} ${r.Type||''}`.toLowerCase(),
+      raw: r
+    }));
+    openPicker('Select Expired Stock', items, (item)=>{
+      exrRows.push(item.raw);
+      exrSel.add(exrKey(item.raw));
+      renderExpiryRemoval();
+    });
+  }
+
+  // loads ALL expired stock (current Type filter) as ticked rows
+  function exrAutoSelect(){
+    const pool = exrExpiredPool();
+    if(!pool.length) return alert('No expired stock found.');
+    const have = new Set(exrRows.map(exrKey));
+    pool.forEach(r => { const k = exrKey(r); if(!have.has(k)) exrRows.push(r); exrSel.add(k); });
+    renderExpiryRemoval();
+  }
+
+  function exrClear(){
+    exrRows = []; exrSel = new Set();
+    renderExpiryRemoval();
+  }
+
+  function exrRemoveRow(k){
+    exrRows = exrRows.filter(r => exrKey(r) !== k);
+    exrSel.delete(k);
+    renderExpiryRemoval();
+  }
+
+  function exrIncChanged(){
+    const inc = document.getElementById('exrIncCurrent').checked;
+    exrRows = exrRows.filter(r => exrIsExpired(r, inc));
+    exrSel = new Set([...exrSel].filter(k => exrRows.some(r => exrKey(r) === k)));
+    renderExpiryRemoval();
+  }
+
+  function exrVisible(){ return exrRows; }
+
+  function renderExpiryRemoval(){
+    const tb = document.querySelector('#exrTable tbody');
+    tb.innerHTML = '';
+    if(!exrRows.length){
+      tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-500">No items added. Use <b>+ Add</b> or <b>⚡ Auto Select Expired</b>.</td></tr>`;
+    }
+    exrRows.forEach(r=>{
+      const k = exrKey(r);
+      const tr = document.createElement('tr');
+      tr.className = 'border-b border-gray-100 hover:bg-red-50';
+      tr.innerHTML = `<td class="p-2 text-center"><input type="checkbox" class="exr-chk" ${exrSel.has(k) ? 'checked' : ''} /></td>
+        <td class="p-2">${escapeHtml(r.Type)}</td>
+        <td class="p-2">${escapeHtml(r.Product)}</td>
+        <td class="p-2">${escapeHtml(r.Batch)}</td>
+        <td class="p-2 text-red-600 font-semibold">${escapeHtml(r.Expiry)}</td>
+        <td class="p-2 text-right">${escapeHtml(r.Qty)}</td>
+        <td class="p-2 text-right">${to2(r.MRP)}</td>
+        <td class="p-2 text-right">${to2(num(r.Qty) * num(r.MRP))}</td>
+        <td class="p-2"><button type="button" class="exr-del text-red-500 font-bold">✕</button></td>`;
+      tr.querySelector('.exr-chk').addEventListener('change', e=>{
+        if(e.target.checked) exrSel.add(k); else exrSel.delete(k);
+        exrUpdateSummary();
+      });
+      tr.querySelector('.exr-del').addEventListener('click', ()=> exrRemoveRow(k));
+      tb.appendChild(tr);
+    });
+    exrUpdateSummary();
+  }
+
+  function exrToggleAll(on){
+    exrVisible().forEach(r => { const k = exrKey(r); if(on) exrSel.add(k); else exrSel.delete(k); });
+    document.querySelectorAll('#exrTable .exr-chk').forEach(c => c.checked = on);
+    exrUpdateSummary();
+  }
+
+  function exrSelected(){ return exrRows.filter(r => exrSel.has(exrKey(r))); }
+
+  function exrUpdateSummary(){
+    const vis = exrVisible();
+    const selVis = vis.filter(r => exrSel.has(exrKey(r))).length;
+    const all = document.getElementById('exrAll');
+    all.checked = vis.length > 0 && selVis === vis.length;
+    all.indeterminate = selVis > 0 && selVis < vis.length;
+    const sel = exrSelected();
+    const qty = sel.reduce((s,r)=> s + num(r.Qty), 0);
+    const val = sel.reduce((s,r)=> s + num(r.Qty) * num(r.MRP), 0);
+    document.getElementById('exrSummary').textContent = `${inventory.filter(r => num(r.Qty) > 0 && buStr(r.Product) && exrIsExpired(r, document.getElementById('exrIncCurrent').checked)).length} expired batch(es) in stock`;
+    document.getElementById('exrSelInfo').textContent = `Selected: ${sel.length} batch(es) | Qty ${qty} | Value ₹${to2(val)}`;
+    document.getElementById('exrGenBtn').disabled = !sel.length;
+    document.getElementById('exrGenBtn').classList.toggle('opacity-50', !sel.length);
+  }
+
+  async function saveExpiryRemoval(){
+    const sel = exrSelected();
+    if(!sel.length) return alert('Select at least one stock row to remove.');
+    const qty = sel.reduce((s,r)=> s + num(r.Qty), 0);
+    if(!confirm(`Remove ${sel.length} expired batch(es) (total qty ${qty}) from inventory?\n\nThis deducts the stock and cannot be undone.`)) return;
+    const payload = {
+      date: document.getElementById('exrDate').value || '',
+      remarks: document.getElementById('exrRemarks').value.trim(),
+      includeCurrentMonth: document.getElementById('exrIncCurrent').checked,
+      rows: sel.map(r => ({ item: r.Product, type: r.Type || '', division: r.Division || '', batchNo: r.Batch || '', expiry: r.Expiry || '', qty: num(r.Qty), mrp: num(r.MRP), value: Math.round(num(r.Qty) * num(r.MRP) * 100) / 100 }))
+    };
+    const res = await post('saveExpiryRemoval', payload);
+    if(res && res.success){
+      const id = ((res.message || '').match(/ID:\s*([A-Za-z0-9-]+)/) || [])[1] || '';
+      exrLast = { removalId: id, date: payload.date, remarks: payload.remarks, rows: payload.rows };
+      await loadInventory();
+      exrRows = []; exrSel = new Set();
+      exrFillTypes(); renderExpiryRemoval();
+      document.getElementById('exrRemarks').value = '';
+      alert(res.message || 'Saved');
+      printHtml(buildExrHtml(exrLast));
+    } else {
+      alert('Save failed: ' + ((res && res.message) || ''));
+    }
+  }
+
+  /* ----- Document preview (shared) ----- */
+  function showDocPreview(html, title){
+    document.getElementById('docPreviewTitle').textContent = title || 'Document Preview';
+    document.getElementById('docPreviewFrame').srcdoc = html;
+    document.getElementById('docPreviewModal').classList.remove('hidden');
+  }
+  function closeDocPreview(){
+    document.getElementById('docPreviewModal').classList.add('hidden');
+    document.getElementById('docPreviewFrame').srcdoc = '';
+  }
+  function printPreviewFrame(){
+    const f = document.getElementById('docPreviewFrame');
+    try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){ alert('Print failed: ' + e); }
+  }
+
+  // preview of the current selection BEFORE saving (nothing is deducted)
+  function previewExpiryRemoval(){
+    const sel = exrSelected();
+    if(!sel.length) return alert('Select at least one stock row to preview.');
+    const d = {
+      removalId: '(Preview - not saved)',
+      date: document.getElementById('exrDate').value || '',
+      remarks: document.getElementById('exrRemarks').value.trim(),
+      rows: sel.map(r => ({ item: r.Product, type: r.Type || '', batchNo: r.Batch || '', expiry: r.Expiry || '', qty: num(r.Qty), mrp: num(r.MRP), value: Math.round(num(r.Qty) * num(r.MRP) * 100) / 100 }))
+    };
+    showDocPreview(buildExrHtml(d), 'Preview - Inventory Expiry Removal (not saved yet)');
+  }
+
+  function previewSavedExr(id){
+    const g = exrGroups[id];
+    if(!g) return alert('Removal not found.');
+    showDocPreview(buildExrHtml(g), 'Expiry Removal ' + id);
+  }
+
+  function buildExrHtml(d){
+    const esc = escapeHtml;
+    let totalQty = 0, total = 0;
+    const rowsHtml = d.rows.map((r,i)=>{
+      const val = (r.value != null && r.value !== '') ? num(r.value) : num(r.qty) * num(r.mrp);
+      totalQty += num(r.qty); total += val;
+      return `<tr>
+        <td style="text-align:center">${i+1}</td>
+        <td>${esc(r.type || '')}</td>
+        <td>${esc(r.item)}</td>
+        <td>${esc(r.batchNo || '-')}</td>
+        <td style="text-align:center">${esc(fmtExpiryPrint(r.expiry) || '-')}</td>
+        <td style="text-align:right">${esc(r.qty)}</td>
+        <td style="text-align:right">${to2(r.mrp)}</td>
+        <td style="text-align:right">${to2(val)}</td>
+      </tr>`;
+    }).join('');
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Inventory - Expiry Removal ${esc(d.removalId)}</title>
+    <style>
+      @page { size: A4; margin: 14mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+      .hdr { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #059669; padding-bottom:10px; margin-bottom:14px; }
+      .co { font-size:14pt; font-weight:bold; color:#059669; }
+      .sm { font-size:8pt; color:#555; }
+      h1 { font-size:15pt; margin:0; color:#333; text-align:right; }
+      .meta { display:flex; justify-content:space-between; margin-bottom:12px; font-size:10pt; line-height:1.5; }
+      .meta b { color:#555; }
+      table { width:100%; border-collapse:collapse; }
+      th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:6px; font-size:9pt; text-align:left; }
+      td { border:1px solid #cbd5e1; padding:6px; font-size:9pt; }
+      tfoot td { font-weight:bold; background:#f0fdf4; }
+      .words { margin-top:12px; border:1px solid #ddd; background:#fafafa; border-radius:4px; padding:8px; font-size:9.5pt; }
+      .lbl { font-weight:bold; text-transform:uppercase; color:#555; font-size:8pt; margin-bottom:3px; }
+      .sign { display:flex; justify-content:space-between; margin-top:70px; font-size:9pt; }
+      .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
+      .foot { margin-top:24px; text-align:center; font-size:8pt; color:#777; }
+    </style></head><body>
+      <div class="hdr">
+        <div>
+          <div class="co">PRISTINE PEARL PHARMA PVT LTD</div>
+          <div class="sm">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+          <div class="sm">Perur Village, Coimbatore - 641010</div>
+          <div class="sm">samples.pearl@gmail.com | +91 8838001387</div>
+        </div>
+        <div>
+          <h1>INVENTORY - EXPIRY REMOVAL</h1>
+          <div style="text-align:right;font-size:9pt;margin-top:4px"><b>Removal No:</b> <span style="color:#059669;font-weight:bold">${esc(d.removalId || '-')}</span><br><b>Date:</b> ${esc(formatDateForPrint(d.date || ''))}</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div><b>Reason:</b> Expired stock removed from inventory${d.remarks ? `<br><b>Remarks:</b> ${esc(d.remarks)}` : ''}</div>
+        <div style="text-align:right"><b>Batches removed:</b> ${d.rows.length}<br><b>Total Qty:</b> ${esc(totalQty)}</div>
+      </div>
+      <table>
+        <thead><tr><th style="width:30px;text-align:center">#</th><th>Type</th><th>Product</th><th>Batch No</th><th style="text-align:center">Expiry</th><th style="text-align:right">Qty</th><th style="text-align:right">MRP</th><th style="text-align:right">Value (₹)</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr><td colspan="5" style="text-align:right">Total</td><td style="text-align:right">${esc(totalQty)}</td><td></td><td style="text-align:right">₹${to2(total)}</td></tr></tfoot>
+      </table>
+      <div class="words"><div class="lbl">Value (in words)</div>${esc(numberToWords(Math.round(total)))} Only</div>
+      <div class="sign"><div>Prepared By</div><div>Verified By</div><div>Authorised Signatory</div></div>
+      <div class="foot">Expired stock written off from inventory as listed above. This is a system generated document.</div>
+    </body></html>`;
+  }
+
+  /* ----- Saved removals viewer / reprint ----- */
+  function openExrViewer(){ document.getElementById('exrViewerModal').classList.remove('hidden'); loadExrList(); }
+  function closeExrViewer(){ document.getElementById('exrViewerModal').classList.add('hidden'); }
+
+  async function loadExrList(){
+    const tbody = document.querySelector('#exrListTable tbody');
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-slate-500">Loading...</td></tr>`;
+    document.getElementById('exrListSearch').value = '';
+    const r = await post('getExpiryRemovalReport', {});
+    if(!r || !r.success){
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-red-600">${escapeHtml((r && r.message) || 'Could not load removals')}</td></tr>`;
+      return;
+    }
+    if(!(r.rows || []).length){
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-slate-500">No saved expiry removals</td></tr>`;
+      return;
+    }
+    exrGroups = {};
+    const order = [];
+    r.rows.forEach(x=>{
+      const id = String(x.removalId || '').trim(); if(!id) return;
+      if(!exrGroups[id]){ exrGroups[id] = { removalId: id, date: x.date, remarks: x.remarks, rows: [] }; order.push(id); }
+      exrGroups[id].rows.push({ item: x.item, type: x.type, batchNo: x.batch, expiry: x.expiry, qty: num(x.qty), mrp: num(x.mrp), value: num(x.value) || num(x.qty) * num(x.mrp) });
+    });
+    tbody.innerHTML = '';
+    order.reverse().forEach(id=>{
+      const g = exrGroups[id];
+      const q = g.rows.reduce((a,b)=> a + num(b.qty), 0);
+      const v = g.rows.reduce((a,b)=> a + num(b.value), 0);
+      const tr = document.createElement('tr');
+      tr.dataset.search = [id, g.date, g.rows.map(x=>x.item).join(' ')].join(' ').toLowerCase();
+      tr.innerHTML = `
+        <td class="border px-2 py-1">${escapeHtml(id)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.date)}</td>
+        <td class="border px-2 py-1">${g.rows.length}</td>
+        <td class="border px-2 py-1 text-right">${q}</td>
+        <td class="border px-2 py-1 text-right">${to2(v)}</td>
+        <td class="border px-2 py-1 text-center whitespace-nowrap"><button class="border border-emerald-600 text-emerald-700 px-2 py-1 rounded-md text-sm mr-1" onclick="previewSavedExr('${escapeHtml(id)}')">Preview</button><button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm" onclick="printSavedExr('${escapeHtml(id)}')">Print</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function filterExrList(){
+    const val = document.getElementById('exrListSearch').value.toLowerCase();
+    document.querySelectorAll('#exrListTable tbody tr').forEach(tr=>{
+      tr.style.display = (tr.dataset.search || tr.textContent.toLowerCase()).includes(val) ? '' : 'none';
+    });
+  }
+
+  function printSavedExr(id){
+    const g = exrGroups[id];
+    if(!g) return alert('Removal not found.');
+    printHtml(buildExrHtml(g));
+  }
+
+  /* ===================== STOCK ADJUSTMENT TAB ===================== */
+  let sadjCur = 'batch';
+  let adjGroups = {};
+
+  async function openSadjTab(){
+    await loadInventory();
+    sadjSwitch(sadjCur);
+  }
+
+  function sadjSwitch(name){
+    sadjCur = name;
+    ['batch','exr','qty'].forEach(n=>{
+      document.getElementById('sadjPane_' + n).classList.toggle('hidden', n !== name);
+      const b = document.getElementById('sadjTab_' + n);
+      b.classList.toggle('bg-emerald-600', n === name);
+      b.classList.toggle('text-white', n === name);
+      b.classList.toggle('text-slate-600', n !== name);
+      b.classList.toggle('hover:bg-emerald-50', n !== name);
+    });
+    const today = new Date().toISOString().slice(0,10);
+    ['baDate','qaDate'].forEach(id => { const el = document.getElementById(id); if(el && !el.value) el.value = today; });
+    if(name === 'batch' && !document.querySelector('#baTable tbody tr')) addBaRow();
+    if(name === 'exr') openExpiryRemoval();
+    if(name === 'qty' && !document.querySelector('#qaTable tbody tr')) addQaRow();
+  }
+
+  function adjStockList(){
+    return inventory.filter(r => buStr(r.Product)).sort((a,b)=> String(a.Product).localeCompare(String(b.Product)) || String(a.Batch).localeCompare(String(b.Batch)));
+  }
+
+  /* ---------- 1. BATCH ADJUSTMENT ---------- */
+  function addBaRow(){
+    const tb = document.querySelector('#baTable tbody');
+    const tr = document.createElement('tr');
+    const cls = 'border border-gray-200 rounded-md px-2 py-1';
+    tr.innerHTML = `<td class="p-2">
+        <button type="button" class="ba-btn ${cls} w-full min-w-[260px] text-left bg-white flex items-center justify-between">
+          <span class="ba-label text-slate-500">-- Select Stock --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button>
+        <input type="hidden" class="ba-src" value="" />
+      </td>
+      <td class="p-2"><input class="ba-ob ${cls} w-32" readonly></td>
+      <td class="p-2"><input class="ba-oe ${cls} w-28" readonly></td>
+      <td class="p-2"><input class="ba-oq ${cls} w-20" readonly></td>
+      <td class="p-2"><input class="ba-nb ${cls} w-36" placeholder="New batch"></td>
+      <td class="p-2"><input class="ba-ne ${cls}" type="month"></td>
+      <td class="p-2"><input class="ba-nq ${cls} w-24" type="number" min="0" placeholder="Qty"></td>
+      <td class="p-2"><input class="ba-rem ${cls}" placeholder="Remarks"></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+    tb.appendChild(tr);
+    const btn = tr.querySelector('.ba-btn'), label = tr.querySelector('.ba-label'), hidden = tr.querySelector('.ba-src');
+    btn.addEventListener('click', ()=>{
+      const items = adjStockList().map(r => ({
+        label: escapeHtml(r.Product),
+        sub: `${escapeHtml(r.Type||'')} | Batch: ${escapeHtml(r.Batch||'-')} | Exp: ${escapeHtml(r.Expiry||'-')} | Qty: ${escapeHtml(String(r.Qty||'0'))}`,
+        searchText: `${r.Product||''} ${r.Batch||''} ${r.Type||''}`.toLowerCase(),
+        raw: r
+      }));
+      openPicker('Select Stock to Adjust', items, (item)=>{
+        const o = item.raw;
+        hidden.value = encodeURIComponent(JSON.stringify(o));
+        label.textContent = o.Product;
+        label.classList.remove('text-slate-500'); label.classList.add('text-slate-800');
+        tr.querySelector('.ba-ob').value = o.Batch || '';
+        tr.querySelector('.ba-oe').value = o.Expiry || '';
+        tr.querySelector('.ba-oq').value = num(o.Qty);
+        tr.querySelector('.ba-nb').value = o.Batch || '';
+        tr.querySelector('.ba-ne').value = normExpiryMonth(o.Expiry);
+        tr.querySelector('.ba-nq').value = num(o.Qty);
+      });
+    });
+    return tr;
+  }
+
+  function clearBa(){
+    document.querySelector('#baTable tbody').innerHTML = '';
+    document.getElementById('baReason').value = '';
+    document.getElementById('baRemarks').value = '';
+    addBaRow();
+  }
+
+  // returns { rows } or { error }
+  function baCollect(){
+    const rows = [];
+    const seen = new Set();
+    let err = '';
+    [...document.querySelectorAll('#baTable tbody tr')].forEach((tr, i) => {
+      if(err) return;
+      const h = tr.querySelector('.ba-src'); if(!h || !h.value) return;
+      const o = JSON.parse(decodeURIComponent(h.value));
+      const k = exrKey(o);
+      if(seen.has(k)){ err = `Row ${i+1}: ${o.Product} (batch ${o.Batch || '-'}) is selected more than once.`; return; }
+      seen.add(k);
+      const nb = tr.querySelector('.ba-nb').value.trim();
+      const ne = tr.querySelector('.ba-ne').value;
+      const nqRaw = tr.querySelector('.ba-nq').value;
+      if(!nb){ err = `Row ${i+1}: new batch cannot be empty.`; return; }
+      if(nqRaw === '' || !(Number(nqRaw) >= 0)){ err = `Row ${i+1}: enter a valid new quantity.`; return; }
+      const nq = Number(nqRaw);
+      const oldYM = normExpiryMonth(o.Expiry);
+      const changed = nb !== String(o.Batch || '').trim() || (ne || '') !== (oldYM || '') || nq !== num(o.Qty);
+      if(!changed) return;
+      rows.push({ item: o.Product, type: o.Type || '', batchNo: o.Batch || '', expiry: o.Expiry || '', newBatch: nb, newExpiry: ne || '', newQty: nq,
+        oldQty: num(o.Qty), mrp: num(o.MRP), remarks: tr.querySelector('.ba-rem').value.trim() });
+    });
+    if(err) return { error: err };
+    if(!rows.length) return { error: 'No changes found. Change the batch, expiry or quantity of at least one row.' };
+    return { rows };
+  }
+
+  function adjDocData(mode, id, rows){
+    const isBatch = mode === 'batch';
+    const reason = document.getElementById(isBatch ? 'baReason' : 'qaReason').value;
+    return {
+      adjId: id, mode: isBatch ? 'Batch Adjustment' : 'Quantity Adjustment',
+      date: document.getElementById(isBatch ? 'baDate' : 'qaDate').value || '',
+      reason, remarks: document.getElementById(isBatch ? 'baRemarks' : 'qaRemarks').value.trim(),
+      rows: rows.map(r => ({
+        item: r.item, type: r.type, oldBatch: r.batchNo, oldExpiry: r.expiry,
+        newBatch: r.newBatch || r.batchNo, newExpiry: r.newExpiry ? fmtExpiryPrint(r.newExpiry) : fmtExpiryPrint(r.expiry),
+        oldQty: r.oldQty, newQty: r.newQty, mrp: r.mrp, remarks: r.remarks || ''
+      }))
+    };
+  }
+
+  function baPreview(){
+    const c = baCollect(); if(c.error) return alert(c.error);
+    showDocPreview(buildAdjHtml(adjDocData('batch', '(Preview - not saved)', c.rows)), 'Preview - Batch Adjustment (not saved yet)');
+  }
+
+  async function baSave(){
+    if(!document.getElementById('baReason').value) return alert('Select a reason for the adjustment.');
+    const c = baCollect(); if(c.error) return alert(c.error);
+    if(!confirm(`Apply ${c.rows.length} batch adjustment(s) to inventory?\n\nThis changes stock records and cannot be undone.`)) return;
+    const ok = await adjSubmit('batch', c.rows);
+    if(ok) clearBa();
+  }
+
+  /* shared save for batch + quantity adjustments */
+  async function adjSubmit(mode, rows){
+    const isBatch = mode === 'batch';
+    const payload = {
+      mode, date: document.getElementById(isBatch ? 'baDate' : 'qaDate').value || '',
+      reason: document.getElementById(isBatch ? 'baReason' : 'qaReason').value,
+      remarks: document.getElementById(isBatch ? 'baRemarks' : 'qaRemarks').value.trim(),
+      rows: rows.map(r => ({ item: r.item, type: r.type, batchNo: r.batchNo, expiry: r.expiry, newBatch: r.newBatch, newExpiry: r.newExpiry, newQty: r.newQty, mrp: r.mrp, remarks: r.remarks }))
+    };
+    const res = await post('saveStockAdjustment', payload);
+    if(res && res.success){
+      const id = ((res.message || '').match(/ID:\s*([A-Za-z0-9-]+)/) || [])[1] || '';
+      const doc = adjDocData(mode, id, rows);
+      await loadInventory();
+      alert(res.message || 'Saved');
+      printHtml(buildAdjHtml(doc));
+      return true;
+    }
+    alert('Save failed: ' + ((res && res.message) || ''));
+    return false;
+  }
+
+  /* ---------- 3. QUANTITY ADJUSTMENT ---------- */
+  function addQaRow(){
+    const tb = document.querySelector('#qaTable tbody');
+    const tr = document.createElement('tr');
+    const cls = 'border border-gray-200 rounded-md px-2 py-1';
+    tr.innerHTML = `<td class="p-2">
+        <button type="button" class="qa-btn ${cls} w-full min-w-[260px] text-left bg-white flex items-center justify-between">
+          <span class="qa-label text-slate-500">-- Select Stock --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button>
+        <input type="hidden" class="qa-src" value="" />
+      </td>
+      <td class="p-2"><input class="qa-b ${cls} w-32" readonly></td>
+      <td class="p-2"><input class="qa-e ${cls} w-28" readonly></td>
+      <td class="p-2"><input class="qa-sq ${cls} w-24" readonly></td>
+      <td class="p-2"><input class="qa-pq ${cls} w-28" type="number" min="0" placeholder="Count"></td>
+      <td class="p-2 qa-diff font-semibold"></td>
+      <td class="p-2"><input class="qa-rem ${cls}" placeholder="Remarks"></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove();qaUpdateInfo()">✕</button></td>`;
+    tb.appendChild(tr);
+    const btn = tr.querySelector('.qa-btn'), label = tr.querySelector('.qa-label'), hidden = tr.querySelector('.qa-src');
+    const pq = tr.querySelector('.qa-pq'), diffEl = tr.querySelector('.qa-diff');
+    const upd = ()=>{
+      if(!hidden.value || pq.value === ''){ diffEl.textContent = ''; diffEl.className = 'p-2 qa-diff font-semibold'; }
+      else {
+        const o = JSON.parse(decodeURIComponent(hidden.value));
+        const df = num(pq.value) - num(o.Qty);
+        diffEl.textContent = (df > 0 ? '+' : '') + df;
+        diffEl.className = 'p-2 qa-diff font-semibold ' + (df < 0 ? 'text-red-600' : df > 0 ? 'text-emerald-600' : 'text-slate-400');
+      }
+      qaUpdateInfo();
+    };
+    pq.addEventListener('input', upd);
+    btn.addEventListener('click', ()=>{
+      const items = adjStockList().map(r => ({
+        label: escapeHtml(r.Product),
+        sub: `${escapeHtml(r.Type||'')} | Batch: ${escapeHtml(r.Batch||'-')} | Exp: ${escapeHtml(r.Expiry||'-')} | Qty: ${escapeHtml(String(r.Qty||'0'))}`,
+        searchText: `${r.Product||''} ${r.Batch||''} ${r.Type||''}`.toLowerCase(),
+        raw: r
+      }));
+      openPicker('Select Stock to Adjust', items, (item)=>{
+        const o = item.raw;
+        const dup = [...document.querySelectorAll('#qaTable .qa-src')].some(h => h !== hidden && h.value && exrKey(JSON.parse(decodeURIComponent(h.value))) === exrKey(o));
+        if(dup) return alert('This stock (product + batch + expiry) is already added.');
+        hidden.value = encodeURIComponent(JSON.stringify(o));
+        label.textContent = o.Product;
+        label.classList.remove('text-slate-500'); label.classList.add('text-slate-800');
+        tr.querySelector('.qa-b').value = o.Batch || '';
+        tr.querySelector('.qa-e').value = o.Expiry || '';
+        tr.querySelector('.qa-sq').value = num(o.Qty);
+        pq.value = '';
+        upd();
+        pq.focus();
+      });
+    });
+    return tr;
+  }
+
+  // returns { rows } or { error }
+  function qaCollect(){
+    const rows = [];
+    let err = '';
+    [...document.querySelectorAll('#qaTable tbody tr')].forEach((tr, i) => {
+      if(err) return;
+      const h = tr.querySelector('.qa-src'); if(!h || !h.value) return;
+      const o = JSON.parse(decodeURIComponent(h.value));
+      const raw = tr.querySelector('.qa-pq').value;
+      if(raw === '' || !(Number(raw) >= 0)){ err = `Row ${i+1}: enter the physical quantity for ${o.Product}.`; return; }
+      const nq = Number(raw);
+      if(nq === num(o.Qty)) return;   // no difference -> nothing to adjust
+      rows.push({ item: o.Product, type: o.Type || '', batchNo: o.Batch || '', expiry: o.Expiry || '', newBatch: '', newExpiry: '', newQty: nq,
+        oldQty: num(o.Qty), mrp: num(o.MRP), remarks: tr.querySelector('.qa-rem').value.trim() });
+    });
+    if(err) return { error: err };
+    if(!rows.length) return { error: 'No differences found. Add an item and enter a physical quantity different from the system quantity.' };
+    return { rows };
+  }
+
+  function qaUpdateInfo(){
+    let n = 0, net = 0, val = 0;
+    document.querySelectorAll('#qaTable tbody tr').forEach(tr=>{
+      const h = tr.querySelector('.qa-src'), raw = tr.querySelector('.qa-pq').value;
+      if(!h || !h.value || raw === '') return;
+      const o = JSON.parse(decodeURIComponent(h.value));
+      const df = num(raw) - num(o.Qty);
+      if(df === 0) return;
+      n++; net += df; val += df * num(o.MRP);
+    });
+    const el = document.getElementById('qaInfo');
+    if(el) el.textContent = n ? `Rows to adjust: ${n} | Net qty ${net > 0 ? '+' : ''}${net} | Net value ₹${to2(val)}` : '';
+  }
+
+  function clearQa(){
+    document.querySelector('#qaTable tbody').innerHTML = '';
+    document.getElementById('qaReason').value = '';
+    document.getElementById('qaRemarks').value = '';
+    addQaRow();
+    qaUpdateInfo();
+  }
+
+  function qaPreview(){
+    const c = qaCollect(); if(c.error) return alert(c.error);
+    showDocPreview(buildAdjHtml(adjDocData('qty', '(Preview - not saved)', c.rows)), 'Preview - Quantity Adjustment (not saved yet)');
+  }
+
+  async function qaSave(){
+    if(!document.getElementById('qaReason').value) return alert('Select a reason for the adjustment.');
+    const c = qaCollect(); if(c.error) return alert(c.error);
+    if(!confirm(`Adjust quantity for ${c.rows.length} stock row(s)?\n\nThis changes stock records and cannot be undone.`)) return;
+    const ok = await adjSubmit('qty', c.rows);
+    if(ok) clearQa();
+  }
+
+  /* ---------- Adjustment document ---------- */
+  function buildAdjHtml(d){
+    const esc = escapeHtml;
+    let netQty = 0, netVal = 0;
+    const rowsHtml = d.rows.map((r,i)=>{
+      const diff = num(r.newQty) - num(r.oldQty);
+      const vdiff = diff * num(r.mrp);
+      netQty += diff; netVal += vdiff;
+      const bChg = String(r.oldBatch || '').trim() !== String(r.newBatch || '').trim();
+      const eChg = fmtExpiryPrint(r.oldExpiry) !== fmtExpiryPrint(r.newExpiry);
+      const col = diff < 0 ? '#b91c1c' : (diff > 0 ? '#047857' : '#555');
+      return `<tr>
+        <td style="text-align:center">${i+1}</td>
+        <td>${esc(r.item)}${r.remarks ? `<div style="font-size:7.5pt;color:#666">${esc(r.remarks)}</div>` : ''}</td>
+        <td>${esc(r.oldBatch || '-')}</td>
+        <td style="text-align:center">${esc(fmtExpiryPrint(r.oldExpiry) || '-')}</td>
+        <td${bChg ? ' style="font-weight:bold;background:#fef9c3"' : ''}>${esc(r.newBatch || '-')}</td>
+        <td style="text-align:center${eChg ? ';font-weight:bold;background:#fef9c3' : ''}">${esc(r.newExpiry || '-')}</td>
+        <td style="text-align:right">${esc(r.oldQty)}</td>
+        <td style="text-align:right">${esc(r.newQty)}</td>
+        <td style="text-align:right;font-weight:bold;color:${col}">${diff > 0 ? '+' : ''}${diff}</td>
+        <td style="text-align:right">${to2(vdiff)}</td>
+      </tr>`;
+    }).join('');
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Inventory - Stock Adjustment ${esc(d.adjId)}</title>
+    <style>
+      @page { size: A4 landscape; margin: 12mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+      .hdr { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #059669; padding-bottom:10px; margin-bottom:12px; }
+      .co { font-size:14pt; font-weight:bold; color:#059669; }
+      .sm { font-size:8pt; color:#555; }
+      h1 { font-size:15pt; margin:0; color:#333; text-align:right; }
+      .meta { display:flex; justify-content:space-between; margin-bottom:10px; font-size:10pt; line-height:1.5; }
+      .meta b { color:#555; }
+      table { width:100%; border-collapse:collapse; }
+      th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:5px; font-size:8.5pt; text-align:left; }
+      td { border:1px solid #cbd5e1; padding:5px; font-size:8.5pt; }
+      tfoot td { font-weight:bold; background:#f0fdf4; }
+      .sign { display:flex; justify-content:space-between; margin-top:60px; font-size:9pt; }
+      .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
+      .foot { margin-top:20px; text-align:center; font-size:8pt; color:#777; }
+    </style></head><body>
+      <div class="hdr">
+        <div>
+          <div class="co">PRISTINE PEARL PHARMA PVT LTD</div>
+          <div class="sm">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+          <div class="sm">Perur Village, Coimbatore - 641010</div>
+          <div class="sm">samples.pearl@gmail.com | +91 8838001387</div>
+        </div>
+        <div>
+          <h1>INVENTORY - STOCK ADJUSTMENT</h1>
+          <div style="text-align:right;font-size:9pt;margin-top:4px"><b>Adjustment No:</b> <span style="color:#059669;font-weight:bold">${esc(d.adjId || '-')}</span><br><b>Date:</b> ${esc(formatDateForPrint(d.date || ''))}</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div><b>Adjustment Type:</b> ${esc(d.mode)}<br><b>Reason:</b> ${esc(d.reason || '-')}${d.remarks ? `<br><b>Remarks:</b> ${esc(d.remarks)}` : ''}</div>
+        <div style="text-align:right"><b>Rows adjusted:</b> ${d.rows.length}</div>
+      </div>
+      <table>
+        <thead><tr><th style="width:26px;text-align:center">#</th><th>Product</th><th>Old Batch</th><th style="text-align:center">Old Expiry</th><th>New Batch</th><th style="text-align:center">New Expiry</th><th style="text-align:right">Old Qty</th><th style="text-align:right">New Qty</th><th style="text-align:right">Diff</th><th style="text-align:right">Value Diff (₹)</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr><td colspan="8" style="text-align:right">Net Adjustment</td><td style="text-align:right">${netQty > 0 ? '+' : ''}${netQty}</td><td style="text-align:right">₹${to2(netVal)}</td></tr></tfoot>
+      </table>
+      <div class="sign"><div>Prepared By</div><div>Verified By</div><div>Authorised Signatory</div></div>
+      <div class="foot">Highlighted cells show corrected values. This is a system generated document.</div>
+    </body></html>`;
+  }
+
+  /* ---------- Saved adjustments viewer ---------- */
+  function openAdjViewer(){ document.getElementById('adjViewerModal').classList.remove('hidden'); loadAdjList(); }
+  function closeAdjViewer(){ document.getElementById('adjViewerModal').classList.add('hidden'); }
+
+  async function loadAdjList(){
+    const tbody = document.querySelector('#adjListTable tbody');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-2 text-slate-500">Loading...</td></tr>`;
+    document.getElementById('adjListSearch').value = '';
+    const r = await post('getStockAdjustmentReport', {});
+    if(!r || !r.success){
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center p-2 text-red-600">${escapeHtml((r && r.message) || 'Could not load adjustments')}</td></tr>`;
+      return;
+    }
+    if(!(r.rows || []).length){
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center p-2 text-slate-500">No saved adjustments</td></tr>`;
+      return;
+    }
+    adjGroups = {};
+    const order = [];
+    r.rows.forEach(x=>{
+      const id = String(x.adjId || '').trim(); if(!id) return;
+      if(!adjGroups[id]){ adjGroups[id] = { adjId: id, mode: x.mode, date: x.date, reason: x.reason, remarks: x.remarks, rows: [] }; order.push(id); }
+      adjGroups[id].rows.push({ item: x.item, type: x.type, oldBatch: x.oldBatch, oldExpiry: x.oldExpiry, newBatch: x.newBatch, newExpiry: x.newExpiry, oldQty: num(x.oldQty), newQty: num(x.newQty), mrp: num(x.mrp), remarks: x.rowRemarks });
+    });
+    tbody.innerHTML = '';
+    order.reverse().forEach(id=>{
+      const g = adjGroups[id];
+      const net = g.rows.reduce((a,b)=> a + (num(b.newQty) - num(b.oldQty)), 0);
+      const tr = document.createElement('tr');
+      tr.dataset.search = [id, g.mode, g.date, g.reason, g.rows.map(x=>x.item).join(' ')].join(' ').toLowerCase();
+      tr.innerHTML = `
+        <td class="border px-2 py-1">${escapeHtml(id)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.date)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.mode)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.reason)}</td>
+        <td class="border px-2 py-1">${g.rows.length}</td>
+        <td class="border px-2 py-1 text-right">${net > 0 ? '+' : ''}${net}</td>
+        <td class="border px-2 py-1 text-center whitespace-nowrap"><button class="border border-emerald-600 text-emerald-700 px-2 py-1 rounded-md text-sm mr-1" onclick="previewSavedAdj('${escapeHtml(id)}')">Preview</button><button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm" onclick="printSavedAdj('${escapeHtml(id)}')">Print</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function filterAdjList(){
+    const val = document.getElementById('adjListSearch').value.toLowerCase();
+    document.querySelectorAll('#adjListTable tbody tr').forEach(tr=>{
+      tr.style.display = (tr.dataset.search || tr.textContent.toLowerCase()).includes(val) ? '' : 'none';
+    });
+  }
+  function previewSavedAdj(id){ const g = adjGroups[id]; if(!g) return alert('Adjustment not found.'); showDocPreview(buildAdjHtml(g), 'Stock Adjustment ' + id); }
+  function printSavedAdj(id){ const g = adjGroups[id]; if(!g) return alert('Adjustment not found.'); printHtml(buildAdjHtml(g)); }
 
   /* LIVE INVENTORY */
   function renderLiveInventory(){
