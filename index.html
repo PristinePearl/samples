@@ -15,13 +15,16 @@
     body { font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
     @media print { body { background: #fff; } }
     .top-tabs { gap: .25rem; }
+    .top-tabs .tab { white-space: nowrap; }
+    html, body { width: 100%; min-height: 100vh; }
+    main { width: 100%; }
     .required-star::after { content: " *"; color: #e11d48; }
   </style>
 </head>
 <body class="bg-gray-50 text-slate-900">
 
-  <header class="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
+  <header class="bg-white border-b border-gray-200 px-6 py-3 sticky top-0 z-40">
+    <div class="w-full flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
  <img src="https://pristinepearl.com/wp-content/uploads/2020/11/Pristine-Pearl-Pharma-Logo-1.svg" alt="Pristine Pearl Pharma Logo" class="w-20 h-20 object-contain rounded-lg" onerror="this.onerror=null;this.src='https://placehold.co/40x40/059669/ffffff?text=PP'">
         <div>
@@ -30,9 +33,10 @@
         </div>
       </div>
 
-      <nav class="flex items-center top-tabs overflow-x-auto">
+      <nav class="flex flex-wrap items-center justify-end ml-auto top-tabs">
         <button data-tab="request" class="tab px-3 py-2 rounded-md font-semibold text-emerald-600 hover:bg-emerald-50" onclick="switchTab(event)">Request</button>
         <button data-tab="receipt" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Receipt</button>
+        <button data-tab="staffreq" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Staff Req.</button>
         <button data-tab="supply" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Supply</button>
         <button data-tab="sreturn" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Return</button>
         <button data-tab="sadj" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Adjustment</button>
@@ -44,8 +48,8 @@
     </div>
   </header>
 
-  <main class="p-4 md:p-6">
-    <div class="max-w-7xl mx-auto">
+  <main class="p-4 md:px-8 md:py-6">
+    <div class="w-full">
 
       <section id="request" class="card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -271,6 +275,67 @@
         </div>
       </section>
 
+      <section id="staffreq" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Staff Requirement</h2>
+            <p class="text-sm text-slate-500">Record what a staff member needs. Later, pick the Requirement ID in the Supply tab to supply it.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addSrqRow()">+ Add Item</button>
+            <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveStaffRequirement()">Save Requirement</button>
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="block font-semibold text-sm">Staff Name</label>
+            <button type="button" onclick="openSrqStaffPicker()" class="border border-gray-200 rounded-md px-3 py-2 w-full text-left bg-white flex items-center justify-between">
+              <span id="srqStaffLabel" class="text-slate-500">-- Select Staff --</span><span class="text-slate-400 text-sm">🔍</span>
+            </button>
+            <input type="hidden" id="srqStaff" />
+          </div>
+          <div>
+            <label class="block font-semibold text-sm">Requested Date</label>
+            <input id="srqReqDate" type="date" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+          </div>
+          <div>
+            <label class="block font-semibold text-sm">Approval Date</label>
+            <input id="srqApprDate" type="date" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+          </div>
+        </div>
+
+        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+          <table id="srqTable" class="min-w-full text-sm">
+            <thead><tr>
+              <th class="p-2 text-left font-semibold text-slate-600">Requested Item</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Qty</th>
+              <th class="p-2"></th>
+            </tr></thead>
+            <tbody class="bg-white"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-6 flex items-center justify-between">
+          <h3 class="font-semibold">Recent Requirements</h3>
+          <button class="px-3 py-1 rounded-md border border-gray-200 text-sm font-semibold" onclick="loadSrqList()">↻ Refresh</button>
+        </div>
+        <div class="mt-2 overflow-x-auto rounded-lg border border-gray-100">
+          <table class="min-w-full text-sm">
+            <thead><tr>
+              <th class="p-2 text-left font-semibold text-slate-600">ID</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Staff</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Requested</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Approved</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Items</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Status</th>
+              <th class="p-2"></th>
+            </tr></thead>
+            <tbody id="srqListBody" class="bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="supply" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
@@ -287,6 +352,18 @@
             <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addSupplyRow()">+ Add</button>
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveSupply()">Save</button>
           </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block font-semibold text-sm">Staff Requirement ID <span class="text-slate-400 font-normal">(optional)</span></label>
+          <div class="flex items-center gap-2 max-w-lg">
+            <button type="button" onclick="openSupplyReqPicker()" class="border border-gray-200 rounded-md px-3 py-2 w-full text-left bg-white flex items-center justify-between">
+              <span id="supReqLabel" class="text-slate-500">-- Select Requirement ID --</span><span class="text-slate-400 text-sm">🔍</span>
+            </button>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="clearSupplyReq()">Clear</button>
+          </div>
+          <input type="hidden" id="supReqId" />
+          <div id="supReqInfo" class="text-xs text-slate-500 mt-1"></div>
         </div>
 
         <div class="mt-4">
@@ -1334,10 +1411,11 @@
     document.getElementById('reqDate').value = todayISO;
     document.getElementById('recDate').value = todayISO;
     document.getElementById('supDate').value = todayISO;
+    document.getElementById('srqReqDate').value = todayISO;
     document.getElementById('poDate').value = todayISO;
 
     activateTabVisuals(document.querySelectorAll('.tab')[0]);
-    ['request','receipt','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
+    ['request','receipt','staffreq','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
 
     // Parallel load: total wait = slowest call, not the sum of all calls.
     // allSettled => one failing call can't block the page from opening.
@@ -1482,11 +1560,12 @@
     const tab = e.currentTarget ? e.currentTarget.dataset.tab : e.dataset.tab;
     const clicked = e.currentTarget ? e.currentTarget : e;
     activateTabVisuals(clicked);
-    ['request','receipt','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
+    ['request','receipt','staffreq','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
     if(tab==='sadj'){ openSadjTab(); }
     if(tab==='sreturn'){ loadInventory(); loadVendors(); }
     if(tab==='po'){ loadVendors(); fetchNextPoNumber(); }
     if(tab==='live'){ loadInventory().then(renderLiveInventory); }
+    if(tab==='staffreq'){ loadEmployees(); loadProducts().then(()=>{ if(!document.querySelector('#srqTable tbody tr')) addSrqRow(); }); loadSrqList(); }
     if(tab==='supply'){ loadInventory(); loadEmployees(); }
     if(tab==='receipt'){ loadPendingRequests(); if((document.getElementById('receiptMode')?.value)==='po'){ loadPendingPOs(); } }
   }
@@ -2463,14 +2542,177 @@
     const short = Object.values(need).filter(n => n.want > n.have);
     if(short.length) return alert('Not enough stock:\n' + short.map(n => `${n.name} (batch ${n.batch}): available ${n.have}, requested ${n.want}`).join('\n'));
 
-    const res = await post('saveSupply',{ date, supTo: emp, rows });
+    const reqId = document.getElementById('supReqId').value || '';
+    const res = await post('saveSupply',{ date, supTo: emp, rows, reqId });
     if(res && res.success){
       alert(res.message || 'Saved');
       document.querySelector('#supTable tbody').innerHTML = '';
+      clearSupplyReq(true);
     } else {
       alert('Save failed: '+((res && res.message)||'')); // rows are kept so nothing needs re-entering
     }
     loadInventory();
+  }
+
+
+  /* ===================== STAFF REQUIREMENT ===================== */
+  function openSrqStaffPicker(){
+    const items = employees.map(e => ({
+      label: `${escapeHtml(e["Employee Code"])} - ${escapeHtml(e["Employee Name"])}`,
+      sub: [e["Designation"], e["Division"], e["HQ"]].filter(Boolean).map(escapeHtml).join(' • '),
+      code: e["Employee Code"], text: `${e["Employee Code"]} - ${e["Employee Name"]}`,
+      searchText: `${e["Employee Code"]||''} ${e["Employee Name"]||''} ${e["Designation"]||''} ${e["Division"]||''}`.toLowerCase()
+    }));
+    openPicker('Select Staff', items, it => {
+      document.getElementById('srqStaff').value = it.code;
+      const l = document.getElementById('srqStaffLabel');
+      l.textContent = it.text; l.classList.remove('text-slate-500'); l.classList.add('text-slate-800');
+    });
+  }
+
+  function addSrqRow(){
+    const tb = document.querySelector('#srqTable tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="p-2">
+        <button type="button" class="q-prod-btn border border-gray-200 rounded-md px-2 py-1 w-full min-w-[280px] text-left bg-white flex items-center justify-between">
+          <span class="q-prod-label text-slate-500">-- Select Item --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button>
+        <input type="hidden" class="q-prod" value="" />
+      </td>
+      <td class="p-2"><input class="q-qty border border-gray-200 rounded-md px-2 py-1 w-28" type="number" min="1"></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove()">✕</button></td>`;
+    tb.appendChild(tr);
+    tr.querySelector('.q-prod-btn').addEventListener('click', ()=>{
+      const seen = new Set();
+      const items = products.filter(p => {
+        const n = String(p.Product || p["Product Name"] || p.Item || '').trim();
+        if(!n || seen.has(n.toLowerCase())) return false; seen.add(n.toLowerCase()); return true;
+      }).map(p => {
+        const n = String(p.Product || p["Product Name"] || p.Item || '').trim();
+        return { label: escapeHtml(n), sub: escapeHtml([p.Type, p.Division].filter(Boolean).join(' • ')), searchText: `${n} ${p.Type||''}`.toLowerCase(), name: n };
+      }).sort((a,b)=>a.name.localeCompare(b.name));
+      openPicker('Select Item', items, it => {
+        tr.querySelector('.q-prod').value = it.name;
+        const l = tr.querySelector('.q-prod-label'); l.textContent = it.name; l.classList.remove('text-slate-500'); l.classList.add('text-slate-800');
+      });
+    });
+  }
+
+  async function saveStaffRequirement(){
+    const staffCode = document.getElementById('srqStaff').value;
+    const requestedDate = document.getElementById('srqReqDate').value;
+    const approvalDate = document.getElementById('srqApprDate').value;
+    if(!staffCode) return alert('Select Staff');
+    if(!requestedDate) return alert('Enter Requested Date');
+    const rows = [...document.querySelectorAll('#srqTable tbody tr')].map(tr => ({
+      item: tr.querySelector('.q-prod').value, qty: tr.querySelector('.q-qty').value
+    })).filter(r => r.item && num(r.qty) > 0);
+    if(!rows.length) return alert('Add at least one item with quantity');
+    const emp = employees.find(e => String(e["Employee Code"]) === String(staffCode)) || {};
+    const res = await post('saveStaffRequirement', { staffCode, staffName: emp["Employee Name"] || '', requestedDate, approvalDate, rows });
+    if(res && res.success){
+      alert(res.message || 'Saved');
+      document.querySelector('#srqTable tbody').innerHTML = '';
+      addSrqRow();
+      document.getElementById('srqApprDate').value = '';
+      document.getElementById('srqStaff').value = '';
+      const l = document.getElementById('srqStaffLabel'); l.textContent = '-- Select Staff --'; l.classList.add('text-slate-500'); l.classList.remove('text-slate-800');
+      loadSrqList();
+    } else {
+      alert('Save failed: ' + ((res && res.message) || ''));
+    }
+  }
+
+  async function loadSrqList(){
+    const r = await post('getStaffRequirements', { status: 'All' });
+    const tb = document.getElementById('srqListBody');
+    const list = (r && r.success) ? (r.requirements || []).slice(0, 50) : [];
+    if(!list.length){ tb.innerHTML = '<tr><td colspan="7" class="p-3 text-center text-slate-400">No requirements yet</td></tr>'; return; }
+    const badge = s => s === 'Open' ? 'bg-amber-100 text-amber-800' : (s === 'Supplied' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600');
+    tb.innerHTML = list.map(q => `<tr class="border-t border-gray-100">
+      <td class="p-2 font-semibold">${escapeHtml(q.id)}</td>
+      <td class="p-2">${escapeHtml(q.staffCode)} - ${escapeHtml(q.staffName)}</td>
+      <td class="p-2">${escapeHtml(q.requestedDate)}</td>
+      <td class="p-2">${escapeHtml(q.approvalDate || '-')}</td>
+      <td class="p-2">${q.items.map(i => `${escapeHtml(i.item)} × ${i.qty}`).join('<br>')}</td>
+      <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badge(q.status)}">${escapeHtml(q.status)}${q.supplyId ? ' (' + escapeHtml(q.supplyId) + ')' : ''}</span></td>
+      <td class="p-2">${q.status === 'Open' ? `<button class="text-red-500 text-xs font-semibold" onclick="cancelSrq('${escapeHtml(q.id)}')">Cancel</button>` : ''}</td>
+    </tr>`).join('');
+  }
+
+  async function cancelSrq(id){
+    if(!confirm('Cancel requirement ' + id + '?')) return;
+    const r = await post('cancelStaffRequirement', { reqId: id });
+    alert((r && r.message) || '');
+    loadSrqList();
+  }
+
+  /* ---- Supply: pick a Requirement ID -> staff + items prefilled (editable) ---- */
+  async function openSupplyReqPicker(){
+    const r = await post('getStaffRequirements', { status: 'Open' });
+    const list = (r && r.success) ? (r.requirements || []) : [];
+    const items = list.length ? list.map(q => ({
+      label: `${escapeHtml(q.id)} — ${escapeHtml(q.staffCode)} ${escapeHtml(q.staffName)}`,
+      sub: `Requested: ${escapeHtml(q.requestedDate)} | Approved: ${escapeHtml(q.approvalDate || '-')} | ${q.items.map(i => escapeHtml(i.item) + ' × ' + i.qty).join(', ')}`,
+      searchText: `${q.id} ${q.staffCode} ${q.staffName} ${q.items.map(i=>i.item).join(' ')}`.toLowerCase(),
+      req: q
+    })) : [];
+    if(!items.length) return alert('No open staff requirements.');
+    openPicker('Select Requirement ID', items, it => applySupplyReq(it.req));
+  }
+
+  function clearSupplyReq(keepRows){
+    document.getElementById('supReqId').value = '';
+    const l = document.getElementById('supReqLabel'); l.textContent = '-- Select Requirement ID --'; l.classList.add('text-slate-500'); l.classList.remove('text-slate-800');
+    document.getElementById('supReqInfo').textContent = '';
+    if(!keepRows){ /* leave rows as they are */ }
+  }
+
+  function applySupplyReq(q){
+    document.getElementById('supReqId').value = q.id;
+    const l = document.getElementById('supReqLabel');
+    l.textContent = `${q.id} — ${q.staffCode} ${q.staffName}`; l.classList.remove('text-slate-500'); l.classList.add('text-slate-800');
+
+    // staff
+    const emp = employees.find(e => String(e["Employee Code"]) === String(q.staffCode));
+    if(emp) setEmployeeSelection('supTo', emp["Employee Code"], `${emp["Employee Code"]} - ${emp["Employee Name"]}`);
+
+    // item rows: allocate requested qty across in-stock batches, earliest expiry first
+    const tb = document.querySelector('#supTable tbody');
+    tb.innerHTML = '';
+    document.getElementById('sType').value = '';   // no type filter so every requested item can be found
+    const notes = [];
+    q.items.forEach(it => {
+      const nm = String(it.item).trim().toLowerCase();
+      const batches = inventory
+        .filter(r => String(r.Product||'').trim().toLowerCase() === nm && num(r.Qty) > 0)
+        .sort((a,b)=> String(buParseExpiry(a.Expiry)||'9999').localeCompare(String(buParseExpiry(b.Expiry)||'9999')));
+      let left = num(it.qty);
+      if(!batches.length){
+        notes.push(`${it.item}: no stock`);
+        addSupplyRow();
+        const tr = tb.lastElementChild;
+        tr.querySelector('.s-rem').value = `Required: ${it.item} × ${it.qty} (no stock)`;
+        return;
+      }
+      batches.forEach(b => {
+        if(left <= 0) return;
+        const take = Math.min(left, num(b.Qty));
+        left -= take;
+        addSupplyRow();
+        const tr = tb.lastElementChild;
+        tr.querySelector('.s-prod').value = encodeURIComponent(JSON.stringify(b));
+        const lb = tr.querySelector('.s-prod-label'); lb.textContent = b.Product; lb.classList.remove('text-slate-500'); lb.classList.add('text-slate-800');
+        tr.querySelector('.s-batch').value = b.Batch || '';
+        tr.querySelector('.s-exp').value = b.Expiry || '';
+        tr.querySelector('.s-mrp').value = b.MRP || '';
+        tr.querySelector('.s-qty').value = take;
+        tr.querySelector('.s-total').value = to2(take * num(b.MRP));
+      });
+      if(left > 0) notes.push(`${it.item}: short by ${left}`);
+    });
+    if(!tb.children.length) addSupplyRow();
+    document.getElementById('supReqInfo').textContent = `Requested: ${q.requestedDate}${q.approvalDate ? ' | Approved: ' + q.approvalDate : ''}. Edit rows as needed, then Save.` + (notes.length ? ' ⚠ ' + notes.join('; ') : '');
   }
 
   /* ===================== EXPIRY STOCK REMOVAL ===================== */
