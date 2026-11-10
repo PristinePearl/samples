@@ -732,37 +732,79 @@
       </section>
 
       <section id="live" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <style>
+          #live .li-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}
+          @media(min-width:768px){#live .li-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
+          #live .li-kpi{border:1px solid var(--line);border-radius:12px;padding:.7rem .9rem;background:#fff;text-align:left;transition:box-shadow .12s,border-color .12s;cursor:default}
+          #live .li-kpi.clickable{cursor:pointer}
+          #live .li-kpi.clickable:hover{border-color:#94a3b8;box-shadow:0 2px 8px -4px rgba(15,23,42,.25)}
+          #live .li-kpi.on{border-color:var(--brand);box-shadow:0 0 0 2px rgba(5,150,105,.18)}
+          #live .li-kpi .k-l{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+          #live .li-kpi .k-v{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+          #live .li-kpi .k-s{font-size:.72rem;color:var(--muted);margin-top:1px}
+          #live .li-bar{display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end}
+          #live .li-bar label{display:block;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+          #live .li-wrap{max-height:68vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+          #live table.li{width:100%;font-size:.85rem;border-collapse:separate;border-spacing:0}
+          #live table.li thead th{position:sticky;top:0;z-index:2;background:#f8fafc;padding:.55rem .7rem;text-align:left;white-space:nowrap;cursor:pointer;user-select:none;border-bottom:1px solid var(--line)}
+          #live table.li thead th:hover{color:var(--brand-dark)}
+          #live table.li thead th .arr{font-size:.65rem;margin-left:3px;color:var(--brand)}
+          #live table.li thead th.r,#live table.li td.r{text-align:right}
+          #live table.li td{padding:.5rem .7rem;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+          #live table.li tbody tr:nth-child(even){background:#fcfdfe}
+          #live table.li td.num{font-variant-numeric:tabular-nums}
+          #live table.li tfoot td{position:sticky;bottom:0;background:#f0fdf4;font-weight:700;border-top:2px solid #6ee7b7;padding:.55rem .7rem}
+          #live .chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.7rem;font-weight:700;white-space:nowrap}
+          #live .chip.exp{background:#fee2e2;color:#b91c1c}
+          #live .chip.m3{background:#ffedd5;color:#c2410c}
+          #live .chip.m6{background:#fef9c3;color:#a16207}
+          #live .chip.ok{background:#dcfce7;color:#15803d}
+          #live .chip.na{background:#f1f5f9;color:#64748b}
+          #live .chip.type{background:#e0f2fe;color:#0369a1;font-weight:600}
+          #live .qty-zero{color:#94a3b8}
+          #live .qty-low{color:#b45309;font-weight:700}
+          #live .li-empty{padding:2.5rem 1rem;text-align:center;color:var(--muted)}
+        </style>
+
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold">Live Inventory</h2>
-            <p class="text-sm text-slate-500">View current stock with filters</p>
+            <p class="text-sm text-slate-500">Current stock with expiry status. Click a card or a column heading to filter / sort.</p>
           </div>
-
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-slate-500">Type</label>
-            <select id="filterType" onchange="renderLiveInventory()" class="border border-gray-200 rounded-md px-2 py-1"></select>
-            <label class="text-sm text-slate-500">Search</label>
-            <input id="filterSearch" type="text" placeholder="Search product..." oninput="renderLiveInventory()" class="border border-gray-200 rounded-md px-2 py-1" />
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="liveUpdated" class="text-xs text-slate-400"></span>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="refreshLiveInventory()">↻ Refresh</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="exportLiveInventory()">⬇ Export Excel</button>
           </div>
         </div>
 
-        <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
-          <table id="liveTable" class="min-w-full text-sm">
-            <thead>
-              <tr>
-                <th class="p-2 text-left font-semibold text-slate-600">Type</th>
-                <th class="p-2 text-left font-semibold text-slate-600">Product</th>
-                <th class="p-2 text-left font-semibold text-slate-600">Division</th>
-                <th class="p-2 text-left font-semibold text-slate-600">Batch</th>
-                <th class="p-2 text-left font-semibold text-slate-600">Expiry (MM-YYYY)</th>
-                <th class="p-2 text-left font-semibold text-slate-600">Qty</th>
-                <th class="p-2 text-left font-semibold text-slate-600">MRP</th>
-                <th class="p-2 text-left font-semibold text-slate-600">Last Updated</th>
-              </tr>
-            </thead>
+        <div id="liveKpis" class="li-kpis mt-4"></div>
+
+        <div class="li-bar mt-4">
+          <div><label>Type</label><select id="filterType" onchange="liveResetLimit();renderLiveInventory()" class="border border-gray-200 rounded-md px-2 py-1.5 text-sm"></select></div>
+          <div><label>Division</label><select id="filterDivision" onchange="liveResetLimit();renderLiveInventory()" class="border border-gray-200 rounded-md px-2 py-1.5 text-sm"><option value="">All</option></select></div>
+          <div><label>Expiry status</label>
+            <select id="filterStatus" onchange="liveResetLimit();renderLiveInventory()" class="border border-gray-200 rounded-md px-2 py-1.5 text-sm">
+              <option value="">All</option>
+              <option value="exp">Expired</option>
+              <option value="m3">Expiring ≤ 3 months</option>
+              <option value="m6">Expiring 3–6 months</option>
+              <option value="ok">OK (&gt; 6 months)</option>
+              <option value="na">No expiry</option>
+            </select></div>
+          <div class="flex-1 min-w-[200px]"><label>Search</label><input id="filterSearch" type="text" placeholder="Product, batch, division..." oninput="liveResetLimit();renderLiveInventory()" class="border border-gray-200 rounded-md px-3 py-1.5 text-sm w-full" /></div>
+          <label class="flex items-center gap-1.5 text-sm pb-2 cursor-pointer" style="text-transform:none;letter-spacing:0;font-weight:500;color:#334155"><input id="filterHideZero" type="checkbox" checked onchange="liveResetLimit();renderLiveInventory()" /> Hide zero stock</label>
+          <button type="button" class="px-3 py-1.5 rounded-md border border-gray-200 text-sm font-semibold bg-white mb-0.5" onclick="clearLiveFilters()">Clear</button>
+        </div>
+
+        <div class="li-wrap mt-3">
+          <table id="liveTable" class="li">
+            <thead><tr id="liveHead"></tr></thead>
             <tbody class="bg-white"></tbody>
+            <tfoot></tfoot>
           </table>
         </div>
+        <div id="liveMore" class="mt-2 text-center"></div>
       </section>
 
       <section id="po" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
@@ -3488,27 +3530,187 @@
   function printSavedAdj(id){ const g = adjGroups[id]; if(!g) return alert('Adjustment not found.'); printHtml(buildAdjHtml(g)); }
 
   /* LIVE INVENTORY */
-  function renderLiveInventory(){
-    const type = (document.getElementById('filterType').value||'').toLowerCase();
-    const search = (document.getElementById('filterSearch').value||'').toLowerCase();
-    const tb = document.querySelector('#liveTable tbody'); tb.innerHTML = '';
-    inventory.filter(r=>{
-      const mt = !type || (r.Type||'').toLowerCase() === type;
-      const ms = !search || (r.Product||'').toLowerCase().includes(search);
-      return mt && ms;
-    }).forEach(r=>{
-      const tr = document.createElement('tr');
-      const lastUpdated = formatDateForPrint(r['Last Updated'] || r['LastUpdated'] || r['Updated On'] || r['Date'] || '');
-      tr.innerHTML = `<td class="p-2">${escapeHtml(r.Type)}</td>
-        <td class="p-2">${escapeHtml(r.Product)}</td>
-        <td class="p-2">${escapeHtml(r.Division)}</td>
-        <td class="p-2">${escapeHtml(r.Batch)}</td>
-        <td class="p-2">${escapeHtml(r.Expiry)}</td>
-        <td class="p-2">${escapeHtml(r.Qty)}</td>
-        <td class="p-2">${escapeHtml(r.MRP)}</td>
-        <td class="p-2">${escapeHtml(lastUpdated)}</td>`;
-      tb.appendChild(tr);
+  const LIVE_COLS = [
+    { k:'type',     l:'Type' },
+    { k:'product',  l:'Product' },
+    { k:'division', l:'Division' },
+    { k:'batch',    l:'Batch' },
+    { k:'expiry',   l:'Expiry' },
+    { k:'status',   l:'Status' },
+    { k:'qty',      l:'Qty',   r:true },
+    { k:'mrp',      l:'MRP',   r:true },
+    { k:'value',    l:'Value', r:true },
+    { k:'updated',  l:'Last Updated' }
+  ];
+  const LIVE_STATUS = {
+    exp:{ l:'Expired', o:0 }, m3:{ l:'≤ 3 months', o:1 }, m6:{ l:'3–6 months', o:2 }, ok:{ l:'OK', o:3 }, na:{ l:'No expiry', o:4 }
+  };
+  const LIVE_LOW_QTY = 50;     // quantity at/below this is highlighted as low stock
+  const LIVE_PAGE = 300;
+  let liveSort = { k:'product', dir:1 };
+  let liveLimit = LIVE_PAGE;
+
+  function liveResetLimit(){ liveLimit = LIVE_PAGE; }
+
+  // YYYY-MM (valid through the last day of its month) -> status code
+  function liveStatusOf(expiry){
+    const ym = buParseExpiry(expiry);
+    if(!ym) return 'na';
+    const d = new Date();
+    const idx = Number(ym.slice(0,4)) * 12 + Number(ym.slice(5,7));
+    const cur = d.getFullYear() * 12 + (d.getMonth() + 1);
+    const diff = idx - cur;
+    if(diff < 0) return 'exp';
+    if(diff <= 3) return 'm3';
+    if(diff <= 6) return 'm6';
+    return 'ok';
+  }
+
+  function liveRows(){
+    return inventory.filter(r => buStr(r.Product)).map(r => {
+      const qty = num(r.Qty), mrp = num(r.MRP);
+      return {
+        type: buStr(r.Type), product: buStr(r.Product), division: buStr(r.Division), batch: buStr(r.Batch),
+        expiry: r.Expiry, expiryYM: buParseExpiry(r.Expiry), status: liveStatusOf(r.Expiry),
+        qty, mrp, value: qty * mrp,
+        updated: formatDateForPrint(r['Last Updated'] || r['LastUpdated'] || r['Updated On'] || r['Date'] || '')
+      };
     });
+  }
+
+  function liveFiltered(all){
+    const type = document.getElementById('filterType').value;
+    const div = document.getElementById('filterDivision').value;
+    const st = document.getElementById('filterStatus').value;
+    const hideZero = document.getElementById('filterHideZero').checked;
+    const q = (document.getElementById('filterSearch').value || '').toLowerCase().trim();
+    return all.filter(r =>
+      (!type || r.type.toLowerCase() === type.toLowerCase()) &&
+      (!div || r.division === div) &&
+      (!st || r.status === st) &&
+      (!hideZero || r.qty > 0) &&
+      (!q || `${r.product} ${r.batch} ${r.division} ${r.type}`.toLowerCase().includes(q))
+    );
+  }
+
+  function liveSortRows(rows){
+    const { k, dir } = liveSort;
+    const val = r => k === 'expiry' ? (r.expiryYM || '9999-99') : k === 'status' ? LIVE_STATUS[r.status].o : r[k];
+    return rows.slice().sort((a,b) => {
+      const x = val(a), y = val(b);
+      const c = (typeof x === 'number' && typeof y === 'number') ? x - y : String(x).localeCompare(String(y), undefined, { numeric:true, sensitivity:'base' });
+      return (c || a.product.localeCompare(b.product) || a.batch.localeCompare(b.batch)) * dir;
+    });
+  }
+
+  function liveSortBy(k){
+    liveSort = { k, dir: liveSort.k === k ? -liveSort.dir : 1 };
+    renderLiveInventory();
+  }
+
+  function liveKpiFilter(st){
+    const el = document.getElementById('filterStatus');
+    el.value = (el.value === st) ? '' : st;
+    liveResetLimit();
+    renderLiveInventory();
+  }
+
+  function clearLiveFilters(){
+    ['filterType','filterDivision','filterStatus','filterSearch'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+    document.getElementById('filterHideZero').checked = true;
+    liveSort = { k:'product', dir:1 };
+    liveResetLimit();
+    renderLiveInventory();
+  }
+
+  async function refreshLiveInventory(){
+    await loadInventory();
+    renderLiveInventory();
+  }
+
+  function renderLiveInventory(){
+    const all = liveRows();
+
+    // Division filter options (keep current selection)
+    const dSel = document.getElementById('filterDivision');
+    const dCur = dSel.value;
+    const divs = [...new Set(all.map(r => r.division).filter(Boolean))].sort();
+    dSel.innerHTML = `<option value="">All</option>` + divs.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+    dSel.value = divs.includes(dCur) ? dCur : '';
+
+    // KPI cards: computed on stock that is actually on hand, within the Type / Division / search filters
+    const type = document.getElementById('filterType').value;
+    const stSel = document.getElementById('filterStatus').value;
+    const q = (document.getElementById('filterSearch').value || '').toLowerCase().trim();
+    const base = all.filter(r => r.qty > 0 &&
+      (!type || r.type.toLowerCase() === type.toLowerCase()) &&
+      (!dSel.value || r.division === dSel.value) &&
+      (!q || `${r.product} ${r.batch} ${r.division} ${r.type}`.toLowerCase().includes(q)));
+    const sum = (arr, f) => arr.reduce((s, r) => s + f(r), 0);
+    const cExp = base.filter(r => r.status === 'exp'), cM3 = base.filter(r => r.status === 'm3');
+    const inr = v => '₹' + Math.round(v).toLocaleString('en-IN');
+    const card = (label, value, sub, st, tone) => {
+      const click = st ? ` clickable${stSel === st ? ' on' : ''}` : '';
+      const oc = st ? ` onclick="liveKpiFilter('${st}')"` : '';
+      return `<button type="button" class="li-kpi${click}"${oc}><div class="k-l">${label}</div><div class="k-v" style="${tone ? 'color:' + tone : ''}">${value}</div><div class="k-s">${sub}</div></button>`;
+    };
+    document.getElementById('liveKpis').innerHTML =
+      card('Batches in stock', base.length.toLocaleString('en-IN'), `${new Set(base.map(r => r.product)).size} products`) +
+      card('Total quantity', sum(base, r => r.qty).toLocaleString('en-IN'), 'units on hand') +
+      card('Stock value (MRP)', inr(sum(base, r => r.value)), 'qty × MRP') +
+      card('Expiring ≤ 3 months', cM3.length.toLocaleString('en-IN'), `${inr(sum(cM3, r => r.value))} at risk`, 'm3', cM3.length ? '#c2410c' : '') +
+      card('Expired', cExp.length.toLocaleString('en-IN'), `${inr(sum(cExp, r => r.value))} to remove`, 'exp', cExp.length ? '#b91c1c' : '');
+
+    // Table
+    const rows = liveSortRows(liveFiltered(all));
+    document.getElementById('liveHead').innerHTML = LIVE_COLS.map(c =>
+      `<th class="${c.r ? 'r' : ''}" onclick="liveSortBy('${c.k}')">${c.l}<span class="arr">${liveSort.k === c.k ? (liveSort.dir > 0 ? '▲' : '▼') : ''}</span></th>`).join('');
+
+    const tb = document.querySelector('#liveTable tbody');
+    const tf = document.querySelector('#liveTable tfoot');
+    const more = document.getElementById('liveMore');
+    if(!rows.length){
+      tb.innerHTML = `<tr><td colspan="${LIVE_COLS.length}" class="li-empty">${all.length ? 'No stock matches the current filters.' : 'No inventory loaded yet.'}</td></tr>`;
+      tf.innerHTML = '';
+      more.innerHTML = '';
+    } else {
+      const shown = rows.slice(0, liveLimit);
+      tb.innerHTML = shown.map(r => {
+        const qcls = r.qty <= 0 ? 'qty-zero' : (r.qty <= LIVE_LOW_QTY ? 'qty-low' : '');
+        return `<tr>
+          <td><span class="chip type">${escapeHtml(r.type || '-')}</span></td>
+          <td class="font-medium">${escapeHtml(r.product)}</td>
+          <td>${escapeHtml(r.division || '-')}</td>
+          <td>${escapeHtml(r.batch || '-')}</td>
+          <td class="num">${escapeHtml(r.expiryYM ? fmtExpiryPrint(r.expiryYM) : (buStr(r.expiry) || '-'))}</td>
+          <td><span class="chip ${r.status}">${LIVE_STATUS[r.status].l}</span></td>
+          <td class="r num ${qcls}">${r.qty.toLocaleString('en-IN')}</td>
+          <td class="r num">${to2(r.mrp)}</td>
+          <td class="r num">${to2(r.value)}</td>
+          <td class="text-slate-500">${escapeHtml(r.updated)}</td>
+        </tr>`;
+      }).join('');
+      tf.innerHTML = `<tr><td colspan="6">${rows.length.toLocaleString('en-IN')} row(s)${rows.length > shown.length ? ` (showing ${shown.length})` : ''}</td>
+        <td class="r num">${sum(rows, r => r.qty).toLocaleString('en-IN')}</td><td></td><td class="r num">${to2(sum(rows, r => r.value))}</td><td></td></tr>`;
+      more.innerHTML = rows.length > shown.length
+        ? `<button type="button" class="px-4 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="liveLimit+=LIVE_PAGE;renderLiveInventory()">Show ${Math.min(LIVE_PAGE, rows.length - shown.length)} more</button>`
+        : '';
+    }
+    const u = document.getElementById('liveUpdated');
+    if(u) u.textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  function exportLiveInventory(){
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    const rows = liveSortRows(liveFiltered(liveRows()));
+    if(!rows.length) return alert('Nothing to export for the current filters.');
+    const aoa = [['Type','Product','Division','Batch','Expiry (MM-YYYY)','Status','Qty','MRP','Value','Last Updated']].concat(
+      rows.map(r => [r.type, r.product, r.division, r.batch, r.expiryYM ? fmtExpiryPrint(r.expiryYM) : buStr(r.expiry), LIVE_STATUS[r.status].l, r.qty, r.mrp, Math.round(r.value * 100) / 100, r.updated]));
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{wch:14},{wch:42},{wch:16},{wch:16},{wch:16},{wch:14},{wch:9},{wch:10},{wch:12},{wch:14}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Live Inventory');
+    XLSX.writeFile(wb, 'Live_Inventory_' + new Date().toISOString().slice(0,10) + '.xlsx');
   }
 
   /* ---------------- PO FUNCTIONS ---------------- */
