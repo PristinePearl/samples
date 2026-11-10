@@ -93,7 +93,6 @@
   .tab-active{background:linear-gradient(90deg,#10b981,#059669)!important;color:#fff!important;font-weight:600;box-shadow:0 4px 12px rgba(16,185,129,.35)}
   .sidebar-nav{max-height:none!important;flex:1;min-height:0}
   .nav-group{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin:10px 0 2px 6px}
-  .nav-new{font-size:9px;font-weight:800;background:#f59e0b;color:#fff;border-radius:999px;padding:1px 6px;margin-left:6px;vertical-align:middle}
   .sidebtn{font-size:14px}
   header{backdrop-filter:blur(6px)}
   .grid > .rounded-xl.border.p-4{transition:transform .15s,box-shadow .15s}
@@ -142,48 +141,6 @@
   html.dark .sidebar-nav::-webkit-scrollbar-track{background:#1f2937}
   html.dark .type-pill.sample-pill:not(.active),html.dark .type-pill.gift-pill:not(.active){opacity:.85}
 
-  /* ===== Supply Invoice / DC styles ===== */
-  .dc-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 4px 18px rgba(15,23,42,.08);margin-bottom:28px;overflow:hidden;page-break-inside:avoid}
-  .dc-header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);color:#fff;padding:20px 24px 14px}
-  .dc-company{font-size:18px;font-weight:800;letter-spacing:.01em}
-  .dc-tagline{font-size:11px;opacity:.7;margin-top:1px}
-  .dc-stamp{display:inline-block;border:2.5px solid rgba(255,255,255,.55);border-radius:6px;padding:3px 12px;font-size:11px;font-weight:800;letter-spacing:.12em;opacity:.85;margin-top:6px}
-  .dc-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 24px 10px;background:#f8fafc;border-bottom:1px solid #e2e8f0}
-  .dc-meta-block{font-size:12.5px}
-  .dc-meta-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:2px}
-  .dc-meta-value{font-weight:700;color:#1e293b;font-size:13px}
-  .dc-meta-sub{font-size:11.5px;color:#475569;margin-top:1px}
-  .dc-notice{background:#fef9c3;border-bottom:1px solid #fde047;padding:5px 24px;font-size:11px;font-weight:700;color:#854d0e;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
-  .dc-items table{width:100%;border-collapse:collapse;font-size:12.5px}
-  .dc-items thead th{background:#1e293b;color:#fff;padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-  .dc-items tbody td{padding:7px 12px;border-bottom:1px solid #f1f5f9;color:#1e293b}
-  .dc-items tbody tr:last-child td{border-bottom:none}
-  .dc-items tbody tr:nth-child(even){background:#f8fafc}
-  .dc-footer{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 24px;border-top:1px solid #e2e8f0;background:#f8fafc;gap:16px;flex-wrap:wrap}
-  .dc-sig{font-size:11px;color:#64748b;text-align:right}
-  .dc-sig-line{border-top:1.5px solid #94a3b8;width:120px;margin:28px 0 4px auto}
-  .dc-total-box{background:#1e293b;color:#fff;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;display:inline-flex;gap:16px;align-items:center}
-  .dc-total-box span{font-size:10px;opacity:.7;font-weight:400;display:block;margin-bottom:1px}
-  .inv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,720px),1fr));gap:20px}
-  @media(max-width:640px){.dc-meta{grid-template-columns:1fr}.dc-footer{flex-direction:column}}
-
-  /* Invoice print area */
-  @media print{
-    .no-print,.tbl-bar{display:none!important}
-    .dc-card{box-shadow:none;border:1px solid #cbd5e1;margin-bottom:18px}
-    #dcInvoicePanel{display:block!important}
-    .inv-grid{grid-template-columns:1fr}
-    .dc-header{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    .dc-items thead{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  }
-  html.dark .dc-card{background:#111827;border-color:#374151}
-  html.dark .dc-meta{background:#1f2937;border-color:#374151}
-  html.dark .dc-meta-value{color:#f1f5f9}
-  html.dark .dc-meta-sub{color:#94a3b8}
-  html.dark .dc-footer{background:#1f2937;border-color:#374151}
-  html.dark .dc-items tbody tr:nth-child(even){background:#1f2937}
-  html.dark .dc-items tbody td{color:#e5e7eb;border-color:#374151}
-  html.dark .dc-notice{background:#422006;border-color:#78350f;color:#fcd34d}
   </style>
 </head>
 <body class="bg-gray-100 text-slate-800">
@@ -238,11 +195,12 @@ const EMPLOYEE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${EMPLOYE
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="minStock" onclick="switchTab(event)">Minimum Stock</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="expiry" onclick="switchTab(event)">Expiry Tracker</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="receipts" onclick="switchTab(event)">Receipts Summary</button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="stockAdj" onclick="switchTab(event)">Stock Adjustment</button>
       <div class="nav-group">Supply Reports</div>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="teamSupply" onclick="switchTab(event)">Team Supply Report</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeDistribution" onclick="switchTab(event)">Distribution - Staffwise</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productDistribution" onclick="switchTab(event)">Distribution - Productwise</button>
-      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="dcInvoicePanel" onclick="switchTab(event)">Supply Invoice / DC <span class="nav-new">NEW</span></button>
+      <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="reqVsSupply" onclick="switchTab(event)">Staff Req vs Supply</button>
       <div class="nav-group">Ledgers</div>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="productLedger" onclick="switchTab(event)">Product Ledger</button>
       <button class="sidebtn px-3 py-2 rounded-lg text-left hover:bg-gray-50 transition-colors" data-target="employeeLedger" onclick="switchTab(event)">Employee Ledger</button>
@@ -737,60 +695,76 @@ const EMPLOYEE_SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${EMPLOYE
         </div>
       </div>
 
-      <!-- SUPPLY INVOICE / DC PANEL -->
-      <div id="dcInvoicePanel" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
-        <div class="flex flex-col md:flex-row md:justify-between md:items-start mb-5 gap-4">
-          <div>
-            <h3 class="text-2xl font-bold text-slate-700">Supply Invoice / DC</h3>
-            <div class="text-sm text-slate-500 mt-1">Delivery Challan style view — one card per supply transaction. Not for sale. GST not applicable.</div>
-          </div>
-          <div class="flex flex-wrap gap-2 no-print">
-            <button onclick="dcDownloadPDF()" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold shadow">⬇ PDF</button>
-            <button onclick="dcDownloadExcel()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow">⬇ Excel</button>
-          </div>
-        </div>
-
-        <!-- Filters bar -->
-        <div class="bg-slate-50 border rounded-xl p-4 mb-5 no-print flex flex-wrap gap-4 items-end text-sm">
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Group By</label>
-            <select id="dcGroupBy" class="border rounded-lg px-3 py-1.5 focus:border-indigo-500" onchange="renderDCInvoice()">
-              <option value="supplyId">Supply ID</option>
-              <option value="employee">Employee (Date-wise)</option>
-              <option value="date">Date (All Transactions)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Team</label>
-            <select id="dcTeam" class="border rounded-lg px-3 py-1.5 focus:border-indigo-500" onchange="renderDCInvoice()">
-              <option value="">All Teams</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Employee</label>
-            <select id="dcEmployee" class="border rounded-lg px-3 py-1.5 focus:border-indigo-500 min-w-[200px]" onchange="renderDCInvoice()">
-              <option value="">All Employees</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">From</label>
-            <input id="dcFrom" type="date" class="border rounded-lg px-3 py-1.5 focus:border-indigo-500" onchange="renderDCInvoice()">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">To</label>
-            <input id="dcTo" type="date" class="border rounded-lg px-3 py-1.5 focus:border-indigo-500" onchange="renderDCInvoice()">
-          </div>
-          <div class="flex gap-2">
-            <button onclick="renderDCInvoice()" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-semibold">Apply</button>
-            <button onclick="dcClearFilters()" class="px-4 py-1.5 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-sm">Clear</button>
+      <!-- STOCK ADJUSTMENT -->
+      <div id="stockAdj" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-start mb-4 gap-3">
+          <div><h3 class="text-2xl font-bold text-slate-700">Stock Adjustment</h3><div class="text-sm text-slate-500 mt-1">Batch / quantity adjustments and expired-stock removals.</div></div>
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            <label class="font-medium">From</label><input id="adjFrom" type="date" class="border rounded-lg px-2 py-1">
+            <label class="font-medium">To</label><input id="adjTo" type="date" class="border rounded-lg px-2 py-1">
+            <button onclick="renderStockAdj(true)" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
+            <button onclick="document.getElementById('adjFrom').value='';document.getElementById('adjTo').value='';renderStockAdj(true)" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
           </div>
         </div>
+        <div class="flex gap-2 mb-5 no-print">
+          <button id="adjTabAdj" onclick="setAdjView('adj')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white">Adjustments</button>
+          <button id="adjTabExr" onclick="setAdjView('exr')" class="px-4 py-2 rounded-lg text-sm font-semibold border bg-white">Expiry Removal</button>
+        </div>
+        <div id="adjSection">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Adjustments</div><div id="adjCount" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Qty Added</div><div id="adjPlus" class="text-xl font-bold">0</div></div>
+          <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Qty Reduced</div><div id="adjMinus" class="text-xl font-bold">0</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Net Value Diff (₹)</div><div id="adjNet" class="text-xl font-bold">₹0</div></div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="adjTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Adj ID</th><th class="p-3 text-left font-semibold text-gray-600">Mode</th><th class="p-3 text-left font-semibold text-gray-600">Type</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Old Batch</th><th class="p-3 text-left font-semibold text-gray-600">Old Expiry</th><th class="p-3 text-left font-semibold text-gray-600">New Batch</th><th class="p-3 text-left font-semibold text-gray-600">New Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Old Qty</th><th class="p-3 text-right font-semibold text-gray-600">New Qty</th><th class="p-3 text-right font-semibold text-gray-600">Qty Diff</th><th class="p-3 text-right font-semibold text-gray-600">Value Diff (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Reason</th><th class="p-3 text-left font-semibold text-gray-600">Remarks</th></tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
+        </div>
+        <div id="exrSection" class="hidden">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Removal Entries</div><div id="exrCount" class="text-xl font-bold">0</div></div>
+            <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Qty Removed</div><div id="exrQty" class="text-xl font-bold">0</div></div>
+            <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Value Removed (₹)</div><div id="exrVal" class="text-xl font-bold">₹0</div></div>
+          </div>
+          <div class="overflow-x-auto rounded-lg border shadow-md">
+            <table id="exrTable" class="min-w-full text-sm">
+              <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Date</th><th class="p-3 text-left font-semibold text-gray-600">Removal ID</th><th class="p-3 text-left font-semibold text-gray-600">Type</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Batch</th><th class="p-3 text-left font-semibold text-gray-600">Expiry</th><th class="p-3 text-right font-semibold text-gray-600">Qty</th><th class="p-3 text-right font-semibold text-gray-600">MRP (₹)</th><th class="p-3 text-right font-semibold text-gray-600">Value (₹)</th><th class="p-3 text-left font-semibold text-gray-600">Remarks</th></tr></thead>
+              <tbody class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-        <!-- Summary chips -->
-        <div id="dcSummaryBar" class="flex flex-wrap gap-3 mb-5 no-print"></div>
-
-        <!-- Cards container -->
-        <div id="dcCards" class="inv-grid"></div>
+      <!-- STAFF REQ VS SUPPLY -->
+      <div id="reqVsSupply" class="panel bg-white p-4 rounded-xl border shadow-lg hidden">
+        <div class="flex flex-col md:flex-row md:justify-between md:items-start mb-4 gap-3">
+          <div><h3 class="text-2xl font-bold text-slate-700">Staff Requisition vs Supply</h3><div class="text-sm text-slate-500 mt-1">Staff requirements raised vs quantity actually supplied, per employee and product. Cancelled requirements are ignored.</div></div>
+          <div class="flex flex-wrap items-center gap-2 text-sm">
+            <label class="font-medium">From</label><input id="rqFrom" type="date" class="border rounded-lg px-2 py-1">
+            <label class="font-medium">To</label><input id="rqTo" type="date" class="border rounded-lg px-2 py-1">
+            <label class="font-medium">Status</label>
+            <select id="rqStatus" class="border rounded-lg px-2 py-1" onchange="renderReqVsSupply()"><option value="">All</option><option>Pending</option><option>Partial</option><option>Fulfilled</option><option>Excess</option></select>
+            <button onclick="renderReqVsSupply(true)" class="px-3 py-1 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-xs">Apply</button>
+            <button onclick="document.getElementById('rqFrom').value='';document.getElementById('rqTo').value='';renderReqVsSupply(true)" class="px-3 py-1 bg-slate-400 text-white rounded-lg hover:bg-slate-500 text-xs">Clear</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div class="bg-indigo-50 p-4 rounded-xl border"><div class="text-xs">Requested Qty</div><div id="rqReq" class="text-xl font-bold">0</div></div>
+          <div class="bg-emerald-50 p-4 rounded-xl border"><div class="text-xs">Supplied Qty</div><div id="rqSup" class="text-xl font-bold">0</div></div>
+          <div class="bg-red-50 p-4 rounded-xl border"><div class="text-xs">Pending Qty</div><div id="rqPend" class="text-xl font-bold">0</div></div>
+          <div class="bg-amber-50 p-4 rounded-xl border"><div class="text-xs">Fulfilment %</div><div id="rqPct" class="text-xl font-bold">0%</div></div>
+          <div class="bg-purple-50 p-4 rounded-xl border"><div class="text-xs">Supplied w/o Request (Qty)</div><div id="rqUnreq" class="text-xl font-bold">0</div></div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border shadow-md">
+          <table id="reqTable" class="min-w-full text-sm">
+            <thead class="table-header-bg border-b"><tr><th class="p-3 text-left font-semibold text-gray-600">Emp ID</th><th class="p-3 text-left font-semibold text-gray-600">Emp Name</th><th class="p-3 text-left font-semibold text-gray-600">Product</th><th class="p-3 text-left font-semibold text-gray-600">Req. Date(s)</th><th class="p-3 text-right font-semibold text-gray-600">Requested</th><th class="p-3 text-right font-semibold text-gray-600">Supplied</th><th class="p-3 text-right font-semibold text-gray-600">Pending</th><th class="p-3 text-right font-semibold text-gray-600">Fulfilment %</th><th class="p-3 text-left font-semibold text-gray-600">Last Supply</th><th class="p-3 text-left font-semibold text-gray-600">Status</th></tr></thead>
+            <tbody class="divide-y divide-gray-100"></tbody>
+          </table>
+        </div>
       </div>
 
     </div>
@@ -1219,7 +1193,7 @@ function switchTab(e, force){
     receipts:'Receipts Summary', teamSupply:'Team Supply Report',
     productLedger:'Product Ledger', employeeLedger:'Employee Ledger',
     employeeDistribution:'Employee Distribution', productDistribution:'Product Distribution',
-    dashboard:'Home', monthlyTrend:'Monthly Trend', slowStock:'Slow / Non-moving Stock', empCoverage:'Employee Coverage'
+    dashboard:'Home', monthlyTrend:'Monthly Trend', slowStock:'Slow / Non-moving Stock', empCoverage:'Employee Coverage', stockAdj:'Stock Adjustment', reqVsSupply:'Staff Req vs Supply'
   };
   document.getElementById('activeLabel').textContent = labels[target] || target;
 
@@ -1886,15 +1860,14 @@ function tableToCsv(table){
 function downloadCsv(filename,csv){ const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
 
 function exportCsvCurrent(){
-  if(currentTab==='dcInvoicePanel'){ dcDownloadExcel(); return; }
-  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',teamSupply:'teamSupplyTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',slowStock:'slowTable',empCoverage:'coverageTable'};
-  const tableId=tabMap[currentTab]||'stockTable';
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',teamSupply:'teamSupplyTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',slowStock:'slowTable',empCoverage:'coverageTable',stockAdj:'adjTable',reqVsSupply:'reqTable'};
+  const tableId=(currentTab==='stockAdj'&&adjView==='exr')?'exrTable':(tabMap[currentTab]||'stockTable');
   downloadCsv(`${currentTab}_report_${new Date().toISOString().slice(0,10)}.csv`, tableToCsv(document.getElementById(tableId)));
 }
 
 async function exportExcelCurrent(){
-  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',slowStock:'slowTable',empCoverage:'coverageTable'};
-  const tableId=tabMap[currentTab]||'stockTable';
+  const tabMap={stock:'stockTable',minStock:'minTable',expiry:'expiryTable',receipts:'receiptsTable',productLedger:'prodLedgerTable',employeeLedger:'empLedgerTable',monthlyTrend:'trendTable',slowStock:'slowTable',empCoverage:'coverageTable',stockAdj:'adjTable',reqVsSupply:'reqTable'};
+  const tableId=(currentTab==='stockAdj'&&adjView==='exr')?'exrTable':(tabMap[currentTab]||'stockTable');
   if(currentTab==='teamSupply'){
     const team=document.getElementById('filterTeam').value;
     const f=document.getElementById('teamFrom').value;
@@ -1945,6 +1918,8 @@ function renderForCurrentTab(){
   else if(currentTab==='monthlyTrend') renderTrend();
   else if(currentTab==='slowStock') renderSlow();
   else if(currentTab==='empCoverage') renderCoverage();
+  else if(currentTab==='stockAdj') renderStockAdj();
+  else if(currentTab==='reqVsSupply') renderReqVsSupply();
   else if(currentTab==='minStock') renderMinStock();
   else if(currentTab==='expiry') renderExpiredSummary();
   else if(currentTab==='receipts') renderReceipts();
@@ -1953,7 +1928,6 @@ function renderForCurrentTab(){
   else if(currentTab==='employeeLedger') renderEmployeeLedger();
   else if(currentTab==='employeeDistribution') renderEmployeeDistribution();
   else if(currentTab==='productDistribution') renderProductDistribution();
-  else if(currentTab==='dcInvoicePanel') renderDCInvoice();
 }
 
 /* ===================== EVENTS ===================== */
@@ -2234,303 +2208,135 @@ async function renderCoverage(){
   ['covTo'].forEach(id=>{ const el=$$(id); if(el&&!el.value) el.value=last; });
 })();
 
-/* ===================== SUPPLY INVOICE / DC ===================== */
-
-function dcGetFiltered(){
-  const f    = ($$('dcFrom')     || {}).value || '';
-  const t    = ($$('dcTo')       || {}).value || '';
-  const team = ($$('dcTeam')     || {}).value || '';
-  const emp  = ($$('dcEmployee') || {}).value || '';
-  const selectedTypes = getSelectedTypes();
-  let base = supplies;
-  if (selectedTypes.length === 1) {
-    const tp = new Set(filterByType(inventory,'Type').map(i => i.Product));
-    base = supplies.filter(s => tp.has(s.Product || s['Item Supplied'] || s['Item Name'] || ''));
-  }
-  return base.filter(r => {
-    if (team && (r.Team || '') !== team) return false;
-    const code = String(r['Supply to (Emp ID)'] || r['Supply to'] || r['Employee Code'] || '').trim();
-    if (emp && code !== emp) return false;
-    if (f || t) {
-      const d = parseDDMMYYYY(r.Date || ''); if (!d) return true;
-      if (f && d < _ld(f)) return false;
-      if (t) { const td = _ld(t); td.setDate(td.getDate() + 1); if (d >= td) return false; }
-    }
-    return true;
-  });
-}
-
-function dcLookupEmp(code){
-  const c=String(code||'').trim();
-  return staff.find(x=>String(x['Employee Code']).trim()===c)||hrEmployees.find(x=>String(x['Employee Code']).trim()===c)||{};
-}
-
-function dcGroupRows(rows, groupBy){
-  const groups=new Map();
-  rows.forEach(r=>{
-    const code=String(r['Supply to (Emp ID)']||r['Supply to']||r['Employee Code']||'').trim();
-    const date=fmtDDMMYYYY(r.Date||'');
-    const supId=String(r['Supply ID']||r['SUP ID']||r['Distribution ID']||'').trim();
-    let key;
-    if(groupBy==='supplyId')   key = supId || (date+'||'+code);
-    else if(groupBy==='employee') key = code || 'Unknown';
-    else                          key = date+'||'+code+'||'+(supId||Math.random());
-    if(!groups.has(key)) groups.set(key,{key, supId, code, date, rows:[]});
-    groups.get(key).rows.push(r);
-  });
-  return [...groups.values()];
-}
-
-function dcBuildCardHTML(group, idx, groupBy){
-  const rows=group.rows;
-  const firstRow=rows[0];
-  const emp=dcLookupEmp(group.code);
-  const empName=emp['Employee Name']||firstRow['Emp Name']||firstRow['Employee Name']||'';
-  const empDesig=emp['Designation']||firstRow['Designation']||'';
-  const team=firstRow.Team||'';
-  const hq=emp['HQ']||'';
-  const dept=emp['Department']||'';
-
-  const supId=group.supId||(group.key.includes('||')?'—':group.key);
-  const dateLabel=groupBy==='employee'
-    ? (rows.length===1 ? group.date : `${rows.length} dates`)
-    : group.date;
-
-  // totals
-  let totalQty=0, totalValue=0;
-  rows.forEach(r=>{ totalQty+=num(r.Qty||0); totalValue+=num(r['Total Value']||0); });
-
-  // items
-  const itemsHTML=rows.map((r,i)=>{
-    const prod=escapeHtml(r.Product||r['Item Supplied']||r['Item Name']||'');
-    const batch=escapeHtml(r.Batch||r['Batch No']||'');
-    const expiry=escapeHtml(fmtExpiryMMYYYY(r.Expiry||''));
-    const qty=num(r.Qty||0);
-    const val=num(r['Total Value']||0);
-    const mrp=val&&qty?val/qty:num(r.MRP||0);
-    const remarks=escapeHtml(r.Remarks||'');
-    const rDate=groupBy==='employee'?`<td style="padding:7px 12px;border-bottom:1px solid #f1f5f9">${escapeHtml(fmtDDMMYYYY(r.Date||''))}</td>`:'';
-    const rSup=groupBy==='date'?`<td style="padding:7px 12px;border-bottom:1px solid #f1f5f9;font-size:11px;font-family:monospace">${escapeHtml(r['Supply ID']||r['SUP ID']||r['Distribution ID']||'—')}</td>`:'';
-    return `<tr style="${i%2?'background:#f8fafc':''}">
-      ${rDate}${rSup}
-      <td style="padding:7px 12px;border-bottom:1px solid #f1f5f9;font-weight:600">${prod}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #f1f5f9">${batch}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #f1f5f9">${expiry}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #f1f5f9;text-align:right">${qty}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #f1f5f9;text-align:right">₹${mrp.toFixed(2)}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:700">₹${val.toFixed(2)}</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #f1f5f9;font-size:11px;color:#64748b">${remarks}</td>
-    </tr>`;
-  }).join('');
-
-  const extraDateTh=groupBy==='employee'?`<th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff">Date</th>`:'';
-  const extraSupTh=groupBy==='date'?`<th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff">Supply ID</th>`:'';
-
-  const dcNum=supId!=='—'?supId:`DC-${String(idx+1).padStart(4,'0')}`;
-  const nowStr=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-
-  return `
-  <div class="dc-card">
-    <div class="dc-header">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-        <div>
-          <div class="dc-company">Pristine Pearl Pharma Pvt. Ltd.</div>
-          <div class="dc-tagline">Internal Supply — Distribution Challan</div>
-          <div class="dc-stamp">★ SAMPLE / GIFT — NOT FOR SALE</div>
-        </div>
-        <div style="text-align:right;font-size:12px;opacity:.85">
-          <div style="font-size:11px;opacity:.7">DC / Supply No.</div>
-          <div style="font-size:16px;font-weight:800;font-family:monospace;letter-spacing:.05em">${escapeHtml(dcNum)}</div>
-          <div style="font-size:11px;opacity:.7;margin-top:4px">Printed: ${nowStr}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="dc-notice">
-      <svg style="width:13px;height:13px;flex-shrink:0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-      NOT FOR SALE &nbsp;|&nbsp; GST NOT APPLICABLE &nbsp;|&nbsp; NOT A TAX INVOICE
-    </div>
-
-    <div class="dc-meta">
-      <div class="dc-meta-block">
-        <div class="dc-meta-label">Recipient</div>
-        <div class="dc-meta-value">${escapeHtml(empName||group.code)}</div>
-        <div class="dc-meta-sub">${escapeHtml(group.code)}${empDesig?' · '+escapeHtml(empDesig):''}</div>
-        ${dept?`<div class="dc-meta-sub" style="margin-top:2px">${escapeHtml(dept)}</div>`:''}
-      </div>
-      <div class="dc-meta-block" style="text-align:right">
-        <div class="dc-meta-label">Team / HQ</div>
-        <div class="dc-meta-value">${escapeHtml(team||'—')}</div>
-        <div class="dc-meta-sub">${escapeHtml(hq||'—')}</div>
-        <div class="dc-meta-sub" style="margin-top:4px"><span class="dc-meta-label">Date</span> ${escapeHtml(dateLabel||'—')}</div>
-      </div>
-    </div>
-
-    <div class="dc-items" style="overflow-x:auto">
-      <table>
-        <thead>
-          <tr>
-            ${extraDateTh}${extraSupTh}
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff">Product</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff">Batch</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff">Expiry</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff;text-align:right">Qty</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff;text-align:right">MRP (₹)</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff;text-align:right">Value (₹)</th>
-            <th style="padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;background:#1e293b;color:#fff">Remarks</th>
-          </tr>
-        </thead>
-        <tbody>${itemsHTML}</tbody>
-      </table>
-    </div>
-
-    <div class="dc-footer">
-      <div>
-        <div class="dc-total-box">
-          <div><span>Total Items</span>${rows.length}</div>
-          <div><span>Total Qty</span>${totalQty}</div>
-          <div><span>Total Value (MRP)</span>₹${totalValue.toFixed(2)}</div>
-        </div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:8px">★ Sample/Gift — Not for sale. GST Not Applicable.</div>
-      </div>
-      <div class="dc-sig">
-        <div class="dc-sig-line"></div>
-        <div style="font-weight:700;font-size:12px">Authorised Signatory</div>
-        <div style="color:#94a3b8;font-size:11px">Pristine Pearl Pharma Pvt. Ltd.</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function renderDCInvoice(){
-  const container=$$('dcCards'); if(!container) return;
-  container.innerHTML='<div class="text-slate-500 text-sm p-4">Loading…</div>';
-
-  // Populate team & employee dropdowns once
-  const dcTeamSel=$$('dcTeam'), dcEmpSel=$$('dcEmployee');
-  if(dcTeamSel && dcTeamSel.options.length<=1){
-    [...new Set(supplies.map(s=>s.Team).filter(Boolean))].sort().forEach(t=>{
-      const o=document.createElement('option'); o.value=t; o.textContent=t; dcTeamSel.appendChild(o);
-    });
-  }
-  if(dcEmpSel && dcEmpSel.options.length<=1){
-    const codes=new Map();
-    supplies.forEach(s=>{
-      const c=String(s['Supply to (Emp ID)']||s['Supply to']||s['Employee Code']||'').trim();
-      if(!c) return;
-      if(!codes.has(c)){
-        const e=dcLookupEmp(c);
-        codes.set(c, e['Employee Name']||s['Emp Name']||s['Employee Name']||'');
-      }
-    });
-    [...codes.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([code,name])=>{
-      const o=document.createElement('option'); o.value=code; o.textContent=name?`${name} (${code})`:code; dcEmpSel.appendChild(o);
-    });
-  }
-
-  const groupBy=($$('dcGroupBy')||{}).value||'supplyId';
-  const rows=dcGetFiltered();
-
-  // Summary bar
-  const sb=$$('dcSummaryBar'); if(sb){
-    let totalVal=0, totalQty=0;
-    rows.forEach(r=>{ totalVal+=num(r['Total Value']||0); totalQty+=num(r.Qty||0); });
-    const groups=dcGroupRows(rows,groupBy);
-    sb.innerHTML=`
-      <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">${groups.length} DC${groups.length!==1?'s':''}</span>
-      <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">${rows.length} line items</span>
-      <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Total Qty: ${totalQty}</span>
-      <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700">Total Value: ₹${totalVal.toFixed(2)}</span>
-    `;
-  }
-
-  if(!rows.length){ container.innerHTML='<div class="p-8 text-center text-slate-400 text-sm">No supply records found for the selected filters.</div>'; return; }
-
-  const groups=dcGroupRows(rows,groupBy);
-  if(groups.length>200){
-    container.innerHTML=`<div class="p-6 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-      <strong>${groups.length} DCs found</strong> — narrow with filters (date range, team, or employee) to render cards. Showing first 200.
-    </div>`+groups.slice(0,200).map((g,i)=>dcBuildCardHTML(g,i,groupBy)).join('');
-    return;
-  }
-  container.innerHTML=groups.map((g,i)=>dcBuildCardHTML(g,i,groupBy)).join('');
-}
-
-function dcClearFilters(){
-  ['dcFrom','dcTo'].forEach(id=>{ const e=$$(id); if(e) e.value=''; });
-  const t=$$('dcTeam'); if(t) t.value='';
-  const e=$$('dcEmployee'); if(e) e.value='';
-  renderDCInvoice();
-}
-
-function dcDownloadPDF(){
-  const panel=$$('dcInvoicePanel');
-  if(!panel||panel.classList.contains('hidden')){ alert('Please open the Supply Invoice / DC tab first.'); return; }
-  window.print();
-}
-
-function dcDownloadExcel(){
-  const groupBy=($$('dcGroupBy')||{}).value||'supplyId';
-  const rows=dcGetFiltered();
-  if(!rows.length){ alert('No data to export.'); return; }
-  const groups=dcGroupRows(rows,groupBy);
-
-  // Sheet 1: Summary
-  const summaryData=groups.map((g,i)=>{
-    const emp=dcLookupEmp(g.code);
-    const firstRow=g.rows[0]||{};
-    let totalQty=0,totalVal=0; g.rows.forEach(r=>{ totalQty+=num(r.Qty||0); totalVal+=num(r['Total Value']||0); });
-    const dcNum=g.supId&&g.supId!=='—'?g.supId:`DC-${String(i+1).padStart(4,'0')}`;
-    return {
-      'DC / Supply No.': dcNum,
-      'Date': g.date||'',
-      'Employee Code': g.code,
-      'Employee Name': emp['Employee Name']||firstRow['Emp Name']||firstRow['Employee Name']||'',
-      'Designation': emp['Designation']||firstRow['Designation']||'',
-      'Team': firstRow.Team||'',
-      'HQ': emp['HQ']||'',
-      'Department': emp['Department']||'',
-      'Total Line Items': g.rows.length,
-      'Total Qty': totalQty,
-      'Total Value (MRP ₹)': totalVal,
-      'Note': 'Sample/Gift — Not for sale. GST Not Applicable.'
-    };
-  });
-
-  // Sheet 2: All line items
-  const lineData=[];
-  groups.forEach((g,i)=>{
-    const emp=dcLookupEmp(g.code);
-    const dcNum=g.supId&&g.supId!=='—'?g.supId:`DC-${String(i+1).padStart(4,'0')}`;
-    g.rows.forEach(r=>{
-      const qty=num(r.Qty||0), val=num(r['Total Value']||0);
-      lineData.push({
-        'DC / Supply No.': dcNum,
-        'Date': fmtDDMMYYYY(r.Date||''),
-        'Supply ID': r['Supply ID']||r['SUP ID']||r['Distribution ID']||'',
-        'Team': r.Team||'',
-        'Employee Code': g.code,
-        'Employee Name': emp['Employee Name']||r['Emp Name']||r['Employee Name']||'',
-        'Designation': emp['Designation']||r['Designation']||'',
-        'HQ': emp['HQ']||'',
-        'Product': r.Product||r['Item Supplied']||r['Item Name']||'',
-        'Batch': r.Batch||r['Batch No']||'',
-        'Expiry': fmtExpiryMMYYYY(r.Expiry||''),
-        'Qty': qty,
-        'MRP (₹)': val&&qty?+(val/qty).toFixed(2):num(r.MRP||0),
-        'Total Value (₹)': val,
-        'Remarks': r.Remarks||'',
-        'Note': 'Not for sale. GST Not Applicable.'
-      });
-    });
-  });
-
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'DC Summary');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lineData), 'Line Items');
-  XLSX.writeFile(wb, `supply_dc_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
 </script>
 
+
+<script>
+/* ===================== STOCK ADJUSTMENT + STAFF REQ vs SUPPLY ===================== */
+/* These two reports read from the Inventory/Requisition Apps Script (Code.gs) */
+const INV_API_URL = "https://script.google.com/macros/s/AKfycbxvvaomXCiaA_PqXiWDzBcGrxVqGzdfICEBk6yyngzeIEMkK6IOVifQRTm82ZD_mucA/exec";
+let adjRows=null, reqList=null, exrRows=null, adjView='adj';
+
+async function postInv(action,payload={}){
+  showLoading();
+  try{
+    const res=await fetch(INV_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action},payload))});
+    const j=await res.json(); hideLoading(); return j;
+  }catch(e){ hideLoading(); console.error(e); return {success:false,message:'Could not reach the Inventory script: '+e}; }
+}
+
+
+function setAdjView(v){
+  adjView=v;
+  $$('adjSection').classList.toggle('hidden',v!=='adj');
+  $$('exrSection').classList.toggle('hidden',v!=='exr');
+  const on='px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white', off='px-4 py-2 rounded-lg text-sm font-semibold border bg-white';
+  $$('adjTabAdj').className=v==='adj'?on:off; $$('adjTabExr').className=v==='exr'?on:off;
+  renderStockAdj();
+}
+
+async function renderExpiryRemovals(force){
+  const tbody=document.querySelector('#exrTable tbody');
+  if(exrRows===null||force){
+    const r=await postInv('getExpiryRemovalReport');
+    if(!r||!r.success){ exrRows=null; emptyRow(tbody,10,(r&&r.message)||'Could not load expiry removals.'); return; }
+    exrRows=r.rows||[];
+  }
+  const f=$$('adjFrom').value,t=$$('adjTo').value;
+  const allowed=getSelectedTypes().length===1?new Set(filterByType(inventory,'Type').map(i=>String(i.Product).trim().toLowerCase())):null;
+  const rows=exrRows.map(r=>({d:parseDDMMYYYY(r.date),r}))
+    .filter(x=>inRange(x.d,f,t)&&(!allowed||allowed.has(String(x.r.item).trim().toLowerCase())))
+    .sort((a,b)=>(b.d||0)-(a.d||0));
+  tbody.innerHTML=''; let q=0,v=0;
+  if(!rows.length){ emptyRow(tbody,10,'No expiry removals found for the selected period.'); setTxt('exrCount',0); setTxt('exrQty',0); setTxt('exrVal',inr(0)); return; }
+  rows.forEach(x=>{
+    const r=x.r; q+=num(r.qty); v+=num(r.value);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(r.date||'')}</td><td class="p-3 font-mono text-xs">${escapeHtml(r.removalId)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3">${escapeHtml(r.item)}</td><td class="p-3">${escapeHtml(r.batch)}</td><td class="p-3 text-red-600 font-semibold">${escapeHtml(r.expiry)}</td><td class="p-3 text-right">${num(r.qty)}</td><td class="p-3 text-right">${num(r.mrp).toFixed(2)}</td><td class="p-3 text-right font-medium text-red-600">${inr(r.value)}</td><td class="p-3">${escapeHtml(r.remarks||'')}</td>`;
+    tbody.appendChild(tr);
+  });
+  setTxt('exrCount',rows.length); setTxt('exrQty',q); setTxt('exrVal',inr(v));
+}
+
+async function renderStockAdj(force){
+  if(adjView==='exr') return renderExpiryRemovals(force);
+  const tbody=document.querySelector('#adjTable tbody');
+  if(adjRows===null||force){
+    const r=await postInv('getStockAdjustmentReport');
+    if(!r||!r.success){ adjRows=null; emptyRow(tbody,15,(r&&r.message)||'Could not load stock adjustments.'); return; }
+    adjRows=r.rows||[];
+  }
+  const f=$$('adjFrom').value,t=$$('adjTo').value;
+  const allowed=getSelectedTypes().length===1?new Set(filterByType(inventory,'Type').map(i=>String(i.Product).trim().toLowerCase())):null;
+  const rows=adjRows.map(r=>{
+    const oq=num(r.oldQty), nq=num(r.newQty), diff=nq-oq, mrp=num(r.mrp);
+    return {d:parseDDMMYYYY(r.date),r,diff,val:Math.round(diff*mrp*100)/100,oq,nq};
+  }).filter(x=>inRange(x.d,f,t)&&(!allowed||allowed.has(String(x.r.item).trim().toLowerCase())))
+    .sort((a,b)=>(b.d||0)-(a.d||0));
+  let plus=0,minus=0,net=0; tbody.innerHTML='';
+  ['adjCount','adjPlus','adjMinus'].forEach(i=>setTxt(i,0)); setTxt('adjNet',inr(0));
+  if(!rows.length){ emptyRow(tbody,15,'No stock adjustments found for the selected period.'); return; }
+  rows.forEach(x=>{
+    if(x.diff>0) plus+=x.diff; else minus+=-x.diff; net+=x.val;
+    const r=x.r, cls=x.diff>0?'text-emerald-700':(x.diff<0?'text-red-600':'');
+    const rm=[r.rowRemarks,r.remarks].filter(Boolean).join(' | ');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(r.date||'')}</td><td class="p-3 font-mono text-xs">${escapeHtml(r.adjId)}</td><td class="p-3">${escapeHtml(r.mode)}</td><td class="p-3">${escapeHtml(r.type)}</td><td class="p-3">${escapeHtml(r.item)}</td><td class="p-3">${escapeHtml(r.oldBatch)}</td><td class="p-3">${escapeHtml(r.oldExpiry)}</td><td class="p-3">${escapeHtml(r.newBatch)}</td><td class="p-3">${escapeHtml(r.newExpiry)}</td><td class="p-3 text-right">${x.oq}</td><td class="p-3 text-right">${x.nq}</td><td class="p-3 text-right font-medium ${cls}">${x.diff>0?'+':''}${x.diff}</td><td class="p-3 text-right ${cls}">${inr(x.val)}</td><td class="p-3">${escapeHtml(r.reason)}</td><td class="p-3">${escapeHtml(rm)}</td>`;
+    tbody.appendChild(tr);
+  });
+  setTxt('adjCount',rows.length); setTxt('adjPlus',plus); setTxt('adjMinus',minus); setTxt('adjNet',inr(net));
+}
+
+async function renderReqVsSupply(force){
+  const tbody=document.querySelector('#reqTable tbody');
+  if(reqList===null||force){
+    const r=await postInv('getStaffRequirements',{status:'All'});
+    if(!r||!r.success){ reqList=null; emptyRow(tbody,10,(r&&r.message)||'Could not load staff requirements.'); return; }
+    reqList=r.requirements||[];
+  }
+  await ensureHr();
+  const f=$$('rqFrom').value,t=$$('rqTo').value,stFilter=$$('rqStatus').value;
+  const allowed=getSelectedTypes().length===1?new Set(filterByType(inventory,'Type').map(i=>String(i.Product).trim().toLowerCase())):null;
+  const K=(c,p)=>String(c).trim().toLowerCase()+'||'+String(p).trim().toLowerCase();
+
+  // 1. requested quantity per employee + product (cancelled requirements ignored)
+  const map=new Map(), anyReq=new Set();
+  reqList.forEach(q=>{
+    if(String(q.status).toLowerCase()==='cancelled') return;
+    (q.items||[]).forEach(it=>anyReq.add(K(q.staffCode,it.item)));
+    const d=parseDDMMYYYY(q.requestedDate); if(!inRange(d,f,t)) return;
+    (q.items||[]).forEach(it=>{
+      if(!it.item||(allowed&&!allowed.has(String(it.item).trim().toLowerCase()))) return;
+      const k=K(q.staffCode,it.item);
+      if(!map.has(k)) map.set(k,{code:String(q.staffCode).trim(),name:q.staffName||'',prod:String(it.item).trim(),req:0,sup:0,first:null,dates:new Set(),last:null});
+      const o=map.get(k); o.req+=num(it.qty); if(d&&(!o.first||d<o.first)) o.first=d; if(q.requestedDate) o.dates.add(q.requestedDate);
+    });
+  });
+
+  // 2. supplied quantity: supplies to that employee for that product on/after the first request date
+  let unreq=0;
+  getTypeFilteredSupplies().forEach(r=>{
+    const code=sCode(r),prod=sProd(r); if(!code||!prod) return;
+    const k=K(code,prod), d=sDate(r);
+    if(map.has(k)){ const o=map.get(k); if(!o.first||!d||d>=o.first){ o.sup+=sQty(r); if(d&&(!o.last||d>o.last)) o.last=d; } }
+    else if(!anyReq.has(k)&&inRange(d,f,t)) unreq+=sQty(r);
+  });
+
+  const find=c=>staff.find(x=>String(x['Employee Code']).trim()===c)||hrEmployees.find(x=>String(x['Employee Code']).trim()===c)||{};
+  const rows=[...map.values()].map(o=>{
+    const pend=Math.max(o.req-o.sup,0), pct=o.req>0?o.sup/o.req*100:0;
+    const status=o.sup>o.req?'Excess':(o.sup>=o.req?'Fulfilled':(o.sup>0?'Partial':'Pending'));
+    return {...o,pend,pct,status,name:o.name||find(o.code)['Employee Name']||''};
+  }).filter(x=>!stFilter||x.status===stFilter).sort((a,b)=>b.pend-a.pend||String(a.name).localeCompare(String(b.name)));
+  const REQ_CLS={Pending:'bg-red-100 text-red-700',Partial:'bg-amber-100 text-amber-700',Fulfilled:'bg-emerald-100 text-emerald-700',Excess:'bg-blue-50 text-blue-700'};
+  const treq=rows.reduce((a,b)=>a+b.req,0), tcov=rows.reduce((a,b)=>a+Math.min(b.sup,b.req),0);
+  setTxt('rqReq',treq); setTxt('rqSup',rows.reduce((a,b)=>a+b.sup,0)); setTxt('rqPend',rows.reduce((a,b)=>a+b.pend,0));
+  setTxt('rqPct',treq?(tcov/treq*100).toFixed(1)+'%':'0%'); setTxt('rqUnreq',unreq);
+  tbody.innerHTML=''; if(!rows.length) return emptyRow(tbody,10,'No staff requirements found for the selection.');
+  rows.forEach(x=>{ const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="p-3">${escapeHtml(x.code)}</td><td class="p-3">${escapeHtml(x.name)}</td><td class="p-3">${escapeHtml(x.prod)}</td><td class="p-3 text-xs">${escapeHtml([...x.dates].join(', '))}</td><td class="p-3 text-right">${x.req}</td><td class="p-3 text-right">${x.sup}</td><td class="p-3 text-right font-medium ${x.pend?'text-red-600':''}">${x.pend}</td><td class="p-3 text-right">${x.pct.toFixed(0)}%</td><td class="p-3">${x.last?escapeHtml(fmtDDMMYYYY(x.last)):'—'}</td><td class="p-3">${badge(x.status,REQ_CLS[x.status])}</td>`;
+    tbody.appendChild(tr); });
+}
+</script>
 </body>
 </html>
