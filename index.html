@@ -18,6 +18,51 @@
     .top-tabs .tab { white-space: nowrap; }
     html, body { width: 100%; min-height: 100vh; }
     main { width: 100%; }
+
+    /* ===== Refreshed page + tab styling ===== */
+    :root{ --brand:#059669; --brand-dark:#047857; --brand-soft:#ecfdf5; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; }
+    body{ background: linear-gradient(180deg,#f1f5f9 0,#f8fafc 240px) fixed !important; color:var(--ink); -webkit-font-smoothing:antialiased; }
+    header.sticky{ background:rgba(255,255,255,.92) !important; backdrop-filter:saturate(1.4) blur(8px); border-bottom:1px solid var(--line) !important; box-shadow:0 1px 0 rgba(15,23,42,.03), 0 6px 18px -12px rgba(15,23,42,.18); padding-top:.4rem !important; padding-bottom:.4rem !important; }
+    header img{ width:3rem !important; height:3rem !important; }
+    header .text-lg{ font-size:1.05rem; letter-spacing:-.01em; }
+
+    .top-tabs{ gap:2px !important; background:#f1f5f9; border:1px solid var(--line); padding:4px; border-radius:12px; }
+    .top-tabs .tab{
+      position:relative; border-radius:9px !important; padding:.45rem .8rem !important; font-size:.84rem; font-weight:600 !important;
+      color:var(--muted) !important; background:transparent; white-space:nowrap; transition:background .15s,color .15s,box-shadow .15s;
+    }
+    .top-tabs .tab:hover{ background:#fff !important; color:var(--brand-dark) !important; }
+    .top-tabs .tab.active, .top-tabs .tab.bg-emerald-600{
+      background:#fff !important; color:var(--brand-dark) !important;
+      box-shadow:0 1px 2px rgba(15,23,42,.12), 0 0 0 1px rgba(5,150,105,.25) !important;
+    }
+    .top-tabs .tab.active::after, .top-tabs .tab.bg-emerald-600::after{
+      content:""; position:absolute; left:.8rem; right:.8rem; bottom:2px; height:2px; border-radius:2px; background:var(--brand);
+    }
+    .top-tabs .tab-link{ color:var(--muted) !important; }
+    .top-tabs .tab-sep{ width:1px; align-self:stretch; background:var(--line); margin:4px 4px; }
+
+    /* cards */
+    section.card{ border:1px solid var(--line) !important; border-radius:14px !important; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 8px 24px -16px rgba(15,23,42,.18) !important; padding:1.25rem !important; }
+    section.card > div:first-child h2{ font-size:1.15rem; font-weight:700; letter-spacing:-.01em; }
+
+    /* form controls */
+    main input:not([type=checkbox]):not([type=radio]), main select, main textarea{ border-color:#cbd5e1 !important; border-radius:8px !important; background:#fff; transition:border-color .12s, box-shadow .12s; }
+    main input:focus, main select:focus, main textarea:focus{ outline:none !important; border-color:var(--brand) !important; box-shadow:0 0 0 3px rgba(5,150,105,.16) !important; }
+    main input[readonly]{ background:#f8fafc; color:#475569; }
+    main label.block, main .font-semibold.text-sm{ color:#334155; }
+
+    /* tables */
+    main table thead th{ background:#f8fafc; color:#475569 !important; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid var(--line); }
+    main table tbody tr:hover{ background:#f8fffb; }
+    main .overflow-x-auto{ border-color:var(--line) !important; border-radius:10px !important; }
+
+    /* buttons */
+    main button.bg-emerald-600, main button.bg-emerald-500{ background:var(--brand) !important; border-radius:9px !important; box-shadow:0 1px 2px rgba(5,150,105,.35); transition:background .12s, transform .06s; }
+    main button.bg-emerald-600:hover, main button.bg-emerald-500:hover{ background:var(--brand-dark) !important; }
+    main button.bg-emerald-600:active, main button.bg-emerald-500:active{ transform:translateY(1px); }
+    main button.border{ border-radius:9px !important; }
+    main button.border:hover{ background:#f8fafc; }
     .required-star::after { content: " *"; color: #e11d48; }
   </style>
 </head>
@@ -42,8 +87,8 @@
         <button data-tab="sadj" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Adjustment</button>
         <button data-tab="live" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Live Inventory</button>
         <button data-tab="po" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">PO Generation</button>
-        <button onclick="window.location.href='Invoice.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Sup-Inv & DC</button>
-        <button onclick="window.location.href='Report.html'" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Reports</button>
+        <span class="tab-sep"></span><button onclick="window.location.href='Invoice.html'" class="tab tab-link px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Sup-Inv & DC</button>
+        <button onclick="window.location.href='Report.html'" class="tab tab-link px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50">Reports</button>
       </nav>
     </div>
   </header>
@@ -1552,8 +1597,8 @@
 
   /* TAB SWITCH */
   function activateTabVisuals(el){
-    document.querySelectorAll('.tab').forEach(t=>{ t.classList.remove('bg-emerald-600','text-white','shadow-md','font-semibold'); t.classList.add('text-slate-600'); });
-    if(el){ el.classList.add('bg-emerald-600','text-white','shadow-md','font-semibold'); el.classList.remove('text-slate-600'); }
+    document.querySelectorAll('.tab').forEach(t=>{ t.classList.remove('active','bg-emerald-600','text-white','shadow-md','text-emerald-600'); });
+    if(el){ el.classList.add('active'); }
   }
 
   function switchTab(e){
@@ -3046,7 +3091,21 @@
     sadjSwitch(sadjCur);
   }
 
+  const SADJ_PASSWORD = '2026#';
+  const sadjUnlocked = { batch:false, qty:false };   // Expiry Removal needs no password
+
   function sadjSwitch(name){
+    if(sadjUnlocked.hasOwnProperty(name) && !sadjUnlocked[name]){
+      const label = name === 'batch' ? 'Batch Adjustment' : 'Quantity Adjustment';
+      const pw = prompt('Enter password for ' + label + ':');
+      if(pw === null){ if(sadjCur !== name) return; return sadjSwitch('exr'); }
+      if(pw !== SADJ_PASSWORD){
+        alert('Incorrect password.');
+        if(sadjCur !== name) return;
+        return sadjSwitch('exr');
+      }
+      sadjUnlocked[name] = true;
+    }
     sadjCur = name;
     ['batch','exr','qty'].forEach(n=>{
       document.getElementById('sadjPane_' + n).classList.toggle('hidden', n !== name);
