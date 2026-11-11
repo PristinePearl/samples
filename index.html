@@ -83,6 +83,7 @@
         <button data-tab="receipt" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Receipt</button>
         <button data-tab="staffreq" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Staff Req.</button>
         <button data-tab="supply" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Supply</button>
+        <button data-tab="dispatch" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Dispatch</button>
         <button data-tab="sreturn" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Return</button>
         <button data-tab="sadj" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50 whitespace-nowrap" onclick="switchTab(event)">Stock Adjustment</button>
         <button data-tab="live" class="tab px-3 py-2 rounded-md font-semibold text-slate-600 hover:bg-emerald-50" onclick="switchTab(event)">Live Inventory</button>
@@ -332,7 +333,7 @@
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
           <div>
             <label class="block font-semibold text-sm">Staff Name</label>
             <button type="button" onclick="openSrqStaffPicker()" class="border border-gray-200 rounded-md px-3 py-2 w-full text-left bg-white flex items-center justify-between">
@@ -343,6 +344,13 @@
           <div>
             <label class="block font-semibold text-sm">Requested Date</label>
             <input id="srqReqDate" type="date" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+          </div>
+          <div>
+            <label class="block font-semibold text-sm required-star">Approved By</label>
+            <button type="button" onclick="openSrqApproverPicker()" class="border border-gray-200 rounded-md px-3 py-2 w-full text-left bg-white flex items-center justify-between">
+              <span id="srqApproverLabel" class="text-slate-500">-- Select Approver --</span><span class="text-slate-400 text-sm">🔍</span>
+            </button>
+            <input type="hidden" id="srqApprover" />
           </div>
           <div>
             <label class="block font-semibold text-sm">Approval Date</label>
@@ -371,7 +379,8 @@
               <th class="p-2 text-left font-semibold text-slate-600">ID</th>
               <th class="p-2 text-left font-semibold text-slate-600">Staff</th>
               <th class="p-2 text-left font-semibold text-slate-600">Requested</th>
-              <th class="p-2 text-left font-semibold text-slate-600">Approved</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Approved By</th>
+              <th class="p-2 text-left font-semibold text-slate-600">Approved On</th>
               <th class="p-2 text-left font-semibold text-slate-600">Items</th>
               <th class="p-2 text-left font-semibold text-slate-600">Status</th>
               <th class="p-2"></th>
@@ -424,6 +433,11 @@
             <select id="sType" onchange="onSupplyTypeChange()" class="border border-gray-200 rounded-md px-2 py-1 w-full max-w-lg"></select>
           </div>
 
+          <div class="mt-3">
+            <label class="block font-semibold text-sm required-star">No. of Boxes</label>
+            <input id="supBoxes" type="number" min="1" step="1" placeholder="e.g. 2" class="border border-gray-200 rounded-md px-2 py-1 w-40" />
+          </div>
+
           <div id="empGrid" class="mt-4"></div>
         </div>
 
@@ -438,6 +452,50 @@
                 <th class="p-2 text-left font-semibold text-slate-600">MRP</th>
                 <th class="p-2 text-left font-semibold text-slate-600">Total</th>
                 <th class="p-2 text-left font-semibold text-slate-600">Remarks</th>
+                <th class="p-2"></th>
+              </tr>
+            </thead>
+            <tbody class="bg-white"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="dispatch" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-semibold">Dispatch Record</h2>
+            <p class="text-sm text-slate-500">Supplies of the selected date. Enter Courier &amp; POD No. here, or download the file, fill it and upload it back.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="text-sm text-slate-500">Supply Date</label>
+            <input id="dispDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" onchange="loadDispatch()" />
+            <select id="dispStatus" class="border border-gray-200 rounded-md px-2 py-1 text-sm" onchange="renderDispatch()">
+              <option value="">All</option>
+              <option value="Pending">Pending</option>
+              <option value="Partial">Partial</option>
+              <option value="Dispatched">Dispatched</option>
+            </select>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="loadDispatch()">↻ Refresh</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" onclick="downloadDispatchFile()">⬇ Download File</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="document.getElementById('dispUploadFile').click()">⬆ Upload File</button>
+            <input id="dispUploadFile" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleDispatchUpload(this)" />
+            <button id="dispSaveBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveDispatchManual()">Save Changes</button>
+          </div>
+        </div>
+        <div id="dispSummary" class="text-sm text-slate-600 mt-3"></div>
+        <datalist id="dispCouriers"></datalist>
+        <div class="mt-3 overflow-x-auto rounded-lg border border-gray-100">
+          <table id="dispTable" class="min-w-full text-sm">
+            <thead>
+              <tr>
+                <th class="p-2 text-left font-semibold text-slate-600">Supply ID</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Employee</th>
+                <th class="p-2 text-left font-semibold text-slate-600">HQ</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Items</th>
+                <th class="p-2 text-right font-semibold text-slate-600">Boxes</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Courier Name</th>
+                <th class="p-2 text-left font-semibold text-slate-600">POD No</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Status</th>
                 <th class="p-2"></th>
               </tr>
             </thead>
@@ -1502,7 +1560,7 @@
     document.getElementById('poDate').value = todayISO;
 
     activateTabVisuals(document.querySelectorAll('.tab')[0]);
-    ['request','receipt','staffreq','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
+    ['request','receipt','staffreq','supply','dispatch','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id==='request')?'block':'none'; });
 
     // Parallel load: total wait = slowest call, not the sum of all calls.
     // allSettled => one failing call can't block the page from opening.
@@ -1647,13 +1705,14 @@
     const tab = e.currentTarget ? e.currentTarget.dataset.tab : e.dataset.tab;
     const clicked = e.currentTarget ? e.currentTarget : e;
     activateTabVisuals(clicked);
-    ['request','receipt','staffreq','supply','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
+    ['request','receipt','staffreq','supply','dispatch','sreturn','sadj','live','po'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=(id===tab)?'block':'none'; });
     if(tab==='sadj'){ openSadjTab(); }
     if(tab==='sreturn'){ loadInventory(); loadVendors(); }
     if(tab==='po'){ loadVendors(); fetchNextPoNumber(); }
     if(tab==='live'){ loadInventory().then(renderLiveInventory); }
     if(tab==='staffreq'){ loadEmployees(); loadProducts().then(()=>{ if(!document.querySelector('#srqTable tbody tr')) addSrqRow(); }); loadSrqList(); }
     if(tab==='supply'){ loadInventory(); loadEmployees(); }
+    if(tab==='dispatch'){ loadDispatch(); }
     if(tab==='receipt'){ loadPendingRequests(); if((document.getElementById('receiptMode')?.value)==='po'){ loadPendingPOs(); } }
   }
 
@@ -2615,6 +2674,8 @@
       return { item: o.Product, batchNo: o.Batch||'', expiry: o.Expiry||'', qty: tr.querySelector('.s-qty').value, mrp: o.MRP||0, total: tr.querySelector('.s-total').value, remarks: (tr.querySelector('.s-rem')?.value || '').trim() };
     }).filter(r=> r && num(r.qty) > 0);
     if(!rows.length) return alert('No rows');
+    const boxes = Math.floor(num(document.getElementById('supBoxes').value));
+    if(!(boxes > 0)) return alert('Enter No. of Boxes (1 or more).');
 
     // Stock check: total requested per item+batch+expiry must not exceed what is in stock
     const need = {};
@@ -2630,10 +2691,11 @@
     if(short.length) return alert('Not enough stock:\n' + short.map(n => `${n.name} (batch ${n.batch}): available ${n.have}, requested ${n.want}`).join('\n'));
 
     const reqId = document.getElementById('supReqId').value || '';
-    const res = await post('saveSupply',{ date, supTo: emp, rows, reqId });
+    const res = await post('saveSupply',{ date, supTo: emp, rows, reqId, boxes });
     if(res && res.success){
       alert(res.message || 'Saved');
       document.querySelector('#supTable tbody').innerHTML = '';
+      document.getElementById('supBoxes').value = '';
       clearSupplyReq(true);
     } else {
       alert('Save failed: '+((res && res.message)||'')); // rows are kept so nothing needs re-entering
@@ -2641,6 +2703,177 @@
     loadInventory();
   }
 
+
+  /* ===================== DISPATCH RECORD ===================== */
+  let dispRows = [];
+
+  function dispStatusOf(courier, pod){
+    const c = buStr(courier), p = buStr(pod);
+    return (c && p) ? 'Dispatched' : (c || p) ? 'Partial' : 'Pending';
+  }
+
+  async function loadDispatch(){
+    const dEl = document.getElementById('dispDate');
+    if(!dEl.value) dEl.value = new Date().toISOString().slice(0,10);
+    const tb = document.querySelector('#dispTable tbody');
+    tb.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400">Loading...</td></tr>';
+    const r = await post('getDispatchList', { date: dEl.value });
+    if(!r || !r.success){
+      dispRows = [];
+      tb.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-600">${escapeHtml((r && r.message) || 'Could not load supplies')}</td></tr>`;
+      document.getElementById('dispSummary').textContent = '';
+      return;
+    }
+    dispRows = r.supplies || [];
+    document.getElementById('dispCouriers').innerHTML = (r.couriers || []).map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+    renderDispatch();
+  }
+
+  function renderDispatch(){
+    const tb = document.querySelector('#dispTable tbody');
+    const f = document.getElementById('dispStatus').value;
+    const shown = dispRows.filter(s => !f || dispStatusOf(s.courier, s.pod) === f);
+    const cnt = { Pending:0, Partial:0, Dispatched:0 };
+    dispRows.forEach(s => cnt[dispStatusOf(s.courier, s.pod)]++);
+    document.getElementById('dispSummary').innerHTML = dispRows.length
+      ? `<b>${dispRows.length}</b> supply(ies) | Boxes: <b>${dispRows.reduce((a,s)=> a + num(s.boxes), 0)}</b> | Dispatched: <b class="text-emerald-700">${cnt.Dispatched}</b> | Partial: <b class="text-amber-700">${cnt.Partial}</b> | Pending: <b class="text-red-600">${cnt.Pending}</b>`
+      : '';
+    if(!shown.length){
+      tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">${dispRows.length ? 'No supplies match the filter.' : 'No supplies on this date.'}</td></tr>`;
+      return;
+    }
+    const chip = st => st === 'Dispatched' ? 'bg-emerald-100 text-emerald-800' : (st === 'Partial' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700');
+    const cls = 'border border-gray-200 rounded-md px-2 py-1';
+    tb.innerHTML = shown.map(s => {
+      const st = dispStatusOf(s.courier, s.pod);
+      const locked = !!(buStr(s.courier) || buStr(s.pod));   // saved record -> edit via pencil
+      const items = (s.items || []).map(i => `${escapeHtml(i.item)} × ${num(i.qty)}`).join('<br>');
+      return `<tr class="border-t border-gray-100 align-top" data-id="${escapeHtml(s.supplyId)}">
+        <td class="p-2 font-semibold">${escapeHtml(s.supplyId)}</td>
+        <td class="p-2">${escapeHtml(s.empCode)} - ${escapeHtml(s.empName)}</td>
+        <td class="p-2">${escapeHtml(s.hq || '')}</td>
+        <td class="p-2 text-xs text-slate-600">${items}</td>
+        <td class="p-2 text-right">${escapeHtml(s.boxes || '-')}</td>
+        <td class="p-2"><input class="d-cou ${cls} w-44${locked ? ' bg-slate-50 text-slate-600' : ''}" list="dispCouriers" value="${escapeHtml(s.courier || '')}" placeholder="Courier" ${locked ? 'readonly' : ''} oninput="dispMarkDirty(this)" /></td>
+        <td class="p-2"><input class="d-pod ${cls} w-44${locked ? ' bg-slate-50 text-slate-600' : ''}" value="${escapeHtml(s.pod || '')}" placeholder="POD No" ${locked ? 'readonly' : ''} oninput="dispMarkDirty(this)" /></td>
+        <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${chip(st)}">${st}</span></td>
+        <td class="p-2">${locked ? `<button type="button" class="d-edit text-lg leading-none" title="Edit courier / POD" onclick="dispToggleEdit(this)">✏️</button>` : ''}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function dispMarkDirty(inp){
+    const tr = inp.closest('tr');
+    const s = dispRows.find(x => x.supplyId === tr.dataset.id) || {};
+    const c = tr.querySelector('.d-cou').value.trim(), p = tr.querySelector('.d-pod').value.trim();
+    const dirty = c !== buStr(s.courier) || p !== buStr(s.pod);
+    tr.style.background = dirty ? '#fffbeb' : '';
+    tr.dataset.dirty = dirty ? '1' : '';
+  }
+
+  // pencil: unlock a saved row for editing; click again (✕) to cancel and restore saved values
+  function dispToggleEdit(btn){
+    const tr = btn.closest('tr');
+    const s = dispRows.find(x => x.supplyId === tr.dataset.id) || {};
+    const cou = tr.querySelector('.d-cou'), pod = tr.querySelector('.d-pod');
+    const editing = !cou.readOnly;
+    if(editing){
+      cou.value = s.courier || ''; pod.value = s.pod || '';
+      [cou, pod].forEach(i => { i.readOnly = true; i.classList.add('bg-slate-50','text-slate-600'); });
+      btn.textContent = '✏️'; btn.title = 'Edit courier / POD';
+      dispMarkDirty(cou);
+    } else {
+      [cou, pod].forEach(i => { i.readOnly = false; i.classList.remove('bg-slate-50','text-slate-600'); });
+      btn.textContent = '✕'; btn.title = 'Cancel edit';
+      cou.focus();
+    }
+  }
+
+  async function saveDispatchManual(){
+    const rows = [...document.querySelectorAll('#dispTable tbody tr[data-dirty="1"]')].map(tr => ({
+      supplyId: tr.dataset.id,
+      courier: tr.querySelector('.d-cou').value.trim(),
+      pod: tr.querySelector('.d-pod').value.trim()
+    }));
+    if(!rows.length) return alert('No changes to save.');
+    const res = await post('saveDispatch', { rows });
+    if(res && res.success){
+      alert(res.message || 'Saved');
+      loadDispatch();
+    } else {
+      alert('Save failed: ' + ((res && res.message) || ''));   // entries stay on screen
+    }
+  }
+
+  function downloadDispatchFile(){
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    if(!dispRows.length) return alert('No supplies on the selected date.');
+    const date = document.getElementById('dispDate').value;
+    const head = ['SUPPLY ID','DATE','EMP ID','EMPLOYEE','DESIGNATION','HQ','MOBILE','ADDRESS','PINCODE','ITEMS','BOXES','COURIER NAME','POD NO'];
+    const aoa = [head].concat(dispRows.map(s => [
+      s.supplyId, formatDateForPrint(date), s.empCode, s.empName, s.designation || '', s.hq || '', s.mobile || '', s.address || '', s.pincode || '',
+      (s.items || []).map(i => `${i.item} x ${num(i.qty)}`).join('; '), num(s.boxes) || '', s.courier || '', s.pod || ''
+    ]));
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    // courier / POD / mobile / pincode as text so long numbers are not mangled
+    for(let r = 1; r < aoa.length; r++) [6, 8, 11, 12].forEach(c => {
+      const a = XLSX.utils.encode_cell({ r, c });
+      ws[a] = { t: 's', v: String(aoa[r][c] == null ? '' : aoa[r][c]), z: '@' };
+    });
+    ws['!cols'] = [{wch:11},{wch:12},{wch:10},{wch:26},{wch:16},{wch:16},{wch:14},{wch:40},{wch:10},{wch:50},{wch:8},{wch:20},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Dispatch');
+    XLSX.utils.book_append_sheet(wb, buReadMe([
+      'DISPATCH FILE - HOW TO FILL',
+      'Fill only COURIER NAME and POD NO on the "Dispatch" sheet, then upload the file in Dispatch > Upload File.',
+      'Do not change or delete the SUPPLY ID column - rows are matched by SUPPLY ID.',
+      'Blank COURIER NAME / POD NO cells are ignored (existing values are kept).'
+    ]), 'Read Me');
+    XLSX.writeFile(wb, 'Dispatch_' + date + '.xlsx');
+  }
+
+  async function handleDispatchUpload(input){
+    const file = input.files && input.files[0];
+    input.value = '';
+    if(!file) return;
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    try{
+      const grid = await buReadGrid(file);
+      const hd = buFindHeader(grid, {
+        id: ['supplyid','supplyno','supid'],
+        courier: ['couriername','courier','couriercompany'],
+        pod: ['podno','podnumber','pod','awbno','awb','lrno','trackingno']
+      }, ['id']);
+      if(!hd) return alert('Template format not recognised. The file needs a SUPPLY ID column (use the file downloaded from this tab).');
+      if(hd.col.courier === undefined && hd.col.pod === undefined) return alert('The file needs a COURIER NAME and/or POD NO column.');
+      const rows = [], seen = new Set(), errors = [];
+      for(let i = hd.hIdx + 1; i < grid.length; i++){
+        const r = grid[i] || [];
+        const get = k => hd.col[k] === undefined ? '' : buStr(r[hd.col[k]]);
+        const id = get('id'), courier = get('courier'), pod = get('pod');
+        if(!id) continue;
+        if(!courier && !pod) continue;
+        if(seen.has(id.toLowerCase())){ errors.push(`Row ${i+1}: ${id} appears more than once (first one used)`); continue; }
+        seen.add(id.toLowerCase());
+        const o = { supplyId: id };
+        if(courier) o.courier = courier;
+        if(pod) o.pod = pod;
+        rows.push(o);
+      }
+      if(!rows.length) return alert('No rows with Courier Name or POD No found in the file.' + (errors.length ? '\n\n' + errors.slice(0,10).join('\n') : ''));
+      if(!confirm(`Update dispatch details for ${rows.length} supply entr${rows.length === 1 ? 'y' : 'ies'}?` + (errors.length ? `\n\n${errors.length} duplicate row(s) ignored.` : ''))) return;
+      const res = await post('saveDispatch', { rows });
+      if(res && res.success){
+        alert(res.message || 'Saved');
+        loadDispatch();
+      } else {
+        alert('Upload failed: ' + ((res && res.message) || ''));
+      }
+    }catch(err){
+      console.error(err);
+      alert('Could not read the file: ' + (err && err.message ? err.message : err));
+    }
+  }
 
   /* ===================== STAFF REQUIREMENT ===================== */
   function openSrqStaffPicker(){
@@ -2653,6 +2886,20 @@
     openPicker('Select Staff', items, it => {
       document.getElementById('srqStaff').value = it.code;
       const l = document.getElementById('srqStaffLabel');
+      l.textContent = it.text; l.classList.remove('text-slate-500'); l.classList.add('text-slate-800');
+    });
+  }
+
+  function openSrqApproverPicker(){
+    const items = employees.map(e => ({
+      label: `${escapeHtml(e["Employee Code"])} - ${escapeHtml(e["Employee Name"])}`,
+      sub: [e["Designation"], e["Division"], e["HQ"]].filter(Boolean).map(escapeHtml).join(' • '),
+      code: e["Employee Code"], text: `${e["Employee Code"]} - ${e["Employee Name"]}`,
+      searchText: `${e["Employee Code"]||''} ${e["Employee Name"]||''} ${e["Designation"]||''} ${e["Division"]||''}`.toLowerCase()
+    }));
+    openPicker('Select Approver', items, it => {
+      document.getElementById('srqApprover').value = it.code;
+      const l = document.getElementById('srqApproverLabel');
       l.textContent = it.text; l.classList.remove('text-slate-500'); l.classList.add('text-slate-800');
     });
   }
@@ -2689,19 +2936,24 @@
     const staffCode = document.getElementById('srqStaff').value;
     const requestedDate = document.getElementById('srqReqDate').value;
     const approvalDate = document.getElementById('srqApprDate').value;
+    const approverCode = document.getElementById('srqApprover').value;
     if(!staffCode) return alert('Select Staff');
+    if(!approverCode) return alert('Select Approved By');
     if(!requestedDate) return alert('Enter Requested Date');
     const rows = [...document.querySelectorAll('#srqTable tbody tr')].map(tr => ({
       item: tr.querySelector('.q-prod').value, qty: tr.querySelector('.q-qty').value
     })).filter(r => r.item && num(r.qty) > 0);
     if(!rows.length) return alert('Add at least one item with quantity');
     const emp = employees.find(e => String(e["Employee Code"]) === String(staffCode)) || {};
-    const res = await post('saveStaffRequirement', { staffCode, staffName: emp["Employee Name"] || '', requestedDate, approvalDate, rows });
+    const apr = employees.find(e => String(e["Employee Code"]) === String(approverCode)) || {};
+    const res = await post('saveStaffRequirement', { staffCode, staffName: emp["Employee Name"] || '', approvedByCode: approverCode, approvedByName: apr["Employee Name"] || '', requestedDate, approvalDate, rows });
     if(res && res.success){
       alert(res.message || 'Saved');
       document.querySelector('#srqTable tbody').innerHTML = '';
       addSrqRow();
       document.getElementById('srqApprDate').value = '';
+      document.getElementById('srqApprover').value = '';
+      const la = document.getElementById('srqApproverLabel'); la.textContent = '-- Select Approver --'; la.classList.add('text-slate-500'); la.classList.remove('text-slate-800');
       document.getElementById('srqStaff').value = '';
       const l = document.getElementById('srqStaffLabel'); l.textContent = '-- Select Staff --'; l.classList.add('text-slate-500'); l.classList.remove('text-slate-800');
       loadSrqList();
@@ -2714,12 +2966,13 @@
     const r = await post('getStaffRequirements', { status: 'All' });
     const tb = document.getElementById('srqListBody');
     const list = (r && r.success) ? (r.requirements || []).slice(0, 50) : [];
-    if(!list.length){ tb.innerHTML = '<tr><td colspan="7" class="p-3 text-center text-slate-400">No requirements yet</td></tr>'; return; }
+    if(!list.length){ tb.innerHTML = '<tr><td colspan="8" class="p-3 text-center text-slate-400">No requirements yet</td></tr>'; return; }
     const badge = s => s === 'Open' ? 'bg-amber-100 text-amber-800' : (s === 'Supplied' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600');
     tb.innerHTML = list.map(q => `<tr class="border-t border-gray-100">
       <td class="p-2 font-semibold">${escapeHtml(q.id)}</td>
       <td class="p-2">${escapeHtml(q.staffCode)} - ${escapeHtml(q.staffName)}</td>
       <td class="p-2">${escapeHtml(q.requestedDate)}</td>
+      <td class="p-2">${q.approvedByCode || q.approvedByName ? escapeHtml(q.approvedByCode) + ' - ' + escapeHtml(q.approvedByName) : '-'}</td>
       <td class="p-2">${escapeHtml(q.approvalDate || '-')}</td>
       <td class="p-2">${q.items.map(i => `${escapeHtml(i.item)} × ${i.qty}`).join('<br>')}</td>
       <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${badge(q.status)}">${escapeHtml(q.status)}${q.supplyId ? ' (' + escapeHtml(q.supplyId) + ')' : ''}</span></td>
@@ -2740,7 +2993,7 @@
     const list = (r && r.success) ? (r.requirements || []) : [];
     const items = list.length ? list.map(q => ({
       label: `${escapeHtml(q.id)} — ${escapeHtml(q.staffCode)} ${escapeHtml(q.staffName)}`,
-      sub: `Requested: ${escapeHtml(q.requestedDate)} | Approved: ${escapeHtml(q.approvalDate || '-')} | ${q.items.map(i => escapeHtml(i.item) + ' × ' + i.qty).join(', ')}`,
+      sub: `Requested: ${escapeHtml(q.requestedDate)} | Approved by: ${escapeHtml(q.approvedByName || '-')} | Approved on: ${escapeHtml(q.approvalDate || '-')} | ${q.items.map(i => escapeHtml(i.item) + ' × ' + i.qty).join(', ')}`,
       searchText: `${q.id} ${q.staffCode} ${q.staffName} ${q.items.map(i=>i.item).join(' ')}`.toLowerCase(),
       req: q
     })) : [];
@@ -2799,7 +3052,7 @@
       if(left > 0) notes.push(`${it.item}: short by ${left}`);
     });
     if(!tb.children.length) addSupplyRow();
-    document.getElementById('supReqInfo').textContent = `Requested: ${q.requestedDate}${q.approvalDate ? ' | Approved: ' + q.approvalDate : ''}. Edit rows as needed, then Save.` + (notes.length ? ' ⚠ ' + notes.join('; ') : '');
+    document.getElementById('supReqInfo').textContent = `Requested: ${q.requestedDate}${q.approvedByName || q.approvedByCode ? ' | Approved by: ' + [q.approvedByCode, q.approvedByName].filter(Boolean).join(' - ') : ''}${q.approvalDate ? ' | Approved on: ' + q.approvalDate : ''}. Edit rows as needed, then Save.` + (notes.length ? ' ⚠ ' + notes.join('; ') : '');
   }
 
   /* ===================== EXPIRY STOCK REMOVAL ===================== */
@@ -4607,9 +4860,9 @@
     if(!employees.length) await loadEmployees();
     const wb = XLSX.utils.book_new();
 
-    const ws = XLSX.utils.aoa_to_sheet([['EMP ID','TYPE','ITEM','BATCH','EXPIRY','QTY','REMARKS']]);
-    ws['!cols'] = [{wch:14},{wch:14},{wch:42},{wch:18},{wch:14},{wch:10},{wch:32}];
-    buTextCols(ws, [0,1,2,3,4,6], 6);
+    const ws = XLSX.utils.aoa_to_sheet([['EMP ID','TYPE','ITEM','BATCH','EXPIRY','QTY','REMARKS','BOXES']]);
+    ws['!cols'] = [{wch:14},{wch:14},{wch:42},{wch:18},{wch:14},{wch:10},{wch:32},{wch:10}];
+    buTextCols(ws, [0,1,2,3,4,6], 7);
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
 
     const ref = [['TYPE','ITEM','BATCH','EXPIRY','AVL QTY','MRP']].concat(
@@ -4628,7 +4881,8 @@
 
     XLSX.utils.book_append_sheet(wb, buReadMe([
       'SUPPLY BULK UPLOAD - HOW TO FILL',
-      'Columns: EMP ID | TYPE | ITEM | BATCH | EXPIRY | QTY | REMARKS  (fill the "Template" sheet only). REMARKS is optional.',
+      'Columns: EMP ID | TYPE | ITEM | BATCH | EXPIRY | QTY | REMARKS | BOXES  (fill the "Template" sheet only). REMARKS is optional.',
+      'BOXES = number of boxes for that employee\'s supply. Fill it on at least one row per EMP ID (rows of the same EMP ID share one value).',
       'Rows with the same EMP ID are saved together as ONE supply entry (one Supply ID).',
       'ITEM / BATCH / EXPIRY must match the "Product List (reference)" sheet (current stock). EXPIRY format: MM-YYYY.',
       'BATCH may be left blank only if the item has a single batch in stock.',
@@ -4643,9 +4897,11 @@
     const hd = buFindHeader(grid, {
       emp:['empid','employeeid','empcode','employeecode','empno'], type:['type','itemtype'],
       item:['item','product','itemname','productname'], batch:['batch','batchno','batchnumber'],
-      expiry:['expiry','expirydate','exp','expdate'], qty:['qty','quantity'], remarks:['remarks','remark','note','notes']
+      expiry:['expiry','expirydate','exp','expdate'], qty:['qty','quantity'], remarks:['remarks','remark','note','notes'],
+      boxes:['boxes','noofboxes','nobox','noofbox','boxcount','numberofboxes']
     }, ['emp','item','qty']);
-    if(!hd) return { fatal: 'Template format not recognised. Columns must be: EMP ID | TYPE | ITEM | BATCH | EXPIRY | QTY | REMARKS' };
+    if(!hd) return { fatal: 'Template format not recognised. Columns must be: EMP ID | TYPE | ITEM | BATCH | EXPIRY | QTY | REMARKS | BOXES' };
+    if(hd.col.boxes === undefined) return { fatal: 'BOXES column is missing. Download the latest template (EMP ID | TYPE | ITEM | BATCH | EXPIRY | QTY | REMARKS | BOXES).' };
     const col = hd.col;
 
     const empMap = new Map(); employees.forEach(e => empMap.set(normKey(e['Employee Code']), e));
@@ -4657,8 +4913,8 @@
       const r = grid[i] || [];
       const get = k => col[k] === undefined ? '' : r[col[k]];
       const empRaw = buStr(get('emp')), type = buStr(get('type')), item = buStr(get('item')), batch = buStr(get('batch'));
-      const expRaw = get('expiry'), qtyRaw = buStr(get('qty')), remarks = buStr(get('remarks'));
-      if(!empRaw && !type && !item && !batch && buStr(expRaw) === '' && !qtyRaw && !remarks) continue;
+      const expRaw = get('expiry'), qtyRaw = buStr(get('qty')), remarks = buStr(get('remarks')), boxRaw = buStr(get('boxes'));
+      if(!empRaw && !type && !item && !batch && buStr(expRaw) === '' && !qtyRaw && !remarks && !boxRaw) continue;
       const line = i + 1;
 
       const emp = empRaw ? empMap.get(normKey(empRaw)) : null;
@@ -4689,10 +4945,18 @@
 
       const gk = normKey(emp['Employee Code']);
       if(!groups.has(gk)) groups.set(gk, { code: emp['Employee Code'], name: emp['Employee Name'] || '', rows: [] });
+      if(boxRaw !== ''){
+        const bx = Math.floor(Number(boxRaw.replace(/,/g, '')));
+        if(!(bx > 0)){ errors.push(`Row ${line}: invalid BOXES "${boxRaw}"`); continue; }
+        const gb = groups.get(gk);
+        if(gb.boxes && gb.boxes !== bx) errors.push(`Row ${line}: BOXES ${bx} differs from ${gb.boxes} given earlier for EMP ID ${emp['Employee Code']}`);
+        gb.boxes = bx;
+      }
       groups.get(gk).rows.push({ inv, qty, line, remarks });
       rowCount++;
     }
 
+    groups.forEach(g => { if(!g.boxes) errors.push(`EMP ID ${g.code}: BOXES is missing (fill it on at least one row)`); });
     need.forEach(n => {
       if(n.want > num(n.inv.Qty)) errors.push(`Not enough stock: ${n.inv.Product} (batch ${n.inv.Batch || '-'}) available ${num(n.inv.Qty)}, total requested ${n.want}`);
     });
@@ -4723,7 +4987,7 @@
       await plan.groups.reduce((chain, g) => chain.then(async () => {
         const rows = g.rows.map(x => ({ item: x.inv.Product, batchNo: x.inv.Batch || '', expiry: x.inv.Expiry || '', qty: x.qty, mrp: x.inv.MRP || 0, total: to2(x.qty * num(x.inv.MRP)), remarks: x.remarks || '' }));
         let res;
-        try{ res = await post('saveSupply', { date, supTo: g.code, rows }); }
+        try{ res = await post('saveSupply', { date, supTo: g.code, rows, boxes: g.boxes }); }
         catch(e){ res = { success: false, message: String(e && e.message || e) }; }
         results.push({ g, res });
       }), Promise.resolve());
