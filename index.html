@@ -464,30 +464,59 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold">Dispatch Record</h2>
-            <p class="text-sm text-slate-500">Supplies of the selected date. Enter Courier &amp; POD No. here, or download the file, fill it and upload it back.</p>
+            <p class="text-sm text-slate-500">Supplies between the selected dates. Enter Courier &amp; POD No. here, or download the file, fill it and upload it back. Use <b>Analysis</b> for summaries and <b>Export Report</b> for Excel.</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <label class="text-sm text-slate-500">Supply Date</label>
-            <input id="dispDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" onchange="loadDispatch()" />
+            <label class="text-sm text-slate-500">From</label>
+            <input id="dispFrom" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <label class="text-sm text-slate-500">To</label>
+            <input id="dispTo" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+            <button type="button" class="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm font-bold" onclick="loadDispatch()">Load</button>
+          </div>
+        </div>
+
+        <div class="mt-3 flex items-center gap-2 flex-wrap text-sm">
+          <span class="text-slate-500">Quick:</span>
+          <button type="button" class="px-2 py-1 rounded-md border border-gray-200 bg-white font-semibold" onclick="dispPreset('today')">Today</button>
+          <button type="button" class="px-2 py-1 rounded-md border border-gray-200 bg-white font-semibold" onclick="dispPreset('yesterday')">Yesterday</button>
+          <button type="button" class="px-2 py-1 rounded-md border border-gray-200 bg-white font-semibold" onclick="dispPreset('7d')">Last 7 days</button>
+          <button type="button" class="px-2 py-1 rounded-md border border-gray-200 bg-white font-semibold" onclick="dispPreset('month')">This month</button>
+          <button type="button" class="px-2 py-1 rounded-md border border-gray-200 bg-white font-semibold" onclick="dispPreset('lastmonth')">Last month</button>
+          <span class="text-xs text-slate-400">(max 62 days per load)</span>
+        </div>
+
+        <div class="mt-3 flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="inline-flex rounded-md border border-gray-200 overflow-hidden text-sm font-semibold">
+              <button type="button" id="dispViewBtn_records" class="px-3 py-1.5 bg-emerald-600 text-white" onclick="dispSetView('records')">Records</button>
+              <button type="button" id="dispViewBtn_analysis" class="px-3 py-1.5 bg-white text-slate-600" onclick="dispSetView('analysis')">Analysis</button>
+            </div>
             <select id="dispStatus" class="border border-gray-200 rounded-md px-2 py-1 text-sm" onchange="renderDispatch()">
-              <option value="">All</option>
+              <option value="">All status</option>
               <option value="Pending">Pending</option>
               <option value="Partial">Partial</option>
               <option value="Dispatched">Dispatched</option>
             </select>
+            <input id="dispSearch" type="text" placeholder="Search ID / employee / HQ / courier / POD / item" class="border border-gray-200 rounded-md px-2 py-1 text-sm w-64" oninput="renderDispatch()" />
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
             <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="loadDispatch()">↻ Refresh</button>
-            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" onclick="downloadDispatchFile()">⬇ Download File</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" title="Downloads the rows currently shown, to fill Courier / POD / Dispatch Date" onclick="downloadDispatchFile()">⬇ Download File</button>
             <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="document.getElementById('dispUploadFile').click()">⬆ Upload File</button>
             <input id="dispUploadFile" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleDispatchUpload(this)" />
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="exportDispatchReport()">📊 Export Report</button>
             <button id="dispSaveBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveDispatchManual()">Save Changes</button>
           </div>
         </div>
+
         <div id="dispSummary" class="text-sm text-slate-600 mt-3"></div>
         <datalist id="dispCouriers"></datalist>
-        <div class="mt-3 overflow-x-auto rounded-lg border border-gray-100">
+
+        <div id="dispRecords" class="mt-3 overflow-x-auto rounded-lg border border-gray-100">
           <table id="dispTable" class="min-w-full text-sm">
             <thead>
               <tr>
+                <th class="p-2 text-left font-semibold text-slate-600">Date</th>
                 <th class="p-2 text-left font-semibold text-slate-600">Supply ID</th>
                 <th class="p-2 text-left font-semibold text-slate-600">Employee</th>
                 <th class="p-2 text-left font-semibold text-slate-600">HQ</th>
@@ -495,12 +524,36 @@
                 <th class="p-2 text-right font-semibold text-slate-600">Boxes</th>
                 <th class="p-2 text-left font-semibold text-slate-600">Courier Name</th>
                 <th class="p-2 text-left font-semibold text-slate-600">POD No</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Dispatch Date</th>
                 <th class="p-2 text-left font-semibold text-slate-600">Status</th>
+                <th class="p-2 text-left font-semibold text-slate-600">Live Track</th>
                 <th class="p-2"></th>
               </tr>
             </thead>
             <tbody class="bg-white"></tbody>
           </table>
+        </div>
+
+        <div id="dispAnalysis" class="mt-3 hidden"></div>
+
+        <!-- Live tracking popup -->
+        <div id="dispTrackModal" class="hidden fixed inset-0 z-50 items-center justify-center p-3" style="background:rgba(15,23,42,.45)" onclick="if(event.target===this)dispTrackClose()">
+          <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-lg font-semibold">Live Tracking</div>
+                <div id="dtSub" class="text-sm text-slate-500"></div>
+              </div>
+              <button type="button" class="text-slate-400 text-xl leading-none" onclick="dispTrackClose()">✕</button>
+            </div>
+            <div id="dtSteps" class="mt-4"></div>
+            <div id="dtBody" class="mt-3 text-sm"></div>
+            <div class="mt-4 flex gap-2 flex-wrap">
+              <button type="button" class="px-3 py-2 rounded-md bg-emerald-600 text-white text-sm font-bold" onclick="dispTrackRefresh()">↻ Refresh</button>
+              <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="dispTrackCopy()">Copy POD</button>
+              <a id="dtOpen" target="_blank" rel="noopener" onclick="dispCopyQuiet()" title="Opens the courier's tracking page and copies the POD number - just paste it" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white">Open courier site ↗ (copies POD)</a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -2705,41 +2758,119 @@
 
 
   /* ===================== DISPATCH RECORD ===================== */
-  let dispRows = [];
+  let dispRows = [];          // all supplies in the loaded date range (each has ._d = supply date YYYY-MM-DD)
+  let dispView = 'records';
+  let dispLoadToken = 0;
+  const DISP_MAX_DAYS = 62;
+
+  function dispIso(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function dispParse(s){ const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null; }
+  function dispDateList(from, to){
+    const a = dispParse(from), b = dispParse(to), out = [];
+    if(!a || !b) return out;
+    for(let d = new Date(a); d <= b && out.length <= DISP_MAX_DAYS + 1; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) out.push(dispIso(d));
+    return out;
+  }
+  function dispDaysAgo(iso){
+    const d = dispParse(iso); if(!d) return 0;
+    const t = new Date(); const t0 = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    return Math.max(0, Math.round((t0 - d) / 86400000));
+  }
+
+  function dispPreset(k){
+    const t = new Date(), y = t.getFullYear(), m = t.getMonth(), d = t.getDate();
+    let a = new Date(y, m, d), b = new Date(y, m, d);
+    if(k === 'yesterday'){ a = new Date(y, m, d - 1); b = new Date(y, m, d - 1); }
+    else if(k === '7d'){ a = new Date(y, m, d - 6); }
+    else if(k === 'month'){ a = new Date(y, m, 1); }
+    else if(k === 'lastmonth'){ a = new Date(y, m - 1, 1); b = new Date(y, m, 0); }
+    document.getElementById('dispFrom').value = dispIso(a);
+    document.getElementById('dispTo').value = dispIso(b);
+    loadDispatch();
+  }
 
   function dispStatusOf(courier, pod){
     const c = buStr(courier), p = buStr(pod);
     return (c && p) ? 'Dispatched' : (c || p) ? 'Partial' : 'Pending';
   }
 
-  async function loadDispatch(){
-    const dEl = document.getElementById('dispDate');
-    if(!dEl.value) dEl.value = new Date().toISOString().slice(0,10);
-    const tb = document.querySelector('#dispTable tbody');
-    tb.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400">Loading...</td></tr>';
-    const r = await post('getDispatchList', { date: dEl.value });
-    if(!r || !r.success){
-      dispRows = [];
-      tb.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-600">${escapeHtml((r && r.message) || 'Could not load supplies')}</td></tr>`;
-      document.getElementById('dispSummary').textContent = '';
-      return;
-    }
-    dispRows = r.supplies || [];
-    document.getElementById('dispCouriers').innerHTML = (r.couriers || []).map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+  function dispSetView(v){
+    dispView = v;
+    document.getElementById('dispRecords').classList.toggle('hidden', v !== 'records');
+    document.getElementById('dispAnalysis').classList.toggle('hidden', v !== 'analysis');
+    document.getElementById('dispSaveBtn').classList.toggle('hidden', v !== 'records');
+    ['records','analysis'].forEach(n => {
+      const b = document.getElementById('dispViewBtn_' + n);
+      b.classList.toggle('bg-emerald-600', n === v); b.classList.toggle('text-white', n === v);
+      b.classList.toggle('bg-white', n !== v); b.classList.toggle('text-slate-600', n !== v);
+    });
     renderDispatch();
   }
 
-  function renderDispatch(){
+  async function loadDispatch(){
+    const fEl = document.getElementById('dispFrom'), tEl = document.getElementById('dispTo');
+    const today = dispIso(new Date());
+    if(!fEl.value) fEl.value = tEl.value || today;
+    if(!tEl.value) tEl.value = fEl.value;
+    if(tEl.value < fEl.value){ const x = fEl.value; fEl.value = tEl.value; tEl.value = x; }
+    const dates = dispDateList(fEl.value, tEl.value);
+    if(dates.length > DISP_MAX_DAYS) return alert(`Please select at most ${DISP_MAX_DAYS} days at a time.`);
+
+    const token = ++dispLoadToken;
     const tb = document.querySelector('#dispTable tbody');
+    tb.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-slate-400">Loading ${dates.length} day(s)...</td></tr>`;
+
+    const results = [];
+    const chunks = [];
+    for(let i = 0; i < dates.length; i += 4) chunks.push(dates.slice(i, i + 4));
+    await chunks.reduce((chain, ch) => chain.then(async () => {
+      const rs = await Promise.all(ch.map(d => post('getDispatchList', { date: d }).then(r => ({ d, r }))));
+      rs.forEach(x => results.push(x));
+    }), Promise.resolve());
+    if(token !== dispLoadToken) return;   // a newer load started
+
+    const failed = results.filter(x => !(x.r && x.r.success));
+    if(failed.length === results.length){
+      dispRows = [];
+      tb.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-red-600">${escapeHtml((failed[0].r && failed[0].r.message) || 'Could not load supplies')}</td></tr>`;
+      document.getElementById('dispSummary').textContent = '';
+      document.getElementById('dispAnalysis').innerHTML = '';
+      return;
+    }
+    const couriers = new Set();
+    dispRows = [];
+    results.filter(x => x.r && x.r.success).sort((a, b) => a.d.localeCompare(b.d)).forEach(x => {
+      (x.r.couriers || []).forEach(c => couriers.add(c));
+      (x.r.supplies || []).forEach(s => dispRows.push(Object.assign({}, s, { _d: x.d })));
+    });
+    document.getElementById('dispCouriers').innerHTML = [...couriers].map(c => `<option value="${escapeHtml(c)}"></option>`).join('');
+    renderDispatch();
+    if(failed.length) alert(`${failed.length} day(s) could not be loaded and are missing:\n` + failed.map(x => x.d).slice(0, 15).join(', ') + '\n\nClick Refresh to retry.');
+  }
+
+  function dispFiltered(){
     const f = document.getElementById('dispStatus').value;
-    const shown = dispRows.filter(s => !f || dispStatusOf(s.courier, s.pod) === f);
+    const q = (document.getElementById('dispSearch').value || '').toLowerCase().trim();
+    return dispRows.filter(s => {
+      if(f && dispStatusOf(s.courier, s.pod) !== f) return false;
+      if(!q) return true;
+      const hay = [s.supplyId, s.empCode, s.empName, s.hq, s.courier, s.pod, s.designation, (s.items || []).map(i => i.item).join(' ')].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function renderDispatch(){
+    const shown = dispFiltered();
     const cnt = { Pending:0, Partial:0, Dispatched:0 };
-    dispRows.forEach(s => cnt[dispStatusOf(s.courier, s.pod)]++);
+    shown.forEach(s => cnt[dispStatusOf(s.courier, s.pod)]++);
     document.getElementById('dispSummary').innerHTML = dispRows.length
-      ? `<b>${dispRows.length}</b> supply(ies) | Boxes: <b>${dispRows.reduce((a,s)=> a + num(s.boxes), 0)}</b> | Dispatched: <b class="text-emerald-700">${cnt.Dispatched}</b> | Partial: <b class="text-amber-700">${cnt.Partial}</b> | Pending: <b class="text-red-600">${cnt.Pending}</b>`
+      ? `<b>${shown.length}</b>${shown.length !== dispRows.length ? ' of ' + dispRows.length : ''} supply(ies) | Boxes: <b>${shown.reduce((a,s)=> a + num(s.boxes), 0)}</b> | Dispatched: <b class="text-emerald-700">${cnt.Dispatched}</b> | Partial: <b class="text-amber-700">${cnt.Partial}</b> | Pending: <b class="text-red-600">${cnt.Pending}</b>`
       : '';
+    if(dispView === 'analysis'){ renderDispatchAnalysis(shown); return; }
+
+    const tb = document.querySelector('#dispTable tbody');
     if(!shown.length){
-      tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-slate-400">${dispRows.length ? 'No supplies match the filter.' : 'No supplies on this date.'}</td></tr>`;
+      tb.innerHTML = `<tr><td colspan="12" class="p-6 text-center text-slate-400">${dispRows.length ? 'No supplies match the filter.' : 'No supplies in this date range.'}</td></tr>`;
       return;
     }
     const chip = st => st === 'Dispatched' ? 'bg-emerald-100 text-emerald-800' : (st === 'Partial' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700');
@@ -2747,8 +2878,10 @@
     tb.innerHTML = shown.map(s => {
       const st = dispStatusOf(s.courier, s.pod);
       const locked = !!(buStr(s.courier) || buStr(s.pod));   // saved record -> edit via pencil
+      const tk = dispTrack[s.supplyId];
       const items = (s.items || []).map(i => `${escapeHtml(i.item)} × ${num(i.qty)}`).join('<br>');
-      return `<tr class="border-t border-gray-100 align-top" data-id="${escapeHtml(s.supplyId)}">
+      return `<tr class="border-t border-gray-100 align-top" data-id="${escapeHtml(s.supplyId)}" data-locked="${locked ? '1' : ''}">
+        <td class="p-2 whitespace-nowrap">${escapeHtml(formatDateForPrint(s._d))}</td>
         <td class="p-2 font-semibold">${escapeHtml(s.supplyId)}</td>
         <td class="p-2">${escapeHtml(s.empCode)} - ${escapeHtml(s.empName)}</td>
         <td class="p-2">${escapeHtml(s.hq || '')}</td>
@@ -2756,7 +2889,9 @@
         <td class="p-2 text-right">${escapeHtml(s.boxes || '-')}</td>
         <td class="p-2"><input class="d-cou ${cls} w-44${locked ? ' bg-slate-50 text-slate-600' : ''}" list="dispCouriers" value="${escapeHtml(s.courier || '')}" placeholder="Courier" ${locked ? 'readonly' : ''} oninput="dispMarkDirty(this)" /></td>
         <td class="p-2"><input class="d-pod ${cls} w-44${locked ? ' bg-slate-50 text-slate-600' : ''}" value="${escapeHtml(s.pod || '')}" placeholder="POD No" ${locked ? 'readonly' : ''} oninput="dispMarkDirty(this)" /></td>
+        <td class="p-2"><input type="date" class="d-dt ${cls}${locked ? ' bg-slate-50 text-slate-600' : ''}" value="${escapeHtml(s.dispatchDate || '')}" ${locked ? 'disabled' : ''} oninput="dispMarkDirty(this)" /></td>
         <td class="p-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${chip(st)}">${st}</span></td>
+        <td class="p-2 whitespace-nowrap">${dispLiveCell(s, tk)}</td>
         <td class="p-2">${locked ? `<button type="button" class="d-edit text-lg leading-none" title="Edit courier / POD" onclick="dispToggleEdit(this)">✏️</button>` : ''}</td>
       </tr>`;
     }).join('');
@@ -2766,7 +2901,10 @@
     const tr = inp.closest('tr');
     const s = dispRows.find(x => x.supplyId === tr.dataset.id) || {};
     const c = tr.querySelector('.d-cou').value.trim(), p = tr.querySelector('.d-pod').value.trim();
-    const dirty = c !== buStr(s.courier) || p !== buStr(s.pod);
+    const dtEl = tr.querySelector('.d-dt');
+    // new entry: default the dispatch date to today as soon as courier / POD is typed
+    if((c || p) && !dtEl.value && !tr.dataset.locked) dtEl.value = dispIso(new Date());
+    const dirty = c !== buStr(s.courier) || p !== buStr(s.pod) || dtEl.value !== buStr(s.dispatchDate);
     tr.style.background = dirty ? '#fffbeb' : '';
     tr.dataset.dirty = dirty ? '1' : '';
   }
@@ -2775,15 +2913,17 @@
   function dispToggleEdit(btn){
     const tr = btn.closest('tr');
     const s = dispRows.find(x => x.supplyId === tr.dataset.id) || {};
-    const cou = tr.querySelector('.d-cou'), pod = tr.querySelector('.d-pod');
+    const cou = tr.querySelector('.d-cou'), pod = tr.querySelector('.d-pod'), dt = tr.querySelector('.d-dt');
     const editing = !cou.readOnly;
     if(editing){
-      cou.value = s.courier || ''; pod.value = s.pod || '';
+      cou.value = s.courier || ''; pod.value = s.pod || ''; dt.value = s.dispatchDate || '';
       [cou, pod].forEach(i => { i.readOnly = true; i.classList.add('bg-slate-50','text-slate-600'); });
+      dt.disabled = true; dt.classList.add('bg-slate-50','text-slate-600');
       btn.textContent = '✏️'; btn.title = 'Edit courier / POD';
       dispMarkDirty(cou);
     } else {
       [cou, pod].forEach(i => { i.readOnly = false; i.classList.remove('bg-slate-50','text-slate-600'); });
+      dt.disabled = false; dt.classList.remove('bg-slate-50','text-slate-600');
       btn.textContent = '✕'; btn.title = 'Cancel edit';
       cou.focus();
     }
@@ -2793,9 +2933,14 @@
     const rows = [...document.querySelectorAll('#dispTable tbody tr[data-dirty="1"]')].map(tr => ({
       supplyId: tr.dataset.id,
       courier: tr.querySelector('.d-cou').value.trim(),
-      pod: tr.querySelector('.d-pod').value.trim()
+      pod: tr.querySelector('.d-pod').value.trim(),
+      dispatchDate: tr.querySelector('.d-dt').value
     }));
     if(!rows.length) return alert('No changes to save.');
+    const noDate = rows.filter(r => (r.courier || r.pod) && !r.dispatchDate);
+    if(noDate.length) return alert('Dispatch Date is required for: ' + noDate.map(r => r.supplyId).join(', '));
+    const future = rows.filter(r => r.dispatchDate > dispIso(new Date()));
+    if(future.length && !confirm('Dispatch date is in the future for: ' + future.map(r => r.supplyId).join(', ') + '\n\nContinue?')) return;
     const res = await post('saveDispatch', { rows });
     if(res && res.success){
       alert(res.message || 'Saved');
@@ -2805,31 +2950,37 @@
     }
   }
 
+  function dispRangeLabel(){
+    const f = document.getElementById('dispFrom').value, t = document.getElementById('dispTo').value;
+    return f === t ? f : `${f}_to_${t}`;
+  }
+
   function downloadDispatchFile(){
     if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
-    if(!dispRows.length) return alert('No supplies on the selected date.');
-    const date = document.getElementById('dispDate').value;
-    const head = ['SUPPLY ID','DATE','EMP ID','EMPLOYEE','DESIGNATION','HQ','MOBILE','ADDRESS','PINCODE','ITEMS','BOXES','COURIER NAME','POD NO'];
-    const aoa = [head].concat(dispRows.map(s => [
-      s.supplyId, formatDateForPrint(date), s.empCode, s.empName, s.designation || '', s.hq || '', s.mobile || '', s.address || '', s.pincode || '',
-      (s.items || []).map(i => `${i.item} x ${num(i.qty)}`).join('; '), num(s.boxes) || '', s.courier || '', s.pod || ''
+    const list = dispFiltered();
+    if(!list.length) return alert('No supplies to download for the selected dates / filter.');
+    const head = ['SUPPLY ID','DATE','EMP ID','EMPLOYEE','DESIGNATION','HQ','MOBILE','ADDRESS','PINCODE','ITEMS','BOXES','COURIER NAME','POD NO','DISPATCH DATE'];
+    const aoa = [head].concat(list.map(s => [
+      s.supplyId, formatDateForPrint(s._d), s.empCode, s.empName, s.designation || '', s.hq || '', s.mobile || '', s.address || '', s.pincode || '',
+      (s.items || []).map(i => `${i.item} x ${num(i.qty)}`).join('; '), num(s.boxes) || '', s.courier || '', s.pod || '', s.dispatchDate ? formatDateForPrint(s.dispatchDate) : ''
     ]));
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     // courier / POD / mobile / pincode as text so long numbers are not mangled
-    for(let r = 1; r < aoa.length; r++) [6, 8, 11, 12].forEach(c => {
+    for(let r = 1; r < aoa.length; r++) [6, 8, 11, 12, 13].forEach(c => {
       const a = XLSX.utils.encode_cell({ r, c });
       ws[a] = { t: 's', v: String(aoa[r][c] == null ? '' : aoa[r][c]), z: '@' };
     });
-    ws['!cols'] = [{wch:11},{wch:12},{wch:10},{wch:26},{wch:16},{wch:16},{wch:14},{wch:40},{wch:10},{wch:50},{wch:8},{wch:20},{wch:20}];
+    ws['!cols'] = [{wch:11},{wch:12},{wch:10},{wch:26},{wch:16},{wch:16},{wch:14},{wch:40},{wch:10},{wch:50},{wch:8},{wch:20},{wch:20},{wch:15}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Dispatch');
     XLSX.utils.book_append_sheet(wb, buReadMe([
       'DISPATCH FILE - HOW TO FILL',
-      'Fill only COURIER NAME and POD NO on the "Dispatch" sheet, then upload the file in Dispatch > Upload File.',
+      'Fill only COURIER NAME, POD NO and DISPATCH DATE on the "Dispatch" sheet, then upload the file in Dispatch > Upload File.',
+      'DISPATCH DATE is required whenever COURIER NAME / POD NO is filled. Type it as dd-mm-yyyy (e.g. 25-12-2026) - the column is formatted as Text.',
       'Do not change or delete the SUPPLY ID column - rows are matched by SUPPLY ID.',
       'Blank COURIER NAME / POD NO cells are ignored (existing values are kept).'
     ]), 'Read Me');
-    XLSX.writeFile(wb, 'Dispatch_' + date + '.xlsx');
+    XLSX.writeFile(wb, 'Dispatch_' + dispRangeLabel() + '.xlsx');
   }
 
   async function handleDispatchUpload(input){
@@ -2842,7 +2993,8 @@
       const hd = buFindHeader(grid, {
         id: ['supplyid','supplyno','supid'],
         courier: ['couriername','courier','couriercompany'],
-        pod: ['podno','podnumber','pod','awbno','awb','lrno','trackingno']
+        pod: ['podno','podnumber','pod','awbno','awb','lrno','trackingno'],
+        dispDate: ['dispatchdate','dispdate','despatchdate','dateofdispatch']
       }, ['id']);
       if(!hd) return alert('Template format not recognised. The file needs a SUPPLY ID column (use the file downloaded from this tab).');
       if(hd.col.courier === undefined && hd.col.pod === undefined) return alert('The file needs a COURIER NAME and/or POD NO column.');
@@ -2853,15 +3005,19 @@
         const id = get('id'), courier = get('courier'), pod = get('pod');
         if(!id) continue;
         if(!courier && !pod) continue;
+        const rawDt = hd.col.dispDate === undefined ? '' : r[hd.col.dispDate];
+        const dDate = dispParseAnyDate(rawDt);
+        if(!buStr(rawDt)){ errors.push(`Row ${i+1}: ${id} skipped - DISPATCH DATE is empty`); continue; }
+        if(!dDate){ errors.push(`Row ${i+1}: ${id} skipped - DISPATCH DATE "${buStr(rawDt)}" not understood (use dd-mm-yyyy)`); continue; }
         if(seen.has(id.toLowerCase())){ errors.push(`Row ${i+1}: ${id} appears more than once (first one used)`); continue; }
         seen.add(id.toLowerCase());
-        const o = { supplyId: id };
+        const o = { supplyId: id, dispatchDate: dDate };
         if(courier) o.courier = courier;
         if(pod) o.pod = pod;
         rows.push(o);
       }
-      if(!rows.length) return alert('No rows with Courier Name or POD No found in the file.' + (errors.length ? '\n\n' + errors.slice(0,10).join('\n') : ''));
-      if(!confirm(`Update dispatch details for ${rows.length} supply entr${rows.length === 1 ? 'y' : 'ies'}?` + (errors.length ? `\n\n${errors.length} duplicate row(s) ignored.` : ''))) return;
+      if(!rows.length) return alert('No valid rows found (Courier / POD together with a Dispatch Date).' + (errors.length ? '\n\n' + errors.slice(0,10).join('\n') : ''));
+      if(!confirm(`Update dispatch details for ${rows.length} supply entr${rows.length === 1 ? 'y' : 'ies'}?` + (errors.length ? `\n\n${errors.length} row(s) ignored:\n` + errors.slice(0,8).join('\n') : ''))) return;
       const res = await post('saveDispatch', { rows });
       if(res && res.success){
         alert(res.message || 'Saved');
@@ -2873,6 +3029,300 @@
       console.error(err);
       alert('Could not read the file: ' + (err && err.message ? err.message : err));
     }
+  }
+
+
+  /* ---------- Dispatch date parsing (template upload) ---------- */
+  function dispParseAnyDate(v){
+    if(v == null || v === '') return '';
+    if(v instanceof Date) return isNaN(v) ? '' : dispIso(v);
+    if(typeof v === 'number'){
+      if(v >= 20000 && v < 80000){ const d = XLSX.SSF.parse_date_code(v); return d ? `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}` : ''; }
+      return '';
+    }
+    const s = String(v).trim(); let m;
+    const ok = (y, mo, d) => { y = Number(y); mo = Number(mo); d = Number(d); if(y < 100) y += 2000;
+      const dt = new Date(y, mo - 1, d); return (dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d) ? dispIso(dt) : ''; };
+    if((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) return ok(m[1], m[2], m[3]);
+    if((m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2}|\d{4})$/))) return ok(m[3], m[2], m[1]);   // dd-mm-yyyy
+    if((m = s.match(/^(\d{1,2})[\s\-\/.]([A-Za-z]{3,9})[\s\-\/.,]*(\d{2}|\d{4})$/)) && BU_MON[m[2].slice(0,3).toLowerCase()]) return ok(m[3], BU_MON[m[2].slice(0,3).toLowerCase()], m[1]);
+    return '';
+  }
+
+  /* ===================== LIVE TRACKING ===================== */
+  // result cache per supply: { at, data }   data = response of getTracking
+  const dispTrack = {};
+  let dispTrackCur = null;
+
+  const DT_TAGS = {
+    Delivered:        ['Delivered',          'bg-emerald-100 text-emerald-800', 5],
+    OutForDelivery:   ['Out for delivery',   'bg-sky-100 text-sky-800',         4],
+    InTransit:        ['In transit',         'bg-blue-100 text-blue-800',       3],
+    AvailableForPickup:['Ready for pickup',  'bg-sky-100 text-sky-800',         4],
+    AttemptFail:      ['Delivery attempt failed','bg-red-100 text-red-700',     4],
+    Exception:        ['Exception',          'bg-red-100 text-red-700',         3],
+    InfoReceived:     ['Booked',             'bg-slate-100 text-slate-700',     2],
+    Pending:          ['Awaiting update',    'bg-slate-100 text-slate-700',     2],
+    Expired:          ['Expired',            'bg-slate-100 text-slate-700',     2]
+  };
+
+  function dispLiveCell(s, tk){
+    if(!buStr(s.pod)) return '<span class="text-slate-300">-</span>';
+    return `<button type="button" class="px-2 py-1 rounded-md border border-emerald-600 text-emerald-700 text-xs font-semibold bg-white" onclick="dispTrackOpen('${escapeHtml(s.supplyId)}')">Details</button>`;
+  }
+
+  // no API: status from our own records
+  function dispLocalTag(s){
+    return (s.dispatchDate && (buStr(s.courier) || buStr(s.pod))) ? 'InTransit' : '';
+  }
+
+  // courier name (contains, any case) -> official tracking page. Edit / add couriers here.
+  const DISP_COURIER_SITES = [
+    ['dtdc', 'https://www.dtdc.in/tracking.asp'],
+    ['india post', 'https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx'],
+    ['speed post', 'https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx'],
+    ['blue dart', 'https://www.bluedart.com/tracking'],
+    ['bluedart', 'https://www.bluedart.com/tracking'],
+    ['delhivery', 'https://www.delhivery.com/tracking'],
+    ['professional', 'https://www.tpcindia.com/'],
+    ['st courier', 'https://stcourier.com/track/shipment'],
+    ['trackon', 'https://www.trackon.in/']
+  ];
+  function dispTrackUrl(s){
+    const c = buStr(s.courier).toLowerCase();
+    const hit = DISP_COURIER_SITES.find(x => c.includes(x[0]));
+    return hit ? hit[1] : 'https://www.google.com/search?q=' + encodeURIComponent((s.courier || '') + ' courier tracking ' + (s.pod || ''));
+  }
+  function dispCopyQuiet(){
+    if(dispTrackCur && dispTrackCur.pod && navigator.clipboard) navigator.clipboard.writeText(dispTrackCur.pod).catch(() => {});
+  }
+
+  async function dispTrackFetch(s, silent){
+    const payload = JSON.stringify({ action: 'getTracking', courier: s.courier || '', pod: s.pod || '' });
+    if(!silent) return post('getTracking', { courier: s.courier || '', pod: s.pod || '' });
+    try{
+      const res = await fetch(WEB_APP_URL, { method: 'POST', headers: {'Content-Type':'text/plain;charset=utf-8'}, body: payload });
+      return await res.json();
+    }catch(e){ return { success: false, message: String(e) }; }
+  }
+
+  function dispTrackOpen(supplyId){
+    const s = dispRows.find(x => x.supplyId === supplyId); if(!s) return;
+    dispTrackCur = s;
+    const m = document.getElementById('dispTrackModal');
+    m.classList.remove('hidden'); m.style.display = 'flex';
+    document.getElementById('dtSub').textContent = `${s.supplyId} • ${s.empCode} - ${s.empName}${s.hq ? ' • ' + s.hq : ''}`;
+    document.getElementById('dtOpen').href = dispTrackUrl(s);
+    dispTrackRender(s, dispTrack[supplyId] ? dispTrack[supplyId].data : null, true);
+    dispTrackRefresh();
+  }
+  function dispTrackClose(){ const m = document.getElementById('dispTrackModal'); m.classList.add('hidden'); m.style.display = ''; dispTrackCur = null; }
+  function dispTrackCopy(){
+    if(!dispTrackCur || !dispTrackCur.pod) return;
+    (navigator.clipboard ? navigator.clipboard.writeText(dispTrackCur.pod) : Promise.reject()).then(() => alert('POD copied: ' + dispTrackCur.pod)).catch(() => prompt('Copy POD:', dispTrackCur.pod));
+  }
+
+  async function dispTrackRefresh(){
+    const s = dispTrackCur; if(!s) return;
+    if(!buStr(s.pod)){ dispTrackRender(s, null, false); return; }
+    document.getElementById('dtBody').innerHTML = '<div class="text-slate-400">Fetching live status...</div>';
+    const data = await dispTrackFetch(s, false);
+    dispTrack[s.supplyId] = { at: Date.now(), data };
+    if(dispTrackCur && dispTrackCur.supplyId === s.supplyId) dispTrackRender(s, data, false);
+    if(dispView === 'records') renderDispatch();
+  }
+
+  function dispTrackRender(s, d, loading){
+    const steps = ['Supplied', 'Dispatched', 'In transit', 'Out for delivery', 'Delivered'];
+    let reached = buStr(s.pod) || buStr(s.courier) ? 2 : 1;
+    if(s.dispatchDate && reached === 2) reached = 3;
+    if(d && d.success && d.configured !== false){ const t = DT_TAGS[d.tag]; if(t) reached = Math.max(reached, t[2]); }
+    const failed = d && (d.tag === 'Exception' || d.tag === 'AttemptFail');
+    document.getElementById('dtSteps').innerHTML = '';
+
+    const dd = s.dispatchDate ? `${formatDateForPrint(s.dispatchDate)} (${dispDaysAgo(s.dispatchDate)} day(s) ago)` : '<span class="text-slate-400">not entered</span>';
+    const row = (k, v) => `<div class="flex justify-between gap-3 py-1 border-b border-gray-100"><span class="text-slate-500">${k}</span><span class="font-semibold text-right">${v}</span></div>`;
+    let html = row('Supply date', escapeHtml(formatDateForPrint(s._d))) + row('Dispatch date', dd) +
+      row('Courier', escapeHtml(s.courier || '-')) + row('POD / AWB', escapeHtml(s.pod || '-')) + row('Boxes', escapeHtml(s.boxes || '-'));
+
+    if(!buStr(s.pod)){
+      html += `<div class="mt-3 p-3 rounded-lg bg-amber-50 text-amber-800">No POD number yet - add Courier, POD and Dispatch Date to enable tracking.</div>`;
+    } else if(!d){
+      html += loading ? '' : `<div class="mt-3 text-slate-400">No live data yet.</div>`;
+    } else if(!d.success){
+      html += `<div class="mt-3 p-3 rounded-lg bg-red-50 text-red-700">Could not fetch status: ${escapeHtml(d.message || 'unknown error')}</div>`;
+    } else if(d.configured === false){
+      html += `<div class="mt-3 p-3 rounded-lg bg-slate-50 text-slate-600">For the courier's latest scan, click <b>Open courier site</b> - the POD number is copied, just paste it on the courier's page.</div>`;
+    } else {
+      const t = DT_TAGS[d.tag] || [d.statusText || d.tag || 'Unknown', 'bg-slate-100 text-slate-700', 2];
+      html += `<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${t[1]}">${escapeHtml(t[0])}</span>` +
+        (d.statusText ? `<span class="text-slate-600">${escapeHtml(d.statusText)}</span>` : '') + `</div>`;
+      if(d.expected) html += `<div class="mt-1 text-slate-600">Expected delivery: <b>${escapeHtml(d.expected)}</b></div>`;
+      if(d.deliveredOn) html += `<div class="mt-1 text-emerald-700">Delivered on: <b>${escapeHtml(d.deliveredOn)}</b></div>`;
+      html += `<div class="mt-3 font-semibold text-slate-700">Journey</div>`;
+      html += (d.events && d.events.length)
+        ? `<div class="mt-1 border-l-2 border-emerald-200 pl-3 space-y-2">` + d.events.map(e => `<div><div class="text-xs text-slate-400">${escapeHtml(e.time || '')}${e.location ? ' • ' + escapeHtml(e.location) : ''}</div><div>${escapeHtml(e.message || '')}</div></div>`).join('') + `</div>`
+        : `<div class="text-slate-400">The courier has not posted any scan yet.</div>`;
+      if(d.cached) html += `<div class="mt-2 text-[11px] text-slate-400">Updated ${escapeHtml(d.fetchedAt || '')} (cached up to 10 min)</div>`;
+    }
+    document.getElementById('dtBody').innerHTML = html;
+  }
+
+  // fetch live status for the dispatched rows currently shown (max 40, 3 at a time)
+  async function dispTrackAll(){
+    const list = dispFiltered().filter(s => buStr(s.pod) && !(dispTrack[s.supplyId] && dispTrack[s.supplyId].data && dispTrack[s.supplyId].data.tag === 'Delivered')).slice(0, 40);
+    if(!list.length) return alert('No dispatched rows (with POD) to track in the current view.');
+    const btn = document.querySelector('button[onclick="dispTrackAll()"]'); const old = btn.textContent;
+    let done = 0, notCfg = false;
+    const queue = list.slice();
+    const worker = async () => {
+      while(queue.length){
+        const s = queue.shift();
+        const data = await dispTrackFetch(s, true);
+        dispTrack[s.supplyId] = { at: Date.now(), data };
+        if(data && data.configured === false) { notCfg = true; queue.length = 0; }
+        btn.textContent = `📡 ${++done}/${list.length}`;
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    btn.textContent = old;
+    renderDispatch();
+    if(notCfg) alert('No live courier feed is set up, so status is tracked by hand: open Track on a row, check the courier site, then use Mark Delivered.');
+  }
+
+  /* ---------- Dispatch analysis & report ---------- */
+  function dispGroup(rows, keyFn){
+    const m = new Map();
+    rows.forEach(s => {
+      const k = keyFn(s);
+      if(!m.has(k)) m.set(k, { key: k, supplies: 0, boxes: 0, Dispatched: 0, Partial: 0, Pending: 0 });
+      const g = m.get(k);
+      g.supplies++; g.boxes += num(s.boxes); g[dispStatusOf(s.courier, s.pod)]++;
+    });
+    return [...m.values()];
+  }
+
+  function dispItemTotals(rows){
+    const m = new Map();
+    rows.forEach(s => (s.items || []).forEach(i => {
+      const k = buStr(i.item) || '(Unknown)';
+      m.set(k, (m.get(k) || 0) + num(i.qty));
+    }));
+    return [...m.entries()].map(([item, qty]) => ({ item, qty })).sort((a, b) => b.qty - a.qty);
+  }
+
+  const DISP_BUCKETS = [['0-2 days', 0, 2], ['3-5 days', 3, 5], ['6-10 days', 6, 10], ['Over 10 days', 11, 1e9]];
+
+  function dispAnalysisData(rows){
+    const pct = (a, b) => b ? Math.round(a * 1000 / b) / 10 : 0;
+    const byCourier = dispGroup(rows.filter(s => buStr(s.courier)), s => buStr(s.courier)).sort((a, b) => b.supplies - a.supplies);
+    const byHq = dispGroup(rows, s => buStr(s.hq) || '(Unknown)').sort((a, b) => b.supplies - a.supplies);
+    const byDate = dispGroup(rows, s => s._d).sort((a, b) => a.key.localeCompare(b.key));
+    const open = rows.filter(s => dispStatusOf(s.courier, s.pod) !== 'Dispatched')
+      .map(s => Object.assign({ days: dispDaysAgo(s._d), status: dispStatusOf(s.courier, s.pod) }, s))
+      .sort((a, b) => b.days - a.days);
+    const buckets = DISP_BUCKETS.map(([l, lo, hi]) => ({ label: l, n: open.filter(s => s.days >= lo && s.days <= hi).length }));
+    const tot = { supplies: rows.length, boxes: rows.reduce((a, s) => a + num(s.boxes), 0), Dispatched: 0, Partial: 0, Pending: 0 };
+    rows.forEach(s => tot[dispStatusOf(s.courier, s.pod)]++);
+    const avgOpen = open.length ? Math.round(open.reduce((a, s) => a + s.days, 0) / open.length * 10) / 10 : 0;
+    // POD number used on more than one supply (possible duplicate / shared consignment)
+    const podMap = new Map();
+    rows.forEach(s => { const p = buStr(s.pod).toLowerCase(); if(p){ if(!podMap.has(p)) podMap.set(p, []); podMap.get(p).push(s); } });
+    const sharedPod = [...podMap.values()].filter(a => a.length > 1);
+    return { pct, tot, byCourier, byHq, byDate, open, buckets, avgOpen, items: dispItemTotals(rows), sharedPod };
+  }
+
+  function dispBar(v, max, color){
+    const w = max ? Math.max(2, Math.round(v * 100 / max)) : 0;
+    return v ? `<div style="background:${color || '#10b981'};height:8px;border-radius:4px;width:${w}%;min-width:2px"></div>` : '';
+  }
+
+  function renderDispatchAnalysis(rows){
+    const box = document.getElementById('dispAnalysis');
+    if(!rows.length){ box.innerHTML = '<div class="p-6 text-center text-slate-400">No supplies in the selected range / filter.</div>'; return; }
+    const A = dispAnalysisData(rows), esc = escapeHtml;
+    const card = (l, v, s, tone) => `<div class="border border-gray-200 rounded-xl p-3 bg-white"><div class="text-xs font-semibold uppercase tracking-wide text-slate-500">${l}</div><div class="text-2xl font-bold mt-1" style="${tone ? 'color:' + tone : ''}">${v}</div><div class="text-xs text-slate-500">${s || ''}</div></div>`;
+    const th = (h, r) => `<th class="p-2 ${r ? 'text-right' : 'text-left'} font-semibold text-slate-600">${h}</th>`;
+    const wrap = (title, head, body) => `<div class="mt-4"><div class="font-semibold text-slate-700 mb-1">${title}</div><div class="overflow-x-auto rounded-lg border border-gray-100 max-h-[50vh] overflow-y-auto"><table class="min-w-full text-sm"><thead class="bg-slate-50 sticky top-0"><tr>${head}</tr></thead><tbody class="bg-white">${body}</tbody></table></div></div>`;
+    const tr = c => `<tr class="border-t border-gray-100">${c}</tr>`;
+    const td = (v, r) => `<td class="p-2 ${r ? 'text-right' : ''}">${v}</td>`;
+
+    let html = `<div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      ${card('Supplies', A.tot.supplies.toLocaleString('en-IN'), A.tot.boxes.toLocaleString('en-IN') + ' boxes')}
+      ${card('Dispatched', A.tot.Dispatched, A.pct(A.tot.Dispatched, A.tot.supplies) + '% of supplies', '#047857')}
+      ${card('Partial', A.tot.Partial, 'courier or POD missing', A.tot.Partial ? '#b45309' : '')}
+      ${card('Pending', A.tot.Pending, 'no courier / POD yet', A.tot.Pending ? '#b91c1c' : '')}
+      ${card('Avg days open', A.avgOpen, A.open.length + ' not fully dispatched', A.avgOpen > 5 ? '#b91c1c' : '')}
+    </div>`;
+
+    const maxC = Math.max(1, ...A.byCourier.map(g => g.supplies));
+    html += wrap('By Courier', th('Courier') + th('Supplies', 1) + th('Boxes', 1) + th('Share', 1) + th(''),
+      A.byCourier.length ? A.byCourier.map(g => tr(td(esc(g.key)) + td(g.supplies, 1) + td(g.boxes, 1) + td(A.pct(g.supplies, A.tot.supplies) + '%', 1) + `<td class="p-2 w-40">${dispBar(g.supplies, maxC)}</td>`)).join('') : tr(`<td class="p-3 text-slate-400" colspan="5">No courier entered yet</td>`));
+
+    html += wrap('By HQ', th('HQ') + th('Supplies', 1) + th('Boxes', 1) + th('Dispatched', 1) + th('Partial', 1) + th('Pending', 1) + th('% Dispatched', 1),
+      A.byHq.map(g => tr(td(esc(g.key)) + td(g.supplies, 1) + td(g.boxes, 1) + td(g.Dispatched, 1) + td(g.Partial, 1) + td(`<span class="${g.Pending ? 'text-red-600 font-semibold' : ''}">${g.Pending}</span>`, 1) + td(A.pct(g.Dispatched, g.supplies) + '%', 1))).join(''));
+
+    const maxD = Math.max(1, ...A.byDate.map(g => g.supplies));
+    html += wrap('By Supply Date', th('Date') + th('Supplies', 1) + th('Boxes', 1) + th('Dispatched', 1) + th('Pending / Partial', 1) + th(''),
+      A.byDate.map(g => tr(td(esc(formatDateForPrint(g.key))) + td(g.supplies, 1) + td(g.boxes, 1) + td(g.Dispatched, 1) + td(g.Pending + g.Partial, 1) + `<td class="p-2 w-40">${dispBar(g.supplies, maxD)}</td>`)).join(''));
+
+    html += wrap('Items Supplied', th('Item') + th('Qty', 1), A.items.map(i => tr(td(esc(i.item)) + td(i.qty.toLocaleString('en-IN'), 1))).join(''));
+
+    html += `<div class="mt-4"><div class="font-semibold text-slate-700 mb-1">Open Dispatches — Aging</div><div class="flex gap-2 flex-wrap">${A.buckets.map((b, i) => `<div class="border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"><div class="text-xs text-slate-500">${b.label}</div><div class="font-bold text-lg" style="${i >= 2 && b.n ? 'color:#b91c1c' : ''}">${b.n}</div></div>`).join('')}</div></div>`;
+    html += wrap('Pending / Partial Supplies (oldest first)', th('Date') + th('Days', 1) + th('Supply ID') + th('Employee') + th('HQ') + th('Boxes', 1) + th('Courier') + th('POD') + th('Status'),
+      A.open.length ? A.open.map(s => tr(td(esc(formatDateForPrint(s._d))) + td(`<span class="${s.days > 5 ? 'text-red-600 font-semibold' : ''}">${s.days}</span>`, 1) + td(esc(s.supplyId)) + td(esc(s.empCode) + ' - ' + esc(s.empName)) + td(esc(s.hq || '')) + td(esc(s.boxes || '-'), 1) + td(esc(s.courier || '')) + td(esc(s.pod || '')) + td(s.status))).join('') : tr(`<td class="p-3 text-emerald-700" colspan="9">All supplies are fully dispatched 🎉</td>`));
+
+    if(A.sharedPod.length){
+      html += wrap(`POD numbers used on more than one supply (${A.sharedPod.length})`, th('POD No') + th('Supplies') + th('Employees'),
+        A.sharedPod.map(a => tr(td(esc(a[0].pod)) + td(a.map(s => esc(s.supplyId)).join(', ')) + td(a.map(s => esc(s.empName)).join(', ')))).join(''));
+    }
+    box.innerHTML = html;
+  }
+
+  function exportDispatchReport(){
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    const rows = dispFiltered();
+    if(!rows.length) return alert('No supplies to export for the selected dates / filter.');
+    const A = dispAnalysisData(rows);
+    const f = document.getElementById('dispFrom').value, t = document.getElementById('dispTo').value;
+    const wb = XLSX.utils.book_new();
+    const sheet = (name, aoa, widths, textCols) => {
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      if(widths) ws['!cols'] = widths.map(w => ({ wch: w }));
+      (textCols || []).forEach(c => { for(let r = 1; r < aoa.length; r++){ ws[XLSX.utils.encode_cell({ r, c })] = { t: 's', v: String(aoa[r][c] == null ? '' : aoa[r][c]), z: '@' }; } });
+      XLSX.utils.book_append_sheet(wb, ws, name);
+    };
+    const st = document.getElementById('dispStatus').value, q = document.getElementById('dispSearch').value.trim();
+
+    sheet('Summary', [
+      ['DISPATCH REPORT - Pristine Pearl Pharma'],
+      ['Period', formatDateForPrint(f) + ' to ' + formatDateForPrint(t)],
+      ['Filter', (st || 'All status') + (q ? ' | search: ' + q : '')],
+      ['Generated', formatDateForPrint(dispIso(new Date()))],
+      [],
+      ['Total supplies', A.tot.supplies], ['Total boxes', A.tot.boxes],
+      ['Dispatched', A.tot.Dispatched], ['Partial (courier or POD missing)', A.tot.Partial], ['Pending', A.tot.Pending],
+      ['% Dispatched', A.pct(A.tot.Dispatched, A.tot.supplies) + '%'],
+      ['Avg days open (not fully dispatched)', A.avgOpen],
+      [], ['Open aging', 'Supplies']
+    ].concat(A.buckets.map(b => [b.label, b.n])), [38, 28]);
+
+    sheet('Detail', [['Supply Date','Supply ID','Emp ID','Employee','Designation','HQ','Mobile','Address','Pincode','Items','Boxes','Courier','POD No','Dispatch Date','Status','Days Open','Transit Days']].concat(
+      rows.map(s => { const stt = dispStatusOf(s.courier, s.pod); return [formatDateForPrint(s._d), s.supplyId, s.empCode, s.empName, s.designation || '', s.hq || '', s.mobile || '', s.address || '', s.pincode || '',
+        (s.items || []).map(i => `${i.item} x ${num(i.qty)}`).join('; '), num(s.boxes) || '', s.courier || '', s.pod || '', s.dispatchDate ? formatDateForPrint(s.dispatchDate) : '', stt, stt === 'Dispatched' ? '' : dispDaysAgo(s._d), s.dispatchDate ? dispDaysAgo(s.dispatchDate) : '']; })),
+      [12,11,10,26,16,16,14,40,10,50,8,20,20,14,12,10,12], [6, 8, 11, 12]);
+
+    sheet('By Courier', [['Courier','Supplies','Boxes','Share %']].concat(A.byCourier.map(g => [g.key, g.supplies, g.boxes, A.pct(g.supplies, A.tot.supplies)])), [26,10,10,10]);
+    sheet('By HQ', [['HQ','Supplies','Boxes','Dispatched','Partial','Pending','% Dispatched']].concat(A.byHq.map(g => [g.key, g.supplies, g.boxes, g.Dispatched, g.Partial, g.Pending, A.pct(g.Dispatched, g.supplies)])), [24,10,10,12,10,10,14]);
+    sheet('By Date', [['Supply Date','Supplies','Boxes','Dispatched','Partial','Pending']].concat(A.byDate.map(g => [formatDateForPrint(g.key), g.supplies, g.boxes, g.Dispatched, g.Partial, g.Pending])), [14,10,10,12,10,10]);
+    sheet('Items', [['Item','Qty']].concat(A.items.map(i => [i.item, i.qty])), [46,10]);
+    sheet('Open Dispatches', [['Supply Date','Days Open','Supply ID','Emp ID','Employee','HQ','Boxes','Courier','POD No','Status']].concat(
+      A.open.map(s => [formatDateForPrint(s._d), s.days, s.supplyId, s.empCode, s.empName, s.hq || '', num(s.boxes) || '', s.courier || '', s.pod || '', s.status])), [12,10,11,10,26,16,8,20,20,10], [7, 8]);
+    if(A.sharedPod.length){
+      const sp = []; A.sharedPod.forEach(a => a.forEach(s => sp.push([s.pod, s.supplyId, formatDateForPrint(s._d), s.empName, s.hq || '', s.courier || ''])));
+      sheet('Shared POD', [['POD No','Supply ID','Supply Date','Employee','HQ','Courier']].concat(sp), [20,11,12,26,16,20], [0]);
+    }
+    XLSX.writeFile(wb, 'Dispatch_Report_' + dispRangeLabel() + '.xlsx');
   }
 
   /* ===================== STAFF REQUIREMENT ===================== */
