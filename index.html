@@ -1057,7 +1057,7 @@
   let srGroups = {};
 
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('srDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('srDate').value = localTodayISO();
     addSrRow();
     srRecalc();
   });
@@ -1179,7 +1179,7 @@
     document.getElementById('srRemarks').value = '';
     document.getElementById('srGst').value = '18';
     document.querySelector('input[name="srTax"][value="none"]').checked = true;
-    document.getElementById('srDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('srDate').value = localTodayISO();
     document.getElementById('srSaveBtn').classList.remove('hidden');
     document.getElementById('srPrintBtn').classList.add('hidden');
     srLast = null;
@@ -1605,7 +1605,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    const todayISO = new Date().toISOString().slice(0,10);
+    const todayISO = localTodayISO();
     document.getElementById('reqDate').value = todayISO;
     document.getElementById('recDate').value = todayISO;
     document.getElementById('supDate').value = todayISO;
@@ -3525,7 +3525,7 @@
 
   function openExpiryRemoval(){
     const dt = document.getElementById('exrDate');
-    if(!dt.value) dt.value = new Date().toISOString().slice(0,10);
+    if(!dt.value) dt.value = localTodayISO();
     exrFillTypes();
     // refresh already-added rows against the latest stock (drop rows that no longer exist / have no stock)
     exrRows = exrRows.map(r => inventory.find(x => exrKey(x) === exrKey(r))).filter(r => r && num(r.Qty) > 0);
@@ -3860,7 +3860,7 @@
       b.classList.toggle('text-slate-600', n !== name);
       b.classList.toggle('hover:bg-emerald-50', n !== name);
     });
-    const today = new Date().toISOString().slice(0,10);
+    const today = localTodayISO();
     ['baDate','qaDate'].forEach(id => { const el = document.getElementById(id); if(el && !el.value) el.value = today; });
     if(name === 'batch' && !document.querySelector('#baTable tbody tr')) addBaRow();
     if(name === 'exr') openExpiryRemoval();
@@ -4413,7 +4413,7 @@
     ws['!cols'] = [{wch:14},{wch:42},{wch:16},{wch:16},{wch:16},{wch:14},{wch:9},{wch:10},{wch:12},{wch:14}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Live Inventory');
-    XLSX.writeFile(wb, 'Live_Inventory_' + new Date().toISOString().slice(0,10) + '.xlsx');
+    XLSX.writeFile(wb, 'Live_Inventory_' + localTodayISO() + '.xlsx');
   }
 
   /* ---------------- PO FUNCTIONS ---------------- */
@@ -5453,6 +5453,66 @@
       alert('Could not process the file: ' + (err && err.message ? err.message : err));
     }
   }
+
+  /* ===================== DATE LOCK (Request, Receipt, Supply, Stock Return, Stock Adjustment, PO) =====================
+     Dates are fixed to today and read-only. Changing one asks for the Stock Adjustment password (SADJ_PASSWORD). */
+  const LOCKED_DATE_IDS = ['reqDate','recDate','supDate','srDate','poDate','baDate','exrDate','qaDate'];
+  let dateLockOpen = false;
+  function localTodayISO(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function dateLockAsk(){
+    if(dateLockOpen) return true;
+    const pw = prompt('Date is locked. Enter password to change the date:');
+    if(pw === null) return false;
+    if(pw !== SADJ_PASSWORD){ alert('Incorrect password.'); return false; }
+    dateLockOpen = true;
+    LOCKED_DATE_IDS.forEach(id => { const el = document.getElementById(id); if(el){ el.readOnly = false; el.classList.remove('bg-slate-100','cursor-not-allowed'); el.title = ''; } });
+    clearTimeout(dateLockTimer);
+    dateLockTimer = setTimeout(dateRelock, DATE_LOCK_MINUTES * 60000);   // auto re-lock after timeout
+    return true;
+  }
+  const DATE_LOCK_MINUTES = 5;
+  let dateLockTimer = null;
+  function dateRelock(){
+    clearTimeout(dateLockTimer);
+    dateLockOpen = false;
+    const t = localTodayISO();
+    LOCKED_DATE_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.readOnly = true; el.value = t;
+      el.classList.add('bg-slate-100','cursor-not-allowed');
+      el.title = 'Locked - password required to change';
+    });
+  }
+  // re-lock (and reset to today) after every successful save
+  const _postBeforeLock = post;
+  post = async function(action, payload){
+    const res = await _postBeforeLock(action, payload);
+    if(dateLockOpen && res && res.success && /^(saveRequest|saveReceipt|saveSupply|saveStockReturn|saveExpiryRemoval|saveStockAdjustment|generatePO)$/.test(action)) dateRelock();
+    return res;
+  };
+  function initDateLock(){
+    LOCKED_DATE_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.readOnly = true;
+      el.classList.add('bg-slate-100','cursor-not-allowed');
+      el.title = 'Locked - password required to change';
+      const block = ev => { if(dateLockOpen) return; ev.preventDefault(); if(ev.type !== 'keydown' || ev.key === 'Enter' || ev.key === ' ') dateLockAsk(); };
+      el.addEventListener('mousedown', block);
+      el.addEventListener('click', ev => { if(!dateLockOpen) ev.preventDefault(); });
+      el.addEventListener('keydown', ev => { if(!dateLockOpen && ev.key !== 'Tab') block(ev); });
+      el.addEventListener('paste', ev => { if(!dateLockOpen) ev.preventDefault(); });
+    });
+  }
+  let dateLockDay = localTodayISO();
+  document.addEventListener('visibilitychange', () => {
+    const t = localTodayISO();
+    if(t === dateLockDay || document.hidden) return;
+    dateLockDay = t;
+    if(!dateLockOpen) ['reqDate','recDate','supDate','srDate','baDate','qaDate','exrDate'].forEach(id => { const el = document.getElementById(id); if(el) el.value = t; });
+  });
+  initDateLock();
   </script>
 
 </body>
