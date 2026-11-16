@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sample Request MIS</title>
+<style>
+:root{--bg:#f3f5fb;--card:#fff;--tx:#1e2433;--mu:#6b7385;--bd:#e6e9f2;--ac:#4f46e5;--ac2:#7c3aed;--ok:#059669;--okb:#d1fae5;--no:#dc2626;--nob:#fee2e2;--wt:#d97706;--wtb:#fef3c7;--fu:#2563eb;--fub:#dbeafe;--sh:0 1px 3px rgba(30,36,51,.06),0 4px 14px rgba(30,36,51,.05)}
+html{color-scheme:light}*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:linear-gradient(120deg,var(--ac),var(--ac2));color:#fff;padding:18px 24px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:20px}header p{margin:2px 0 0;opacity:.85;font-size:12px}
+.btn{border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer;background:#fff;color:var(--ac)}
+.btn.s{background:var(--bg);color:var(--tx);border:1px solid var(--bd);padding:8px 12px}
+main{max-width:1680px;margin:0 auto;padding:16px 20px}
+#msg{display:none;margin-bottom:14px;padding:11px 14px;border-radius:10px;background:var(--card);border:1px solid var(--bd)}
+#msg.err{color:var(--no);background:var(--nob)}#msg.good{color:var(--ok);background:var(--okb)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;box-shadow:var(--sh)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px}
+.kpi{padding:10px 14px;cursor:pointer;border-left:4px solid var(--c,var(--ac))}
+.kpi b{display:block;font-size:22px;line-height:1.15}.kpi span{color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.kpi.on{outline:2px solid var(--c,var(--ac))}
+.filters{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 12px;align-items:end;margin-bottom:14px}
+.filters label{display:flex;flex-direction:column;font-size:11px;color:var(--mu);text-transform:uppercase;gap:3px}
+.filters .w{grid-column:span 2}.filters .act{display:flex;gap:8px;justify-content:flex-end}
+input,select{padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:#fff;color:var(--tx);font:inherit;width:100%}
+.rep{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-bottom:14px}
+.rep .card{padding:14px 16px}.rep h3,.tt{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mu)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}.stats .card{flex:1;min-width:170px;padding:12px 16px}.stats b{font-size:20px;display:block}.stats span{color:var(--mu);font-size:12px}
+.donut{display:flex;gap:16px;align-items:center}
+.dn{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;flex:none}
+.dn div{width:74px;height:74px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:700;font-size:18px}
+.lg div{display:flex;align-items:center;gap:7px;margin:4px 0;font-size:13px}.lg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.bars{display:flex;align-items:flex-end;gap:6px;height:130px}
+.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:10px;color:var(--mu)}
+.bars i{display:block;width:100%;background:linear-gradient(var(--ac),var(--ac2));border-radius:4px 4px 0 0;min-height:2px}
+.hb{margin:7px 0;font-size:12px}.hb .r{display:flex;justify-content:space-between;margin-bottom:2px}
+.hb .t{height:8px;background:var(--bg);border-radius:6px;overflow:hidden;display:flex}.hb .t i{display:block;height:100%}
+.tw{overflow:auto;max-height:68vh}table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--bd);white-space:nowrap}
+th{font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;background:#fafbfe;cursor:pointer;user-select:none}
+tbody tr{cursor:pointer}tbody tr:hover{background:#f5f6ff}
+.b{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.Approved{color:var(--ok);background:var(--okb)}.Rejected{color:var(--no);background:var(--nob)}.Pending{color:var(--wt);background:var(--wtb)}.Fulfilled{color:var(--fu);background:var(--fub)}
+.pgn{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;gap:10px;flex-wrap:wrap}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{padding:7px 14px;border-radius:99px;border:1px solid var(--bd);background:#fff;cursor:pointer;font-weight:600;color:var(--mu);font:inherit;font-weight:600}
+.tab.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.top{display:flex;gap:10px;flex-wrap:wrap;padding:0 14px 12px}.top div{background:var(--bg);border-radius:10px;padding:8px 14px}.top b{font-size:18px;display:block}.top span{font-size:12px;color:var(--mu)}
+.fc{min-width:130px;font-size:13px;line-height:1.3}.fc small{color:var(--mu);font-size:11px}
+.fc.Approved{background:#f0fdf6;color:var(--tx)}.fc.Rejected{background:#fff1f1;color:var(--tx)}.fc.Pending{background:#fffbeb;color:var(--tx)}
+header .tabs{margin:0}header .tab{background:rgba(255,255,255,.16);color:#fff;border-color:transparent;padding:8px 20px}header .tab.on{background:#fff;color:var(--ac)}
+th{position:sticky;top:0;z-index:2}
+#vReq table th:first-child,#vReq table td:first-child{position:sticky;left:0;background:#fff;z-index:1;box-shadow:1px 0 0 var(--bd)}
+#vReq table th:first-child{background:#fafbfe;z-index:3}
+#vReq tbody tr:hover td:first-child{background:#f5f6ff}
+#vReq td{padding:9px 12px}
+@media(max-width:700px){header{padding:14px}main{padding:12px}.filters .w{grid-column:1/-1}}
+.empty{padding:36px;text-align:center;color:var(--mu)}
+#ld{display:none;position:fixed;inset:0;background:rgba(243,245,251,.88);z-index:20;align-items:center;justify-content:center;flex-direction:column;gap:14px;font-weight:600}
+.sp{width:48px;height:48px;border:5px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+#ov{display:none;position:fixed;inset:0;background:rgba(20,24,40,.55);padding:20px;overflow:auto;z-index:9}
+#box{max-width:840px;margin:0 auto;background:#fff;border-radius:16px;padding:22px;position:relative}
+#x{position:absolute;right:14px;top:8px;background:none;border:0;color:var(--mu);font-size:26px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.grid div{background:var(--bg);border-radius:10px;padding:9px 12px}.grid small{display:block;color:var(--mu);font-size:11px;text-transform:uppercase}
+h3.d{margin:18px 0 8px;font-size:13px;text-transform:uppercase;color:var(--mu);letter-spacing:.04em}
+.path{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.chip{padding:3px 10px;border-radius:99px;font-size:12px;border:1px solid var(--bd);color:var(--mu)}
+.chip.Approved,.chip.Rejected,.chip.Pending{border-color:transparent}
+.tl{border-left:2px solid var(--bd);margin-left:6px;padding-left:18px}.st{position:relative;margin-bottom:14px}
+.st:before{content:"";position:absolute;left:-25px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--bd)}
+.st.Approved:before{background:var(--ok)}.st.Rejected:before{background:var(--no)}.st.Pending:before{background:var(--wt)}
+.st.skip{opacity:.5}.mu{color:var(--mu);font-size:12px}.rm{margin-top:3px;padding:7px 10px;background:var(--bg);border-radius:8px}
+td.n,th.n{text-align:right}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Sample Request MIS</h1><p>Approval flow dashboard &amp; reports</p></div>
+  <div class="tabs" id="nav"></div>
+  <div><input type="file" id="f" accept=".csv" hidden><button class="btn" onclick="f.click()">⬆ Upload MIS CSV</button></div>
+</header>
+<main>
+  <div id="msg"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="card filters">
+    <label class="w">Search<input id="fq" placeholder="Request ID, TM code or name…"></label>
+    <label>Status<select id="fst"><option value="">All</option><option>Pending</option><option>Approved</option><option>Fulfilled</option><option>Rejected</option></select></label>
+    <label>Pending / rejected with<select id="fwh"><option value="">All</option></select></label>
+    <label>Stage<select id="fsg"><option value="">All</option></select></label>
+    <label>Team<select id="ftea"><option value="">All</option></select></label>
+    <label>TM<select id="ftm"><option value="">All</option></select></label>
+    <label>From<input id="ffr" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric"></label>
+    <label>To<input id="fto" placeholder="DD/MM/YYYY" maxlength="10" inputmode="numeric"></label>
+    <div class="act"><button class="btn s" onclick="resetF()">Reset</button><button class="btn s" onclick="exportCSV()">⬇ Export Excel</button></div>
+  </div>
+  <div id="vRep" style="display:none"><div class="tabs" id="tabs"></div>
+  <div id="rb" style="margin-bottom:14px"></div>
+  <div id="ovw"><div class="stats" id="stats"></div>
+  <div class="rep">
+    <div class="card"><h3>Status split</h3><div class="donut"><div class="dn" id="dn"><div id="dnt"></div></div><div class="lg" id="lg"></div></div></div>
+    <div class="card"><h3>Requests per day</h3><div class="bars" id="bars"></div></div>
+    <div class="card"><h3>Pending &amp; rejected by stage</h3><div id="stg"></div></div>
+    <div class="card"><h3>Top TMs by requests</h3><div id="tms"></div></div>
+  </div></div></div>
+  <div id="vReq">
+  <div class="tabs"><button class="tab on" id="mS" onclick="setMode('S')">Summary</button><button class="tab" id="mD" onclick="setMode('D')">Detailed (full approval flow)</button></div>
+  <div class="card">
+    <div class="tw"><table>
+      <thead id="th"></thead>
+      <tbody id="tb"></tbody></table></div>
+    <div class="empty" id="em" style="display:none">No requests match. Upload an MIS CSV or change the filters.</div>
+    <div class="pgn"><span class="mu" id="pi"></span><span><button class="btn s" onclick="go(-1)">‹ Prev</button> <button class="btn s" onclick="go(1)">Next ›</button></span></div>
+  </div></div>
+</main>
+<div id="ld"><div class="sp"></div><div id="ldt">Uploading…</div></div>
+<div id="ov"><div id="box"><button id="x" onclick="closeD()">&times;</button><div id="det"></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// >>> Paste your Apps Script Web App URL (ends with /exec) here:
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyf_C1uk93qnfjY3f7HngEnCWpP_PQoPjQo0iuP_dQ5MVC863CSmyxm36qaC1JQ5rutiw/exec';
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const inr = n => '₹' + Number(n).toLocaleString('en-IN', {maximumFractionDigits: 2});
+const STG = ['BM','SM','RSM','ZSM','SH/CH','PMT','Sample Dept'];
+const COL = {Pending:'#d97706', Approved:'#059669', Fulfilled:'#2563eb', Rejected:'#dc2626'};
+const TN = {overview:'Overview', pend:'Pending with', appr:'Approver performance', team:'Team-wise', tm:'TM-wise', aging:'Pending aging', turn:'Stage turnaround', mon:'Monthly', prod:'Products', rej:'Rejections', pod:'POD Details'};
+const PODC = {}, PODQ = new Set(); let PODDONE = 0;
+async function loadPod(list) {
+  const todo = list.filter(r => !PODQ.has(r.id)); todo.forEach(r => PODQ.add(r.id));
+  let i = 0;
+  const w = async () => { while (i < todo.length) { const r = todo[i++]; try { PODC[r.id] = (await run('getRequest', r.id)) || {}; } catch (e) { PODC[r.id] = {err: 1}; } PODDONE++; if (TAB == 'pod' && (PODDONE % 5 == 0 || i >= todo.length)) report(); } };
+  await Promise.all(Array.from({length: Math.min(6, todo.length)}, w)); if (TAB == 'pod') report();
+}
+let MODE = 'S', ALL = [], VIEW = [], pg = 1, sk = 'ts', sd = -1, TAB = 'overview', CUR = null; const PS = 25;
+const FIL = ['fq','fst','fwh','fsg','ftea','ftm','ffr','fto'];
+$('#nav').innerHTML = '<button class="tab on" data-v="req" onclick="setView(\'req\')">Requests</button><button class="tab" data-v="rep" onclick="setView(\'rep\')">Reports</button>';
+function setView(v) { document.querySelectorAll('#nav .tab').forEach(t => t.classList.toggle('on', t.dataset.v == v)); $('#vReq').style.display = v == 'req' ? 'block' : 'none'; $('#vRep').style.display = v == 'rep' ? 'block' : 'none'; }
+function setMode(m) { MODE = m; $('#mS').classList.toggle('on', m == 'S'); $('#mD').classList.toggle('on', m == 'D'); pg = 1; table(); }
+$('#tabs').innerHTML = Object.keys(TN).map(k => `<button class="tab ${k == 'overview' ? 'on' : ''}" data-k="${k}" onclick="TAB='${k}';report()">${TN[k]}</button>`).join('');
+
+async function run(fn, ...a) {
+  const r = fn === 'importData'
+    ? await fetch(SCRIPT_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(a[0])})
+    : await fetch(SCRIPT_URL + '?action=' + fn + (fn === 'getRequest' ? '&id=' + encodeURIComponent(a[0]) : ''));
+  const j = await r.json(); if (j.error) throw new Error(j.error); return j.data;
+}
+const busy = t => { $('#ld').style.display = t ? 'flex' : 'none'; if (t) $('#ldt').textContent = t; };
+function msg(t, c) { const m = $('#msg'); m.className = c || ''; m.textContent = t; m.style.display = t ? 'block' : 'none'; }
+const pd = s => { const m = /(\d+)[-\/](\d+)[-\/](\d+) (\d+):(\d+)/.exec(s || ''); return m ? new Date(+m[3], m[2]-1, +m[1], +m[4], +m[5]) : null; };
+const dur = ms => { if (ms < 0) return ''; const m = Math.round(ms/6e4), d = Math.floor(m/1440), h = Math.floor(m%1440/60); return (d ? d+'d ' : '') + (h ? h+'h ' : '') + (m%60) + 'm'; };
+const dmin = s => { const m = /(?:(\d+)d)?\s*(?:(\d+)h)?\s*(?:(\d+)m)?/.exec(s || ''); return s && /\d/.test(s) ? (+m[1]||0)*1440 + (+m[2]||0)*60 + (+m[3]||0) : null; };
+const dkey = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+
+const fd = (s, t) => { const i = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/.exec(s || ''); if (i) return i[3] + '/' + i[2] + '/' + i[1] + (t && i[4] ? ' ' + i[4] : ''); const m = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})(?:\s+(\d{1,2}:\d{2}))?/.exec(s || ''); return m ? m[1].padStart(2, '0') + '/' + m[2].padStart(2, '0') + '/' + m[3] + (t && m[4] ? ' ' + m[4] : '') : (s || ''); };
+const iso = v => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec((v || '').trim()); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; };
+function parseCSV(t) {
+  t = t.replace(/^\uFEFF/, ''); const rows = []; let r = [], f = '', q = false;
+  for (let i = 0; i < t.length; i++) { const c = t[i];
+    if (q) { if (c == '"') { if (t[i+1] == '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c == '"') q = true; else if (c == ',') { r.push(f); f = ''; }
+    else if (c == '\n' || c == '\r') { if (c == '\r' && t[i+1] == '\n') i++; r.push(f); f = ''; if (r.some(x => x !== '')) rows.push(r); r = []; }
+    else f += c; }
+  if (f !== '' || r.length) { r.push(f); if (r.some(x => x !== '')) rows.push(r); }
+  return rows;
+}
+
+$('#f').onchange = async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    msg(''); busy('Reading ' + file.name + '…');
+    const rows = parseCSV(await file.text()), headers = rows[0].map(h => h.trim());
+    const data = rows.slice(1).map(r => headers.map((_, i) => (r[i] || '').trim()));
+    busy('Uploading ' + data.length + ' rows… please wait');
+    const r = await run('importData', {fileName: file.name, headers, rows: data});
+    msg(`Import complete — ${r.requests} requests in file: ${r.added} new saved, ${r.updated} updated (flow changed), ${r.unchanged} skipped (already saved, no change).` + (r.updatedIds.length ? ' Updated IDs: ' + r.updatedIds.join(', ') : ''), 'good');
+    busy('Refreshing dashboard…'); await load();
+  } catch (err) { msg('Import failed: ' + (err.message || err), 'err'); }
+  busy(''); e.target.value = '';
+};
+
+async function load() {
+  try {
+    ALL = (await run('getRequests')).map(r => { const d = pd(r.submitted), s = pd(r.since); r.ts = d ? d.getTime() : 0; r.day = d ? dkey(d) : ''; r.mon = r.day.slice(0, 7); r.age = r.grp == 'Pending' && s ? (Date.now() - s) / 864e5 : null; return r; });
+    if (ALL.length && ALL[0].teamErr) msg('Team lookup failed: ' + ALL[0].teamErr, 'err');
+    const fill = (id, vals, extra) => { const e = $('#' + id), c = e.value; e.innerHTML = '<option value="">All</option>' + (extra || '') + [...new Set(vals)].filter(Boolean).sort().map(t => `<option>${esc(t)}</option>`).join(''); e.value = c; };
+    fill('ftm', ALL.map(r => r.tmName)); fill('ftea', ALL.map(r => r.team)); fill('fwh', ALL.map(r => r.who));
+    fill('fsg', STG, '<option value="__d">Awaiting Dispatch</option>');
+    apply();
+  } catch (e) { msg('Could not load data: ' + (e.message || e), 'err'); }
+}
+
+function apply(keep) {
+  const v = id => $('#' + id).value, q = v('fq').toLowerCase();
+  VIEW = ALL.filter(r => (!v('fst') || r.grp == v('fst')) && (!v('ftm') || r.tmName == v('ftm')) && (!v('ftea') || r.team == v('ftea')) && (!v('fwh') || r.who == v('fwh')) &&
+    (!iso(v('ffr')) || r.day >= iso(v('ffr'))) && (!iso(v('fto')) || r.day <= iso(v('fto'))) && (!v('fsg') || (v('fsg') == '__d' ? r.grp == 'Approved' : r.stage == v('fsg'))) &&
+    (!q || [r.id, r.tmCode, r.tmName].join(' ').toLowerCase().includes(q)));
+  if (!keep) pg = 1; report(); table();
+}
+FIL.forEach(i => $('#' + i).addEventListener('input', () => apply()));
+function resetF() { FIL.forEach(i => $('#' + i).value = ''); apply(); }
+function setSt(s) { $('#fst').value = $('#fst').value == s ? '' : s; apply(); }
+
+const G = (a, f) => { const m = {}; a.forEach(r => (m[f(r)] = m[f(r)] || []).push(r)); return Object.entries(m); };
+const S = (a, f) => a.reduce((s, x) => s + (+f(x) || 0), 0);
+const C = (a, g) => a.filter(r => r.grp == g).length;
+const avgDur = a => { const t = a.map(r => dmin(r.duration)).filter(x => x != null); return t.length ? dur(t.reduce((x, y) => x + y, 0) / t.length * 6e4) : '—'; };
+const rate = a => { const ok = C(a, 'Approved') + C(a, 'Fulfilled'), d = ok + C(a, 'Rejected'); return d ? Math.round(ok / d * 100) + '%' : '—'; };
+const rd = n => Math.round(n);
+const dur2 = s => s || '—';
+
+// each report returns {h: headers, rows: [...], top: optional summary chips}
+const R = {
+  pend: () => ({h: ['Pending with','Stage','Pending','Avg age (days)','Oldest (days)','Pending value'],
+    rows: G(VIEW.filter(r => r.grp == 'Pending'), r => r.who + '|' + r.stage).map(([k, a]) => [k.split('|')[0], k.split('|')[1], a.length, +(S(a, r => r.age) / a.length).toFixed(1), +Math.max(...a.map(r => r.age || 0)).toFixed(1), rd(S(a, r => r.total))]).sort((x, y) => y[2] - x[2])}),
+  appr: () => { const m = {};
+    VIEW.forEach(r => { let prev = pd(r.submitted); (r.flow || []).forEach(f => { const o = m[f.n + '|' + f.s] = m[f.n + '|' + f.s] || {a: 0, x: 0, p: 0, t: 0, k: 0}, d = pd(f.d);
+      if (f.a == 'Approved') o.a++; else if (f.a == 'Rejected') o.x++; else if (r.grp == 'Pending' && r.who == f.n && r.stage == f.s) o.p++;
+      if (f.a && d && prev) { o.t += d - prev; o.k++; } if (d) prev = d; }); });
+    return {h: ['Approver','Stage','Approved','Rejected','Pending now','Avg response time'], rows: Object.entries(m).map(([k, o]) => [...k.split('|'), o.a, o.x, o.p, o.k ? dur(o.t / o.k) : '—']).sort((x, y) => (y[2] + y[3] + y[4]) - (x[2] + x[3] + x[4]))}; },
+  team: () => ({h: ['Team','Requests','Pending','Approved','Fulfilled','Rejected','Value','Approval rate','Avg turnaround'],
+    rows: G(VIEW, r => r.team).map(([k, a]) => [k, a.length, C(a, 'Pending'), C(a, 'Approved'), C(a, 'Fulfilled'), C(a, 'Rejected'), rd(S(a, r => r.total)), rate(a), avgDur(a)]).sort((x, y) => y[1] - x[1])}),
+  tm: () => ({h: ['TM Code','TM Name','Team','Requests','Pending','Approved','Fulfilled','Rejected','Value'],
+    rows: G(VIEW, r => r.tmCode).map(([k, a]) => [k, a[0].tmName, a[0].team, a.length, C(a, 'Pending'), C(a, 'Approved'), C(a, 'Fulfilled'), C(a, 'Rejected'), rd(S(a, r => r.total))]).sort((x, y) => y[3] - x[3])}),
+  aging: () => { const P = VIEW.filter(r => r.grp == 'Pending'), B = [[0, 1, '< 1 day'], [1, 3, '1–3 days'], [3, 7, '3–7 days'], [7, 15, '7–15 days'], [15, 1e9, '> 15 days']];
+    const bk = r => B.find(b => (r.age || 0) >= b[0] && (r.age || 0) < b[1])[2];
+    return {top: B.map(b => { const a = P.filter(r => bk(r) == b[2]); return `<div><b>${a.length}</b><span>${b[2]}</span></div>`; }).join(''),
+      h: ['Request ID','TM Name','Team','Pending with','Stage','Age (days)','Bucket','Value'],
+      rows: P.sort((x, y) => y.age - x.age).map(r => [r.id, r.tmName, r.team, r.who, r.stage, +(r.age || 0).toFixed(1), bk(r), rd(r.total)])}; },
+  turn: () => { const m = {}; VIEW.forEach(r => { let prev = pd(r.submitted); (r.flow || []).forEach(f => { const d = pd(f.d); if (f.a && d && prev) { (m[f.s] = m[f.s] || []).push(d - prev); } if (d) prev = d; }); });
+    return {h: ['Stage','Actions timed','Avg time','Slowest'], rows: STG.filter(s => m[s]).map(s => [s, m[s].length, dur(m[s].reduce((x, y) => x + y, 0) / m[s].length), dur(Math.max(...m[s]))])}; },
+  mon: () => ({h: ['Month','Requests','Value','Approved + Fulfilled','Rejected','Pending','Approval rate'],
+    rows: G(VIEW.filter(r => r.mon), r => r.mon).sort((x, y) => x[0] < y[0] ? 1 : -1).map(([k, a]) => [k.slice(5) + '/' + k.slice(0, 4), a.length, rd(S(a, r => r.total)), C(a, 'Approved') + C(a, 'Fulfilled'), C(a, 'Rejected'), C(a, 'Pending'), rate(a)])}),
+  prod: () => { const m = {}; VIEW.forEach(r => (r.prods || []).forEach(p => { const o = m[p[0] + '|' + p[1]] = m[p[0] + '|' + p[1]] || {n: 0, q: 0, v: 0, x: 0}; o.n++; o.q += +p[2] || 0; o.v += +p[3] || 0; if (r.grp == 'Rejected') o.x++; }));
+    return {h: ['Code','Product','Requests','Qty','Value','In rejected requests'], rows: Object.entries(m).map(([k, o]) => [...k.split('|'), o.n, o.q, rd(o.v), o.x]).sort((x, y) => y[4] - x[4]).slice(0, 50)}; },
+  pod: () => {
+    const F = VIEW.filter(r => r.grp == 'Fulfilled' || r.pod || r.fulfilled);
+    const need = F.filter(r => r.pod === undefined && !PODQ.has(r.id)); if (need.length) loadPod(need);
+    const g = r => r.pod !== undefined ? r : (PODC[r.id] || {});
+    const loading = F.filter(r => r.pod === undefined && !PODC[r.id]).length;
+    const rows = F.map(r => { const q = g(r), fu = pd(q.fulfilled), su = pd(r.submitted);
+      return [r.id, r.tmCode, r.tmName, r.team, fd(r.submitted, 1), dur2(r.duration), fd(q.fulfilled, 1) || '—', q.pod || '—', fu && su ? dur(fu - su) : '—', r.items == null ? '' : r.items, rd(r.total)]; })
+      .sort((x, y) => (iso(y[6].slice(0, 10)) > iso(x[6].slice(0, 10)) ? 1 : iso(y[6].slice(0, 10)) < iso(x[6].slice(0, 10)) ? -1 : 0));
+    const has = rows.filter(x => x[7] != '—').length;
+    return {top: `<div><b>${rows.length}</b><span>Fulfilled requests</span></div><div><b>${has}</b><span>POD available</span></div><div><b>${rows.length - has - loading}</b><span>POD missing</span></div>${loading ? `<div><b>${loading}</b><span>Loading…</span></div>` : ''}`,
+      h: ['Request ID','TM Code','TM Name','Team','Submitted','Request → Sample Dept','Fulfilled On','POD','Submit → Fulfilled','Items','Value'], rows}; },
+  rej: () => ({h: ['Request ID','TM Name','Team','Rejected by','Stage','Rejected on','Value'],
+    rows: VIEW.filter(r => r.grp == 'Rejected').map(r => [r.id, r.tmName, r.team, r.who, r.stage, fd(((r.flow || []).find(f => f.a == 'Rejected') || {}).d), rd(r.total)])})
+};
+const cell = x => typeof x == 'number' ? `<td class="n">${x.toLocaleString('en-IN')}</td>` : `<td>${esc(x)}</td>`;
+
+function report() {
+  document.querySelectorAll('#tabs .tab').forEach(t => t.classList.toggle('on', t.dataset.k == TAB));
+  const c = {Pending: 0, Approved: 0, Fulfilled: 0, Rejected: 0}; VIEW.forEach(r => c[r.grp]++);
+  const val = S(VIEW, r => r.total), st = $('#fst').value;
+  $('#kpis').innerHTML = `<div class="card kpi ${st ? '' : 'on'}" onclick="setSt('')"><b>${VIEW.length}</b><span>Total requests</span></div>` +
+    Object.keys(c).map(k => `<div class="card kpi ${st == k ? 'on' : ''}" style="--c:${COL[k]}" onclick="setSt('${k}')"><b>${c[k]}</b><span>${k}</span></div>`).join('');
+  $('#ovw').style.display = TAB == 'overview' ? 'block' : 'none';
+  if (TAB != 'overview') {
+    const o = R[TAB](); CUR = {name: TN[TAB], h: o.h, rows: o.rows};
+    $('#rb').innerHTML = `<div class="card"><div class="pgn"><b>${TN[TAB]}</b><button class="btn s" onclick="expRep()">⬇ Export to Excel</button></div>${o.top ? `<div class="top">${o.top}</div>` : ''}<div class="tw"><table><thead><tr>${o.h.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>${o.rows.map(r => `<tr style="cursor:default">${r.map(cell).join('')}</tr>`).join('')}</tbody></table></div>${o.rows.length ? '' : '<div class="empty">No data for the current filters.</div>'}</div>`;
+    return;
+  }
+  $('#rb').innerHTML = ''; CUR = null;
+  const tat = VIEW.map(r => dmin(r.duration)).filter(x => x != null), P = VIEW.filter(r => r.grp == 'Pending');
+  $('#stats').innerHTML = [['Approval rate', rate(VIEW)], ['Avg. turnaround (to Sample Dept)', avgDur(VIEW)], ['Avg. pending age', P.length ? (S(P, r => r.age) / P.length).toFixed(1) + ' days' : '—'], ['Total value', inr(val)], ['Fulfilled value', inr(S(VIEW.filter(r => r.grp == 'Fulfilled'), r => r.total))]]
+    .map(x => `<div class="card"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');
+  let acc = 0, seg = []; const n = VIEW.length || 1;
+  Object.keys(c).forEach(k => { const p = c[k] / n * 100; if (p) seg.push(`${COL[k]} ${acc}% ${acc + p}%`); acc += p; });
+  $('#dn').style.background = VIEW.length ? `conic-gradient(${seg.join(',')})` : '#eef0f6'; $('#dnt').textContent = VIEW.length;
+  $('#lg').innerHTML = Object.keys(c).map(k => `<div><i style="background:${COL[k]}"></i>${k} <b>${c[k]}</b></div>`).join('');
+  const days = {}; VIEW.forEach(r => { if (r.day) days[r.day] = (days[r.day] || 0) + 1; });
+  const dk = Object.keys(days).sort().slice(-14), mx = Math.max(1, ...dk.map(k => days[k]));
+  $('#bars').innerHTML = dk.length ? dk.map(k => `<div title="${fd(k.slice(8) + '-' + k.slice(5, 7) + '-' + k.slice(0, 4))}: ${days[k]}"><span>${days[k]}</span><i style="height:${days[k] / mx * 85}%"></i><span>${k.slice(8)}/${k.slice(5, 7)}</span></div>`).join('') : '<span class="mu">No data</span>';
+  const rows = STG.map(s => ({s, p: VIEW.filter(r => r.grp == 'Pending' && r.stage == s).length, x: VIEW.filter(r => r.grp == 'Rejected' && r.stage == s).length})).filter(o => o.p + o.x), sm = Math.max(1, ...rows.map(o => o.p + o.x));
+  $('#stg').innerHTML = rows.length ? rows.map(o => `<div class="hb"><div class="r"><span>${o.s}</span><span>${o.p} pending · ${o.x} rejected</span></div><div class="t"><i style="width:${o.p / sm * 100}%;background:${COL.Pending}"></i><i style="width:${o.x / sm * 100}%;background:${COL.Rejected}"></i></div></div>`).join('') : '<span class="mu">Nothing pending or rejected</span>';
+  const tm = G(VIEW, r => r.tmName).map(([k, a]) => [k, a.length, S(a, r => r.total)]).sort((a, b) => b[1] - a[1]).slice(0, 5), tmx = Math.max(1, ...tm.map(t => t[1]));
+  $('#tms').innerHTML = tm.length ? tm.map(t => `<div class="hb"><div class="r"><span>${esc(t[0])}</span><span>${t[1]} · ${inr(t[2])}</span></div><div class="t"><i style="width:${t[1] / tmx * 100}%;background:var(--ac)"></i></div></div>`).join('') : '<span class="mu">No data</span>';
+}
+
+function srt(k) { sd = sk == k ? -sd : -1; sk = k; table(); }
+const SC = () => STG.filter(s => VIEW.some(r => (r.flow || []).some(f => f.s == s)));
+const fa = r => { const f = (r.flow || []).find(x => x.a && x.d); return f ? [fd(f.d), f.s] : ['', '']; };
+function fcell(r, s) {
+  const f = (r.flow || []).find(x => x.s == s); if (!f) return '<td class="mu">—</td>';
+  if (f.a) return `<td class="fc ${f.a == 'Approved' ? 'Approved' : 'Rejected'}">${f.a == 'Approved' ? '✓' : '✗'} ${esc(f.n)}<br><small>${esc(fd(f.d))}</small></td>`;
+  if (r.grp == 'Pending' && r.stage == s) return `<td class="fc Pending">… ${esc(f.n)}<br><small>Pending</small></td>`;
+  return `<td class="fc">${esc(f.n)}<br><small>${r.grp == 'Rejected' ? 'Not reached' : 'Waiting'}</small></td>`;
+}
+function table() {
+  VIEW.sort((a, b) => (sk == 'id' ? a.id - b.id : a[sk] > b[sk] ? 1 : a[sk] < b[sk] ? -1 : 0) * sd);
+  const pages = Math.max(1, Math.ceil(VIEW.length / PS)); pg = Math.min(pg, pages);
+  const rows = VIEW.slice((pg - 1) * PS, pg * PS), D = MODE == 'D', sc = SC();
+  $('#th').innerHTML = D
+    ? `<tr><th onclick="srt('id')">Req ID ↕</th><th onclick="srt('ts')">Req Date ↕</th><th onclick="srt('tmCode')">TM Code – Name ↕</th><th onclick="srt('team')">Team ↕</th><th>First approval (date – designation)</th>${sc.map(s => `<th>${s}</th>`).join('')}<th onclick="srt('status')">Status ↕</th></tr>`
+    : `<tr><th onclick="srt('id')">Request ID ↕</th><th onclick="srt('tmCode')">TM Code ↕</th><th onclick="srt('tmName')">TM Name ↕</th><th onclick="srt('team')">Team ↕</th><th onclick="srt('ts')">Submitted Date ↕</th><th onclick="srt('status')">Status ↕</th></tr>`;
+  const badge = r => `<span class="b ${r.grp}">${esc(r.status)}</span>`;
+  $('#tb').innerHTML = rows.map(r => D
+    ? `<tr onclick="openD('${esc(r.id)}')"><td><b>${esc(r.id)}</b></td><td>${esc(fd(r.submitted))}</td><td>${esc(r.tmCode)} – ${esc(r.tmName)}</td><td>${esc(r.team)}</td><td>${fa(r)[0] ? esc(fa(r)[0]) + ' – <b>' + esc(fa(r)[1]) + '</b>' : '—'}</td>${sc.map(s => fcell(r, s)).join('')}<td>${badge(r)}</td></tr>`
+    : `<tr onclick="openD('${esc(r.id)}')"><td><b>${esc(r.id)}</b></td><td>${esc(r.tmCode)}</td><td>${esc(r.tmName)}</td><td>${esc(r.team)}</td><td>${esc(fd(r.submitted))}</td><td>${badge(r)}</td></tr>`).join('');
+  $('#em').style.display = rows.length ? 'none' : 'block';
+  $('#pi').textContent = VIEW.length ? `Showing ${(pg - 1) * PS + 1}–${(pg - 1) * PS + rows.length} of ${VIEW.length}  ·  Page ${pg}/${pages}` : '';
+}
+function go(d) { pg = Math.max(1, pg + d); table(); }
+const dl = (name, h, rows) => {
+  if (typeof XLSX == 'undefined') {   // fallback if the Excel library could not load (offline)
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const t = [h].concat(rows).map(r => r.map(q).join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF' + t], {type: 'text/csv'})); a.download = name + '.csv'; a.click(); return;
+  }
+  const ws = XLSX.utils.aoa_to_sheet([h].concat(rows));
+  ws['!cols'] = h.map((x, i) => ({wch: Math.min(45, Math.max(String(x).length, ...rows.slice(0, 300).map(r => String(r[i] == null ? '' : r[i]).length)) + 2)}));
+  ws['!autofilter'] = {ref: ws['!ref']};
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, name.replace(/^MIS_/, '').replace(/[\\\/?*\[\]:]/g, ' ').slice(0, 31) || 'Report');
+  XLSX.writeFile(wb, name + '.xlsx');
+};
+function expRep() { if (CUR) dl('MIS_' + CUR.name.replace(/\W+/g, '_'), CUR.h, CUR.rows); }
+function exportCSV() {
+  if (MODE == 'D') { const sc = SC(); return dl('MIS_requests_detailed', ['Request ID','Request Date','TM Code','TM Name','Team','First Approval Date','First Approval Designation', ...sc.map(s => s + ' (name | action | date)'), 'Status'],
+    VIEW.map(r => [r.id, fd(r.submitted), r.tmCode, r.tmName, r.team, fa(r)[0], fa(r)[1], ...sc.map(s => { const f = (r.flow || []).find(x => x.s == s); return f ? [f.n, f.a || 'Pending', fd(f.d)].join(' | ') : ''; }), r.status])); }
+  dl('MIS_requests', ['Request ID','TM Code','TM Name','Team','Submitted Date','Status','Items','Total Value','Turnaround'], VIEW.map(r => [r.id, r.tmCode, r.tmName, r.team, fd(r.submitted), r.status, r.items, r.total, r.duration]));
+}
+
+async function openD(id) {
+  $('#ov').style.display = 'block'; $('#det').innerHTML = '<p class="mu">Loading…</p>';
+  try {
+    const q = await run('getRequest', id); if (!q) { $('#det').innerHTML = '<p>Request not found.</p>'; return; }
+    let prev = pd(q.submitted); const act = s => s.action || (s.vacant ? 'Skipped' : 'Pending');
+    const path = q.stages.filter(s => !s.vacant).map(s => `<span class="chip ${act(s)}">${s.stage} ${s.action == 'Approved' ? '✓' : s.action == 'Rejected' ? '✗' : '…'}</span>`).join(' → ');
+    const tl = q.stages.map(s => {
+      if (s.vacant) return `<div class="st skip"><b>${s.stage}</b> <span class="mu">— vacant, skipped</span></div>`;
+      const d = pd(s.date), took = d && prev ? dur(d - prev) : ''; if (d) prev = d;
+      const p = (s.remarks || '').split(' | '), note = p.slice(1).join(' | ');
+      return `<div class="st ${act(s)}"><b>${s.stage}</b> — ${esc(s.name)} <span class="mu">(${esc(s.code)})</span> <span class="b ${act(s)}">${act(s)}</span>
+        <div class="mu">${esc(fd(s.date, 1)) || 'Awaiting action'}${took ? ' · took ' + took : ''}</div>
+        ${p[0] ? `<div class="rm">${esc(p[0])}${note ? `<div class="mu">${esc(note)}</div>` : ''}</div>` : ''}</div>`;
+    }).join('');
+    $('#det').innerHTML = `<h2 style="margin:0">Request #${esc(q.id)} <span class="b ${q.grp}">${esc(q.status)}</span></h2>
+      <div class="grid"><div><small>TM</small>${esc(q.tmName)} (${esc(q.tmCode)})</div><div><small>Team</small>${esc(q.team)}</div><div><small>Submitted</small>${esc(fd(q.submitted, 1))}</div>
+      <div><small>Total value</small>${inr(q.total)}</div><div><small>Total qty</small>${q.products.reduce((a, p) => a + p.qty, 0)}</div>
+      <div><small>Request → Sample Dept</small>${esc(q.duration) || '—'}</div><div><small>POD</small>${esc(q.pod) || '—'}</div><div><small>Fulfilled</small>${esc(fd(q.fulfilled, 1)) || '—'}</div></div>
+      <h3 class="d">Flow summary</h3><div class="path"><span class="chip">TM submitted</span> → ${path}</div>
+      <h3 class="d">Approval timeline</h3><div class="tl">${tl}</div>
+      <h3 class="d">Products (${q.products.length})</h3><div class="tw"><table><thead><tr><th>Code</th><th>Product</th><th class="n">Qty</th><th class="n">Unit</th><th class="n">Total</th></tr></thead><tbody>
+      ${q.products.map(p => `<tr style="cursor:default"><td>${esc(p.code) || '—'}</td><td>${esc(p.name) || '—'}</td><td class="n">${p.qty}</td><td class="n">${inr(p.unit)}</td><td class="n">${inr(p.total)}</td></tr>`).join('')}</tbody></table></div>`;
+  } catch (e) { $('#det').innerHTML = '<p class="mu">Error: ' + esc(e.message || e) + '</p>'; }
+}
+function closeD() { $('#ov').style.display = 'none'; }
+$('#ov').onclick = e => { if (e.target.id == 'ov') closeD(); };
+document.onkeydown = e => { if (e.key == 'Escape') closeD(); };
+load();
+</script>
+</body>
+</html>
