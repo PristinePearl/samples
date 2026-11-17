@@ -886,6 +886,9 @@
           <div class="flex items-center gap-2 flex-wrap">
             <span id="liveUpdated" class="text-xs text-slate-400"></span>
             <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="refreshLiveInventory()">↻ Refresh</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-sky-600 text-sky-700 text-sm font-semibold bg-white" onclick="openProductMaster()">📚 Product Master</button>
+            <button id="ifxBtn" type="button" class="px-3 py-2 rounded-md border border-red-600 text-red-700 text-sm font-semibold bg-white" onclick="openInventoryFix()">🛠 Auto Fix Stock</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="openIfxViewer()">📄 Saved Fixes</button>
             <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="exportLiveInventory()">⬇ Export Excel</button>
           </div>
         </div>
@@ -1451,6 +1454,91 @@
             <th class="border px-2 py-1 text-center">Action</th>
           </tr>
         </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal: product master -->
+  <div id="pmModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto p-6">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-bold text-slate-700">Product Master</h2>
+        <button onclick="closeProductMaster()" class="text-red-500 text-lg font-bold">✕</button>
+      </div>
+      <p class="text-sm text-slate-500">Master list of items (Type, Product, Division, MRP). New items received without a master entry are added here automatically.</p>
+      <datalist id="pmTypeList"></datalist><datalist id="pmDivList"></datalist>
+      <div class="mt-3 p-3 rounded-lg bg-slate-50 border border-gray-100">
+        <div id="pmFormTitle" class="text-sm font-semibold text-slate-700 mb-2">Add new item</div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 items-end">
+          <input id="pmType" list="pmTypeList" placeholder="Type (e.g. Sample)" class="border border-gray-200 rounded-md px-2 py-1.5 text-sm" />
+          <input id="pmProduct" placeholder="Product name" class="border border-gray-200 rounded-md px-2 py-1.5 text-sm md:col-span-2" />
+          <input id="pmDiv" list="pmDivList" placeholder="Division" class="border border-gray-200 rounded-md px-2 py-1.5 text-sm" />
+          <input id="pmMrp" type="number" min="0" step="0.01" placeholder="MRP" class="border border-gray-200 rounded-md px-2 py-1.5 text-sm" />
+        </div>
+        <div class="mt-2 flex gap-2">
+          <button id="pmSaveBtn" class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold text-sm" onclick="pmSave()">+ Add Item</button>
+          <button id="pmCancelBtn" class="hidden px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="pmCancelEdit()">Cancel edit</button>
+        </div>
+      </div>
+      <div id="pmMissingBox" class="hidden mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="text-sm font-semibold text-amber-800"><span id="pmMissingCount">0</span> inventory item(s) are not in the master</div>
+          <button class="px-3 py-1.5 rounded-md bg-amber-600 text-white text-sm font-bold" onclick="pmAddMissing()">Add all to master</button>
+        </div>
+        <div class="mt-2 max-h-40 overflow-auto"><table id="pmMissingTable" class="min-w-full text-xs"><thead><tr><th class="p-1 text-left">Type</th><th class="p-1 text-left">Product</th><th class="p-1 text-left">Division</th><th class="p-1 text-right">MRP</th><th class="p-1 text-right">Stock</th></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="mt-3 flex items-center gap-3">
+        <input id="pmSearch" oninput="pmRender()" placeholder="Search item / type / division" class="border border-gray-200 rounded-md px-3 py-1.5 text-sm flex-1" />
+        <span id="pmCount" class="text-xs text-slate-500"></span>
+      </div>
+      <div class="mt-2 overflow-auto max-h-[45vh] rounded-lg border border-gray-100">
+        <table id="pmTable" class="min-w-full text-sm">
+          <thead class="bg-slate-100 sticky top-0"><tr><th class="p-2 text-left">Type</th><th class="p-2 text-left">Product</th><th class="p-2 text-left">Division</th><th class="p-2 text-right">MRP</th><th class="p-2 text-right">In Stock</th><th class="p-2"></th></tr></thead>
+          <tbody class="bg-white"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: auto fix duplicate stock -->
+  <div id="ifxModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto p-6">
+      <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-bold text-slate-700">Auto Fix Stock - Duplicate Batches</h2>
+        <button onclick="closeInventoryFix()" class="text-red-500 text-lg font-bold">✕</button>
+      </div>
+      <p class="text-sm text-slate-500">Finds the same Product + Batch stored in more than one inventory row, adds the quantities into one row and removes the extra rows. Total stock does not change. A proof document is generated.</p>
+      <div class="mt-3 flex items-center gap-4 flex-wrap">
+        <label class="text-sm"><input id="ifxInc" type="checkbox" onchange="ifxLoad()" /> Also merge rows of the same batch with <b>different expiry</b> (keeps the expiry of the latest receipt)</label>
+        <input id="ifxRemarks" type="text" placeholder="Remarks (optional)" class="border border-gray-200 rounded-md px-2 py-1 text-sm flex-1 min-w-[200px]" />
+      </div>
+      <div id="ifxSummary" class="text-sm text-slate-600 mt-3"></div>
+      <div class="mt-2 overflow-auto max-h-[50vh] rounded-lg border border-gray-100">
+        <table id="ifxTable" class="min-w-full text-sm">
+          <thead class="bg-slate-100 sticky top-0"><tr>
+            <th class="p-2 text-left">Type</th><th class="p-2 text-left">Product</th><th class="p-2 text-left">Batch</th><th class="p-2 text-left">Expiry</th>
+            <th class="p-2 text-right">MRP</th><th class="p-2 text-center">Rows</th><th class="p-2 text-left">Qty in each row</th><th class="p-2 text-right">Qty After</th><th class="p-2 text-left">Final Expiry</th>
+          </tr></thead>
+          <tbody class="bg-white"></tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="closeInventoryFix()">Close</button>
+        <button id="ifxApplyBtn" class="px-3 py-2 rounded-md bg-red-600 text-white font-bold" onclick="ifxApply()">Fix Inventory &amp; Generate Document</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: saved inventory fixes -->
+  <div id="ifxViewerModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-auto p-6">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xl font-bold text-slate-700">Saved Inventory Fixes</h2>
+        <button onclick="closeIfxViewer()" class="text-red-500 text-lg font-bold">✕</button>
+      </div>
+      <table id="ifxListTable" class="w-full border-collapse text-sm">
+        <thead class="bg-slate-100"><tr><th class="border px-2 py-1">Fix ID</th><th class="border px-2 py-1">Date</th><th class="border px-2 py-1">Groups</th><th class="border px-2 py-1 text-right">Qty</th><th class="border px-2 py-1 text-center">Action</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -2134,6 +2222,7 @@
       document.getElementById('recPurchasedFrom').value = '';
       document.getElementById('recRemarks').value = '';
       await loadInventory();
+      await loadProducts();
       await loadPendingRequests();
       if(mode === 'po'){
         await loadPendingPOs();
@@ -4233,6 +4322,271 @@
   function previewSavedAdj(id){ const g = adjGroups[id]; if(!g) return alert('Adjustment not found.'); showDocPreview(buildAdjHtml(g), 'Stock Adjustment ' + id); }
   function printSavedAdj(id){ const g = adjGroups[id]; if(!g) return alert('Adjustment not found.'); printHtml(buildAdjHtml(g)); }
 
+/* ===================== LIVE INVENTORY: AUTO FIX DUPLICATE STOCK ===================== */
+/* Same Product + Batch (+Expiry) sitting in more than one Inventory row -> merged into one row.
+   Supply / Return then find the real stock. A proof document is generated and logged. */
+let ifxData = null;
+let ifxFixGroups = {};
+
+function ifxNk(v){ return String(v == null ? '' : v).replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim().toLowerCase(); }
+
+function ifxDupCount(){
+  const m = new Map();
+  inventory.forEach(r => {
+    if(!buStr(r.Product)) return;
+    const b = ifxNk(r.Batch);
+    const k = ifxNk(r.Product) + '|' + b + (b ? '' : '|' + ifxNk(buParseExpiry(r.Expiry)));
+    m.set(k, (m.get(k) || 0) + 1);
+  });
+  return [...m.values()].filter(n => n > 1).length;
+}
+
+function ifxUpdateBadge(){
+  const b = document.getElementById('ifxBtn'); if(!b) return;
+  const n = ifxDupCount();
+  b.innerHTML = '🛠 Auto Fix Stock' + (n ? ` <span class="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white">${n}</span>` : '');
+}
+
+function ifxRender(){
+  const d = ifxData, tb = document.querySelector('#ifxTable tbody');
+  const fixable = d.groups.filter(g => g.willFix);
+  const skipped = d.groups.filter(g => !g.willFix);
+  document.getElementById('ifxSummary').innerHTML = d.groups.length
+    ? `<b>${fixable.length}</b> group(s) will be merged (<b>${fixable.reduce((a,g)=>a+g.rows.length,0)}</b> rows → <b>${fixable.length}</b>)` +
+      (skipped.filter(g => g.rateConflict).length ? ` | <span class="text-red-700 font-semibold">${skipped.filter(g => g.rateConflict).length} group(s) have different rates - skipped, fix them manually</span>` : '') +
+      (skipped.filter(g => !g.rateConflict).length ? ` | <span class="text-amber-700 font-semibold">${skipped.filter(g => !g.rateConflict).length} group(s) have different expiries - tick the option above to merge them</span>` : '')
+    : '';
+  document.getElementById('ifxApplyBtn').disabled = !fixable.length;
+  document.getElementById('ifxApplyBtn').classList.toggle('opacity-50', !fixable.length);
+  if(!d.groups.length){ tb.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-emerald-700 font-semibold">No duplicate stock found. Inventory is clean ✔</td></tr>`; return; }
+  tb.innerHTML = d.groups.map(g => `<tr class="border-t border-gray-100 ${g.willFix ? '' : (g.rateConflict ? 'bg-red-50' : 'bg-amber-50')}">
+    <td class="p-2">${escapeHtml(g.type)}</td>
+    <td class="p-2 font-medium">${escapeHtml(g.item)}</td>
+    <td class="p-2">${escapeHtml(g.batch || '-')}</td>
+    <td class="p-2">${g.expiries.map(e => escapeHtml(fmtExpiryPrint(e) || '-')).join(' / ')}${g.conflict ? '<div class="text-xs text-amber-700">expiry differs</div>' : ''}</td>
+    <td class="p-2 text-right">${(g.mrps && g.mrps.length ? g.mrps : [g.mrp]).map(to2).join(' / ')}${g.rateConflict ? '<div class="text-xs text-red-700 font-semibold">rate differs</div>' : ''}</td>
+    <td class="p-2 text-center">${g.rows.length}</td>
+    <td class="p-2">${g.rows.map(r => r.qty).join(' + ')}</td>
+    <td class="p-2 text-right font-bold">${g.willFix ? g.totalQty : '<span class="text-slate-400">skipped</span>'}</td>
+    <td class="p-2">${g.willFix ? escapeHtml(fmtExpiryPrint(g.finalExpiry) || '-') : ''}</td></tr>`).join('');
+}
+
+async function openInventoryFix(){
+  document.getElementById('ifxModal').classList.remove('hidden');
+  await ifxLoad();
+}
+function closeInventoryFix(){ document.getElementById('ifxModal').classList.add('hidden'); }
+
+async function ifxLoad(){
+  const tb = document.querySelector('#ifxTable tbody');
+  tb.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-400">Scanning inventory...</td></tr>`;
+  const r = await post('getInventoryFixPreview', { includeExpiryConflicts: document.getElementById('ifxInc').checked });
+  if(!r || !r.success){
+    tb.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-600">${escapeHtml((r && r.message) || 'Could not scan inventory. Make sure the latest Apps Script is deployed.')}</td></tr>`;
+    ifxData = null; return;
+  }
+  ifxData = r; ifxRender();
+}
+
+async function ifxApply(){
+  if(!ifxData) return;
+  const fixable = ifxData.groups.filter(g => g.willFix);
+  if(!fixable.length) return alert('Nothing to fix.');
+  const pw = prompt('Enter password to fix inventory:');
+  if(pw === null) return;
+  if(pw !== SADJ_PASSWORD) return alert('Incorrect password.');
+  if(!confirm(`Merge ${fixable.length} duplicate stock group(s) into single rows?\n\nQuantities are added together, extra rows are removed and a proof document is generated.`)) return;
+  const res = await post('saveInventoryFix', {
+    includeExpiryConflicts: document.getElementById('ifxInc').checked,
+    remarks: document.getElementById('ifxRemarks').value.trim()
+  });
+  if(res && res.success){
+    const doc = { fixId: res.fixId, date: res.date, remarks: document.getElementById('ifxRemarks').value.trim(), groups: res.groups };
+    await loadInventory();
+    renderLiveInventory();
+    closeInventoryFix();
+    alert(res.message || 'Inventory fixed');
+    printHtml(buildIfxHtml(doc));
+  } else {
+    alert('Fix failed: ' + ((res && res.message) || ''));
+  }
+}
+
+function buildIfxHtml(d){
+  const esc = escapeHtml;
+  let before = 0, after = 0, val = 0, rowsRemoved = 0;
+  const rowsHtml = d.groups.map((g,i) => {
+    const bq = g.rows.reduce((a,r)=> a + num(r.qty), 0);
+    before += bq; after += num(g.totalQty); rowsRemoved += g.rows.length - 1;
+    const v = num(g.totalQty) * num(g.mrp); val += v;
+    return `<tr><td style="text-align:center">${i+1}</td><td>${esc(g.type || '')}</td><td>${esc(g.item)}</td><td>${esc(g.batch || '-')}</td>
+      <td style="text-align:center">${esc(fmtExpiryPrint(g.finalExpiry) || '-')}${g.conflict ? `<div style="font-size:7.5pt;color:#b45309">was: ${esc(g.expiries.map(e => fmtExpiryPrint(e)).join(' / '))}</div>` : ''}</td>
+      <td style="text-align:center">${g.rows.length}</td><td>${esc(g.rows.map(r => r.qty).join(' + '))}</td>
+      <td style="text-align:right;font-weight:bold">${esc(g.totalQty)}</td><td style="text-align:right">${to2(g.mrp)}</td><td style="text-align:right">${to2(v)}</td></tr>`;
+  }).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Inventory Fix ${esc(d.fixId)}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+    .hdr { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #059669; padding-bottom:10px; margin-bottom:12px; }
+    .co { font-size:14pt; font-weight:bold; color:#059669; } .sm { font-size:8pt; color:#555; }
+    h1 { font-size:15pt; margin:0; color:#333; text-align:right; }
+    .meta { margin-bottom:10px; font-size:10pt; line-height:1.5; } .meta b { color:#555; }
+    table { width:100%; border-collapse:collapse; }
+    th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:5px; font-size:8.5pt; text-align:left; }
+    td { border:1px solid #cbd5e1; padding:5px; font-size:8.5pt; }
+    tfoot td { font-weight:bold; background:#f0fdf4; }
+    .sign { display:flex; justify-content:space-between; margin-top:60px; font-size:9pt; }
+    .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
+    .foot { margin-top:20px; text-align:center; font-size:8pt; color:#777; }
+  </style></head><body>
+    <div class="hdr">
+      <div><div class="co">PRISTINE PEARL PHARMA PVT LTD</div>
+        <div class="sm">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+        <div class="sm">Perur Village, Coimbatore - 641010</div>
+        <div class="sm">samples.pearl@gmail.com | +91 8838001387</div></div>
+      <div><h1>INVENTORY - STOCK FIX (DUPLICATE MERGE)</h1>
+        <div style="text-align:right;font-size:9pt;margin-top:4px"><b>Fix No:</b> <span style="color:#059669;font-weight:bold">${esc(d.fixId || '-')}</span><br><b>Date:</b> ${esc(formatDateForPrint(d.date || ''))}</div></div>
+    </div>
+    <div class="meta"><b>Reason:</b> Same Product + Batch was held in more than one inventory row (receipt did not add to the existing batch). Rows were merged and quantities added together.${d.remarks ? `<br><b>Remarks:</b> ${esc(d.remarks)}` : ''}<br><b>Groups fixed:</b> ${d.groups.length} | <b>Duplicate rows removed:</b> ${rowsRemoved}</div>
+    <table>
+      <thead><tr><th style="width:26px;text-align:center">#</th><th>Type</th><th>Product</th><th>Batch</th><th style="text-align:center">Expiry (final)</th><th style="text-align:center">Rows</th><th>Qty in each row (before)</th><th style="text-align:right">Qty After</th><th style="text-align:right">MRP</th><th style="text-align:right">Value (₹)</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+      <tfoot><tr><td colspan="7" style="text-align:right">Total stock (before = after: ${esc(before)} → ${esc(after)})</td><td style="text-align:right">${esc(after)}</td><td></td><td style="text-align:right">₹${to2(val)}</td></tr></tfoot>
+    </table>
+    <div class="sign"><div>Prepared By</div><div>Verified By</div><div>Authorised Signatory</div></div>
+    <div class="foot">Total quantity is unchanged by this fix - only duplicate rows were merged. This is a system generated document.</div>
+  </body></html>`;
+}
+
+/* ----- Saved fixes viewer / reprint ----- */
+function openIfxViewer(){ document.getElementById('ifxViewerModal').classList.remove('hidden'); loadIfxList(); }
+function closeIfxViewer(){ document.getElementById('ifxViewerModal').classList.add('hidden'); }
+
+async function loadIfxList(){
+  const tbody = document.querySelector('#ifxListTable tbody');
+  tbody.innerHTML = `<tr><td colspan="5" class="text-center p-2 text-slate-500">Loading...</td></tr>`;
+  const r = await post('getInventoryFixReport', {});
+  if(!r || !r.success){ tbody.innerHTML = `<tr><td colspan="5" class="text-center p-2 text-red-600">${escapeHtml((r && r.message) || 'Could not load')}</td></tr>`; return; }
+  if(!(r.rows || []).length){ tbody.innerHTML = `<tr><td colspan="5" class="text-center p-2 text-slate-500">No saved fixes</td></tr>`; return; }
+  ifxFixGroups = {}; const order = [];
+  r.rows.forEach(x => {
+    const id = String(x.fixId || '').trim(); if(!id) return;
+    if(!ifxFixGroups[id]){ ifxFixGroups[id] = { fixId: id, date: x.date, remarks: x.remarks, groups: [] }; order.push(id); }
+    const before = String(x.qtyBefore || '').split('+').map(s => ({ qty: num(s.trim()) }));
+    ifxFixGroups[id].groups.push({ item: x.item, type: x.type, batch: x.batch, finalExpiry: x.expiry,
+      expiries: String(x.expiryBefore || x.expiry).split('/').map(s => s.trim()), conflict: String(x.expiryBefore || '').indexOf('/') >= 0,
+      rows: before, totalQty: num(x.qtyAfter), mrp: num(x.mrp) });
+  });
+  tbody.innerHTML = order.reverse().map(id => {
+    const g = ifxFixGroups[id];
+    return `<tr><td class="border px-2 py-1">${escapeHtml(id)}</td><td class="border px-2 py-1">${escapeHtml(g.date)}</td>
+      <td class="border px-2 py-1">${g.groups.length}</td><td class="border px-2 py-1 text-right">${g.groups.reduce((a,b)=>a+num(b.totalQty),0)}</td>
+      <td class="border px-2 py-1 text-center"><button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm" onclick="printHtml(buildIfxHtml(ifxFixGroups['${escapeHtml(id)}']))">Print</button></td></tr>`;
+  }).join('');
+}
+
+/* ===================== PRODUCT MASTER (inside Live Inventory) ===================== */
+let pmEditing = null;
+
+function pmStockMap(){
+  const m = new Map();
+  inventory.forEach(r => { const k = ifxNk(r.Product); if(k) m.set(k, (m.get(k) || 0) + num(r.Qty)); });
+  return m;
+}
+function pmMissing(){
+  const have = new Set(products.map(p => ifxNk(p.Product)).filter(Boolean));
+  const m = new Map();
+  inventory.forEach(r => {
+    const name = String(r.Product == null ? '' : r.Product).replace(/\s+/g,' ').trim(), k = ifxNk(name);
+    if(!k || have.has(k)) return;
+    if(!m.has(k)) m.set(k, { type: buStr(r.Type), product: name, division: buStr(r.Division), mrp: 0, qty: 0 });
+    const e = m.get(k); e.qty += num(r.Qty); if(!e.mrp && num(r.MRP) > 0) e.mrp = num(r.MRP);
+  });
+  return [...m.values()].sort((a,b)=> a.product.localeCompare(b.product));
+}
+function openProductMaster(){
+  document.getElementById('pmModal').classList.remove('hidden');
+  pmCancelEdit();
+  pmRender();
+}
+function closeProductMaster(){ document.getElementById('pmModal').classList.add('hidden'); }
+
+function pmRender(){
+  const types = [...new Set(products.map(p => buStr(p.Type)).filter(Boolean))].sort();
+  const divs = [...new Set(products.map(p => buStr(p.Division)).filter(Boolean))].sort();
+  document.getElementById('pmTypeList').innerHTML = types.map(t => `<option value="${escapeHtml(t)}">`).join('');
+  document.getElementById('pmDivList').innerHTML = divs.map(t => `<option value="${escapeHtml(t)}">`).join('');
+  const q = (document.getElementById('pmSearch').value || '').toLowerCase().trim();
+  const stock = pmStockMap();
+  const list = products.filter(p => buStr(p.Product) && (!q || `${p.Product} ${p.Type} ${p.Division}`.toLowerCase().includes(q)))
+    .sort((a,b)=> buStr(a.Type).localeCompare(buStr(b.Type)) || buStr(a.Product).localeCompare(buStr(b.Product)));
+  document.getElementById('pmCount').textContent = `${list.length} of ${products.filter(p => buStr(p.Product)).length} item(s)`;
+  document.querySelector('#pmTable tbody').innerHTML = list.length ? list.map(p => `<tr class="border-t border-gray-100">
+    <td class="p-2"><span class="chip type" style="display:inline-block;padding:1px 8px;border-radius:999px;font-size:.7rem;background:#e0f2fe;color:#0369a1">${escapeHtml(buStr(p.Type) || '-')}</span></td>
+    <td class="p-2 font-medium">${escapeHtml(p.Product)}</td><td class="p-2">${escapeHtml(buStr(p.Division) || '-')}</td>
+    <td class="p-2 text-right">${to2(p.MRP)}</td><td class="p-2 text-right">${(stock.get(ifxNk(p.Product)) || 0).toLocaleString('en-IN')}</td>
+    <td class="p-2 text-center"><button class="text-emerald-700 font-semibold text-xs" onclick="pmEdit(decodeURIComponent('${encodeURIComponent(buStr(p.Product))}'))">✏️ Edit</button></td></tr>`).join('')
+    : `<tr><td colspan="6" class="p-4 text-center text-slate-400">No items</td></tr>`;
+
+  const miss = pmMissing();
+  document.getElementById('pmMissingBox').classList.toggle('hidden', !miss.length);
+  document.getElementById('pmMissingCount').textContent = miss.length;
+  document.querySelector('#pmMissingTable tbody').innerHTML = miss.map(m => `<tr class="border-t border-amber-100">
+    <td class="p-2">${escapeHtml(m.type || '-')}</td><td class="p-2">${escapeHtml(m.product)}</td><td class="p-2">${escapeHtml(m.division || '-')}</td>
+    <td class="p-2 text-right">${to2(m.mrp)}</td><td class="p-2 text-right">${m.qty.toLocaleString('en-IN')}</td></tr>`).join('');
+}
+
+function pmEdit(name){
+  const p = products.find(x => buStr(x.Product) === name); if(!p) return;
+  pmEditing = name;
+  document.getElementById('pmType').value = buStr(p.Type);
+  const pi = document.getElementById('pmProduct'); pi.value = name; pi.readOnly = true; pi.classList.add('bg-slate-100');
+  document.getElementById('pmDiv').value = buStr(p.Division);
+  document.getElementById('pmMrp').value = num(p.MRP) || '';
+  document.getElementById('pmSaveBtn').textContent = 'Update Item';
+  document.getElementById('pmCancelBtn').classList.remove('hidden');
+  document.getElementById('pmFormTitle').textContent = 'Edit item (name cannot be changed)';
+}
+function pmCancelEdit(){
+  pmEditing = null;
+  ['pmType','pmProduct','pmDiv','pmMrp'].forEach(id => document.getElementById(id).value = '');
+  const pi = document.getElementById('pmProduct'); pi.readOnly = false; pi.classList.remove('bg-slate-100');
+  document.getElementById('pmSaveBtn').textContent = '+ Add Item';
+  document.getElementById('pmCancelBtn').classList.add('hidden');
+  document.getElementById('pmFormTitle').textContent = 'Add new item';
+}
+
+async function pmSave(){
+  const type = document.getElementById('pmType').value.trim();
+  const product = document.getElementById('pmProduct').value.replace(/\s+/g,' ').trim();
+  if(!type) return alert('Type is required.');
+  if(!product) return alert('Product name is required.');
+  if(pmEditing){
+    const pw = prompt('Enter password to edit the Product Master:');
+    if(pw === null) return;
+    if(pw !== SADJ_PASSWORD) return alert('Incorrect password.');
+  } else if(products.some(p => ifxNk(p.Product) === ifxNk(product))){
+    return alert('This item already exists in the master. Use ✏️ Edit on it.');
+  }
+  const res = await post('saveProductMaster', { rows: [{ type, product, division: document.getElementById('pmDiv').value.trim(), mrp: document.getElementById('pmMrp').value, edit: !!pmEditing }] });
+  if(res && res.success){
+    await loadProducts();
+    pmCancelEdit(); pmRender();
+    alert(res.message || 'Saved');
+  } else alert('Save failed: ' + ((res && res.message) || ''));
+}
+
+async function pmAddMissing(){
+  const miss = pmMissing(); if(!miss.length) return;
+  const noType = miss.filter(m => !m.type);
+  if(noType.length) return alert('These items have no Type in inventory - add them one by one:\n' + noType.slice(0,10).map(m => m.product).join('\n'));
+  if(!confirm(`Add ${miss.length} inventory item(s) that are missing from the master?`)) return;
+  const res = await post('saveProductMaster', { rows: miss.map(m => ({ type: m.type, product: m.product, division: m.division, mrp: m.mrp, edit: false })) });
+  if(res && res.success){ await loadProducts(); pmRender(); alert(res.message || 'Saved'); }
+  else alert('Save failed: ' + ((res && res.message) || ''));
+}
+
   /* LIVE INVENTORY */
   const LIVE_COLS = [
     { k:'type',     l:'Type' },
@@ -4400,6 +4754,7 @@
         ? `<button type="button" class="px-4 py-2 rounded-md border border-gray-200 text-sm font-semibold bg-white" onclick="liveLimit+=LIVE_PAGE;renderLiveInventory()">Show ${Math.min(LIVE_PAGE, rows.length - shown.length)} more</button>`
         : '';
     }
+    ifxUpdateBadge();
     const u = document.getElementById('liveUpdated');
     if(u) u.textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
   }
@@ -5294,7 +5649,7 @@
 
       let msg = `${plan.rows.length} row(s) loaded into Receipt (${plan.kind}). Review and click Save.`;
       const created = (plan.newItems || []).filter(n => plan.rows.some(x => x.entry.name === n));
-      if(created.length) msg += `\n\n${created.length} new item(s) auto-created (not in master): ` + created.slice(0,10).join(', ') + (created.length > 10 ? ', ...' : '');
+      if(created.length) msg += `\n\n${created.length} new item(s) not in the Product Master - they will be added to the master when you Save: ` + created.slice(0,10).join(', ') + (created.length > 10 ? ', ...' : '');
       if(diffExp) msg += `\n\n${diffExp} row(s): batch already exists with a different expiry - loaded as a new batch entry.`;
       if(plan.errors.length) msg += `\n\n${plan.errors.length} row(s) skipped:\n` + plan.errors.slice(0,10).join('\n') + (plan.errors.length > 10 ? `\n...and ${plan.errors.length-10} more` : '');
       alert(msg);
