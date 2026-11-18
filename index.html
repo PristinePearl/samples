@@ -8,6 +8,7 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
@@ -392,6 +393,11 @@
       </section>
 
       <section id="supply" class="hidden mt-4 card bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div class="mb-3 inline-flex rounded-md border border-gray-200 overflow-hidden text-sm font-semibold">
+          <button type="button" id="supMode_emp" class="px-4 py-1.5 bg-emerald-600 text-white" onclick="supSwitchMode('emp')">Employee Supply</button>
+          <button type="button" id="supMode_ho" class="px-4 py-1.5 bg-white text-slate-600" onclick="supSwitchMode('ho')">HO Supply (Sale Bill)</button>
+        </div>
+        <div id="supNormalPane">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h2 class="text-lg font-semibold">Supply Entry</h2>
@@ -458,6 +464,104 @@
             </thead>
             <tbody class="bg-white"></tbody>
           </table>
+        </div>
+        </div>
+
+        <!-- ===== HO SUPPLY (sale bill + UPI QR) ===== -->
+        <div id="supHoPane" class="hidden">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-semibold">HO Supply - Sale Bill</h2>
+              <p class="text-sm text-slate-500">Supply stock from HO and generate a sale bill with UPI payment QR. Supply ID: <b>HO-S/seq/FY</b>.</p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <label class="text-sm text-slate-500">Date</label>
+              <input id="hoDate" type="date" class="border border-gray-200 rounded-md px-2 py-1 text-sm" />
+              <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addHoRow()">+ Add</button>
+              <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="clearHo()">Clear</button>
+              <button id="hoSaveBtn" class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="saveHoSupply()">Save &amp; Generate Bill</button>
+              <button id="hoPrintBtn" class="px-3 py-2 rounded-md bg-emerald-700 text-white font-bold hidden" onclick="printLastHo()">🖨 Print Bill</button>
+              <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="openHoViewer()">📄 Saved HO Bills</button>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold mb-1 required-star">Customer / Bill To</label>
+              <div class="relative">
+                <input id="hoCust" type="text" placeholder="Type to search name…" autocomplete="off" class="border border-gray-200 rounded-md px-2 py-2 w-full"
+                  oninput="hoCustSuggest()" onfocus="hoCustSuggest()" onkeydown="hoCustKey(event)" />
+                <div id="hoCustList" class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-64 overflow-auto text-sm"></div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">Mobile — optional</label>
+              <input id="hoMobile" type="text" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">GSTIN — optional</label>
+              <input id="hoGstin" type="text" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold mb-1">Department — optional</label>
+              <input id="hoDept" type="text" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-semibold mb-1">Remarks — optional</label>
+              <input id="hoRemarks" type="text" class="border border-gray-200 rounded-md px-2 py-2 w-full" />
+            </div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div>
+              <label class="block text-sm font-semibold mb-1">Rate Basis</label>
+              <select id="hoMode" onchange="hoModeChanged()" class="border border-gray-200 rounded-md px-2 py-2 w-full">
+                <option value="srate">S. Rate (enter per item)</option>
+                <option value="margin">Margin % on MRP</option>
+              </select>
+            </div>
+            <div id="hoMarginBox" class="hidden">
+              <label class="block text-sm font-semibold mb-1">Margin %</label>
+              <select id="hoMargin" onchange="hoRecalcAll()" class="border border-gray-200 rounded-md px-2 py-2 w-full"></select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold mb-1">GST</label>
+              <label class="text-sm mr-3"><input id="hoGstOn" type="checkbox" onchange="hoRecalc()" /> GST ON (5%)</label>
+            </div>
+            <div id="hoTaxBox" class="hidden text-sm pb-2 flex gap-3">
+              <label><input type="radio" name="hoTax" value="cgst" checked onchange="hoRecalc()" /> CGST + SGST</label>
+              <label><input type="radio" name="hoTax" value="igst" onchange="hoRecalc()" /> IGST</label>
+            </div>
+          </div>
+
+          <div class="mt-4 overflow-x-auto rounded-lg border border-gray-100">
+            <table id="hoTable" class="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="p-2 text-left font-semibold text-slate-600">Item</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Batch</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Expiry</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Avl</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Qty</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">MRP</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">S. Rate</th>
+                  <th class="p-2 text-left font-semibold text-slate-600">Amount</th>
+                  <th class="p-2"></th>
+                </tr>
+              </thead>
+              <tbody class="bg-white"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 flex justify-end">
+            <div class="w-full max-w-md border border-gray-100 rounded-md p-3 bg-gray-50">
+              <div class="flex justify-between text-sm text-slate-500"><div>Sub Total (S. Rate)</div><div id="hoSubtotal">0.00</div></div>
+              <div id="hoTaxRows" class="mt-2"></div>
+              <div class="flex justify-between text-sm text-slate-500 mt-2"><div>Round Off</div><div id="hoRound">0.00</div></div>
+              <hr class="my-2" />
+              <div class="flex justify-between font-bold"><div>Total ₹</div><div id="hoTotal">0.00</div></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1544,6 +1648,32 @@
     </div>
   </div>
 
+  <!-- Modal: saved HO supply bills -->
+  <div id="hoViewerModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto p-6">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xl font-bold text-slate-700">Saved HO Supply Bills</h2>
+        <button onclick="closeHoViewer()" class="text-red-500 text-lg font-bold">✕</button>
+      </div>
+      <input id="hoSearch" onkeyup="filterHoList()" placeholder="Search Supply ID / Customer / Item / Date" class="border rounded-md px-3 py-2 w-full mb-3" />
+      <div class="overflow-x-auto">
+        <table id="hoListTable" class="w-full border-collapse text-sm">
+          <thead class="bg-slate-100">
+            <tr>
+              <th class="border px-2 py-1">Supply ID</th>
+              <th class="border px-2 py-1">Date</th>
+              <th class="border px-2 py-1">Customer</th>
+              <th class="border px-2 py-1">Items</th>
+              <th class="border px-2 py-1 text-right">Total</th>
+              <th class="border px-2 py-1 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div id="loading" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/20">
     <div class="w-16 h-16 rounded-full border-8 border-white/25 border-t-white animate-spin"></div>
   </div>
@@ -1617,7 +1747,9 @@
       };
       let r = await runOnce();
       if(!r.ok && attempts > 1) r = await runOnce();
-      if(r.ok) return r.data;
+      if(r.ok){
+        return r.data;
+      }
       const timedOut = lastErr && lastErr.name === 'AbortError';
       const msg = timedOut
         ? 'Server took too long to respond (' + action + '). Please check your connection and try again.'
@@ -2846,6 +2978,365 @@
     loadInventory();
   }
 
+
+  /* ===================== HO SUPPLY (sale bill + UPI QR) ===================== */
+  let hoPay = null;   // UPI details come from the server (never stored in this page)
+  async function hoEnsurePay(){
+    if(hoPay) return true;
+    const r = await post('getHoPayInfo', {});
+    if(r && r.success){ hoPay = { id: r.upiId, name: r.upiName }; return true; }
+    alert('Could not load payment details: ' + ((r && r.message) || '')); return false;
+  }
+  let hoLast = null, hoGroups = {}, hoInit = false;
+
+  function supSwitchMode(m){
+    document.getElementById('supNormalPane').classList.toggle('hidden', m !== 'emp');
+    document.getElementById('supHoPane').classList.toggle('hidden', m !== 'ho');
+    [['emp','Employee Supply'],['ho','HO Supply']].forEach(([n]) => {
+      const b = document.getElementById('supMode_' + n);
+      b.classList.toggle('bg-emerald-600', n === m); b.classList.toggle('text-white', n === m);
+      b.classList.toggle('bg-white', n !== m); b.classList.toggle('text-slate-600', n !== m);
+    });
+    if(m === 'ho'){
+      if(!hoInit){
+        hoInit = true;
+        let o = ''; for(let i = 40; i <= 80; i++) o += `<option value="${i}">${i}%</option>`;
+        document.getElementById('hoMargin').innerHTML = o;
+        document.getElementById('hoMargin').value = '40';
+      }
+      hoLoadCustomers(); hoEnsurePay();
+      const d = document.getElementById('hoDate'); if(!d.value) d.value = localTodayISO();
+      if(!document.querySelector('#hoTable tbody tr')) addHoRow();
+      hoRecalc();
+    }
+  }
+
+  /* ----- Customer name suggestions (from the staff sheet via getHoCustomers) ----- */
+  let hoCustomers = null, hoCustLoading = false, hoCustIdx = -1, hoCustShown = [];
+
+  async function hoLoadCustomers(force){
+    if((hoCustomers && !force) || hoCustLoading) return;
+    hoCustLoading = true;
+    try{
+      const r = await post('getHoCustomers', {});
+      if(r && r.success) hoCustomers = r.customers || [];
+      else console.warn('Customer list not loaded:', r && r.message);
+    } catch(e){ console.error(e); }
+    hoCustLoading = false;
+  }
+
+  function hoCustSuggest(){
+    const box = document.getElementById('hoCustList'), q = document.getElementById('hoCust').value.trim().toLowerCase();
+    if(!hoCustomers || !q){ box.classList.add('hidden'); hoCustShown = []; return; }
+    hoCustShown = hoCustomers.filter(c => c.name.toLowerCase().includes(q) || String(c.code).toLowerCase().includes(q))
+      .sort((a, b) => (a.name.toLowerCase().startsWith(q) ? 0 : 1) - (b.name.toLowerCase().startsWith(q) ? 0 : 1) || (a.resigned - b.resigned))
+      .slice(0, 12);
+    hoCustIdx = -1;
+    if(!hoCustShown.length){ box.classList.add('hidden'); return; }
+    box.innerHTML = hoCustShown.map((c, i) => `<div data-i="${i}" class="hoCustOpt px-3 py-2 cursor-pointer hover:bg-emerald-50 border-b border-gray-50">
+        <span class="font-semibold">${escapeHtml(c.name)}</span>${c.resigned ? ' <span class="text-xs text-red-500">(resigned)</span>' : ''}
+        <span class="text-xs text-slate-400 ml-1">${escapeHtml(c.code)}${c.mobile ? ' · ' + escapeHtml(c.mobile) : ''}</span></div>`).join('');
+    box.classList.remove('hidden');
+    box.querySelectorAll('.hoCustOpt').forEach(el => el.addEventListener('mousedown', ev => { ev.preventDefault(); hoCustPick(Number(el.dataset.i)); }));
+  }
+
+  function hoCustPick(i){
+    const c = hoCustShown[i]; if(!c) return;
+    document.getElementById('hoCust').value = c.code ? c.code + ' - ' + c.name : c.name;   // saved on the bill as "EMP ID - NAME"
+    if(c.mobile) document.getElementById('hoMobile').value = c.mobile;
+    document.getElementById('hoDept').value = c.department || '';
+    document.getElementById('hoCustList').classList.add('hidden');
+  }
+
+  function hoCustKey(e){
+    const box = document.getElementById('hoCustList');
+    if(box.classList.contains('hidden') || !hoCustShown.length) return;
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault();
+      hoCustIdx = (hoCustIdx + (e.key === 'ArrowDown' ? 1 : -1) + hoCustShown.length) % hoCustShown.length;
+      box.querySelectorAll('.hoCustOpt').forEach((el, i) => el.classList.toggle('bg-emerald-50', i === hoCustIdx));
+      const act = box.querySelectorAll('.hoCustOpt')[hoCustIdx]; if(act) act.scrollIntoView({ block: 'nearest' });
+    } else if(e.key === 'Enter' && hoCustIdx >= 0){ e.preventDefault(); hoCustPick(hoCustIdx); }
+    else if(e.key === 'Escape'){ box.classList.add('hidden'); }
+  }
+  document.addEventListener('click', e => {
+    const box = document.getElementById('hoCustList');
+    if(box && e.target.id !== 'hoCust' && !box.contains(e.target)) box.classList.add('hidden');
+  });
+
+  function hoStockList(){
+    return inventory.filter(r => num(r.Qty) > 0 && (r.Product||'').toString().trim())
+      .sort((a,b)=> String(a.Product).localeCompare(String(b.Product)));
+  }
+  function hoMode(){ return document.getElementById('hoMode').value; }
+
+  function hoRowCalc(tr){
+    const mrp = num(tr.querySelector('.ho-mrp').value), sr = tr.querySelector('.ho-sr');
+    if(hoMode() === 'margin'){
+      sr.value = mrp ? to2(mrp * (1 - num(document.getElementById('hoMargin').value) / 100)) : '';
+      sr.readOnly = true; sr.classList.add('bg-slate-100');
+    } else {
+      sr.readOnly = false; sr.classList.remove('bg-slate-100');
+    }
+    tr.querySelector('.ho-amt').value = to2(num(tr.querySelector('.ho-qty').value) * num(sr.value));
+  }
+  function hoRecalcAll(){ document.querySelectorAll('#hoTable tbody tr').forEach(hoRowCalc); hoRecalc(); }
+  function hoModeChanged(){
+    document.getElementById('hoMarginBox').classList.toggle('hidden', hoMode() !== 'margin');
+    hoRecalcAll();
+  }
+
+  function addHoRow(){
+    const tb = document.querySelector('#hoTable tbody');
+    const tr = document.createElement('tr');
+    const cls = 'border border-gray-200 rounded-md px-2 py-1';
+    tr.innerHTML = `<td class="p-2">
+        <button type="button" class="ho-btn ${cls} w-full min-w-[260px] text-left bg-white flex items-center justify-between">
+          <span class="ho-label text-slate-500">-- Select Product --</span><span class="text-slate-400 text-xs">🔍</span>
+        </button>
+        <input type="hidden" class="ho-prod" value="" />
+      </td>
+      <td class="p-2"><input class="ho-batch ${cls} w-32" readonly></td>
+      <td class="p-2"><input class="ho-exp ${cls} w-28" readonly></td>
+      <td class="p-2"><input class="ho-avl ${cls} w-20" readonly></td>
+      <td class="p-2"><input class="ho-qty ${cls} w-24" type="number" min="0"></td>
+      <td class="p-2"><input class="ho-mrp ${cls} w-24" readonly></td>
+      <td class="p-2"><input class="ho-sr ${cls} w-28" type="number" min="0" step="0.01" placeholder="S. Rate"></td>
+      <td class="p-2"><input class="ho-amt ${cls} w-28" readonly></td>
+      <td class="p-2"><button class="text-red-500 font-bold" onclick="this.closest('tr').remove();hoRecalc()">✕</button></td>`;
+    tb.appendChild(tr);
+    const btn = tr.querySelector('.ho-btn'), label = tr.querySelector('.ho-label'), hidden = tr.querySelector('.ho-prod');
+    const qty = tr.querySelector('.ho-qty'), sr = tr.querySelector('.ho-sr');
+
+    btn.addEventListener('click', ()=>{
+      const items = hoStockList().map(r => ({
+        label: escapeHtml(r.Product),
+        sub: `Batch: ${escapeHtml(r.Batch||'-')} | Exp: ${escapeHtml(r.Expiry||'-')} | Avl Qty: ${escapeHtml(String(r.Qty||'0'))} | MRP: ${to2(r.MRP)}`,
+        searchText: `${r.Product||''} ${r.Batch||''} ${r.Type||''}`.toLowerCase(),
+        raw: r
+      }));
+      openPicker('Select Stock', items, (item)=>{
+        const o = item.raw;
+        hidden.value = encodeURIComponent(JSON.stringify(o));
+        label.textContent = o.Product; label.classList.remove('text-slate-500'); label.classList.add('text-slate-800');
+        tr.querySelector('.ho-batch').value = o.Batch || '';
+        tr.querySelector('.ho-exp').value = o.Expiry || '';
+        tr.querySelector('.ho-avl').value = num(o.Qty);
+        tr.querySelector('.ho-mrp').value = num(o.MRP) || '';
+        if(hoMode() === 'srate') sr.value = num(o.MRP) || '';
+        if(num(qty.value) > num(o.Qty)) qty.value = num(o.Qty);
+        hoRowCalc(tr); hoRecalc();
+      });
+    });
+    qty.addEventListener('input', ()=>{
+      if(hidden.value){
+        const avl = num(JSON.parse(decodeURIComponent(hidden.value)).Qty);
+        if(num(qty.value) > avl){ qty.value = avl; alert('Not enough stock available — quantity reduced to available stock.'); }
+      }
+      hoRowCalc(tr); hoRecalc();
+    });
+    sr.addEventListener('input', ()=>{ hoRowCalc(tr); hoRecalc(); });
+    hoRowCalc(tr);
+    return tr;
+  }
+
+  function hoTaxType(){
+    if(!document.getElementById('hoGstOn').checked) return 'none';
+    return document.querySelector('input[name="hoTax"]:checked').value;
+  }
+
+  function hoRecalc(){
+    const rows = [...document.querySelectorAll('#hoTable tbody tr')].map(tr => ({ amount: num(tr.querySelector('.ho-amt')?.value) }));
+    const tt = hoTaxType();
+    document.getElementById('hoTaxBox').classList.toggle('hidden', tt === 'none');
+    const t = srTotals(rows, 5, tt);
+    document.getElementById('hoSubtotal').textContent = to2(t.sub);
+    document.getElementById('hoTaxRows').innerHTML = t.noTax ? '' : t.isCgst
+      ? `<div class="flex justify-between text-sm text-slate-500"><div>CGST (2.5%)</div><div>${to2(t.cgst)}</div></div>
+         <div class="flex justify-between text-sm text-slate-500 mt-1"><div>SGST (2.5%)</div><div>${to2(t.sgst)}</div></div>`
+      : `<div class="flex justify-between text-sm text-slate-500"><div>IGST (5%)</div><div>${to2(t.igst)}</div></div>`;
+    document.getElementById('hoRound').textContent = to2(t.round);
+    document.getElementById('hoTotal').textContent = to2(t.total);
+  }
+
+  function clearHo(){
+    document.querySelector('#hoTable tbody').innerHTML = '';
+    ['hoCust','hoMobile','hoGstin','hoDept','hoRemarks'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('hoMode').value = 'srate';
+    document.getElementById('hoMarginBox').classList.add('hidden');
+    document.getElementById('hoGstOn').checked = false;
+    document.querySelector('input[name="hoTax"][value="cgst"]').checked = true;
+    document.getElementById('hoDate').value = localTodayISO();
+    document.getElementById('hoSaveBtn').classList.remove('hidden');
+    document.getElementById('hoPrintBtn').classList.add('hidden');
+    hoLast = null;
+    addHoRow(); hoRecalc();
+  }
+
+  async function saveHoSupply(){
+    const cust = document.getElementById('hoCust').value.trim();
+    if(!cust) return alert('Enter Customer / Bill To name.');
+    const rows = [], need = {};
+    let err = '';
+    [...document.querySelectorAll('#hoTable tbody tr')].forEach((tr, i) => {
+      const h = tr.querySelector('.ho-prod'); if(err || !h || !h.value) return;
+      const o = JSON.parse(decodeURIComponent(h.value));
+      const q = num(tr.querySelector('.ho-qty').value); if(q <= 0) return;
+      const sRate = num(tr.querySelector('.ho-sr').value);
+      if(!(sRate > 0)){ err = `Row ${i+1}: S. Rate is required for ${o.Product}.`; return; }
+      rows.push({ item: o.Product, type: o.Type || '', batchNo: o.Batch || '', expiry: o.Expiry || '', qty: q, mrp: num(o.MRP), sRate, amount: Math.round(q * sRate * 100) / 100 });
+      const k = [o.Product, o.Batch, o.Expiry].map(v => String(v == null ? '' : v).trim().toLowerCase()).join('|');
+      if(!need[k]) need[k] = { name: o.Product, batch: o.Batch || '-', have: num(o.Qty), want: 0 };
+      need[k].want += q;
+    });
+    if(err) return alert(err);
+    if(!rows.length) return alert('Add at least one item with quantity.');
+    const short = Object.values(need).filter(n => n.want > n.have);
+    if(short.length) return alert('Not enough stock:\n' + short.map(n => `${n.name} (batch ${n.batch}): available ${n.have}, requested ${n.want}`).join('\n'));
+
+    const taxType = hoTaxType();
+    const payload = {
+      date: document.getElementById('hoDate').value || '',
+      customer: { name: cust, mobile: document.getElementById('hoMobile').value.trim(), gstin: document.getElementById('hoGstin').value.trim(), department: document.getElementById('hoDept').value.trim() },
+      remarks: document.getElementById('hoRemarks').value.trim(),
+      mode: hoMode(), margin: hoMode() === 'margin' ? num(document.getElementById('hoMargin').value) : 0,
+      taxType, gst: taxType === 'none' ? 0 : 5, rows
+    };
+    const res = await post('saveHoSupply', payload);
+    if(res && res.success){
+      const id = res.supplyId || ((res.message || '').match(/ID:\s*(\S+)/) || [])[1] || '';
+      hoLast = Object.assign({ supplyId: id }, payload);
+      document.getElementById('hoSaveBtn').classList.add('hidden');
+      document.getElementById('hoPrintBtn').classList.remove('hidden');
+      alert(res.message || 'Saved');
+      await loadInventory();
+      if(confirm('HO supply saved. Print the Sale Bill now?')) printLastHo();
+    } else {
+      alert('Save failed: ' + ((res && res.message) || ''));
+    }
+  }
+
+  async function printLastHo(){
+    if(!hoLast) return alert('Save the HO supply first.');
+    if(!(await hoEnsurePay())) return;
+    printHtml(buildHoHtml(hoLast));
+  }
+  async function hoPrintSaved(id){
+    if(!(await hoEnsurePay())) return;
+    const g = hoGroups[decodeURIComponent(id)]; if(g) printHtml(buildHoHtml(g));
+  }
+
+  function hoQrSrc(upi){
+    try{
+      if(typeof qrcode === 'function'){ const q = qrcode(0, 'M'); q.addData(upi); q.make(); return q.createDataURL(5, 2); }
+    }catch(e){ console.error(e); }
+    return '';
+  }
+
+  function buildHoHtml(d){
+    const esc = escapeHtml;
+    const t = srTotals(d.rows, d.gst, d.taxType);
+    const c = d.customer || {};
+    let totalQty = 0;
+    const rowsHtml = d.rows.map((r,i)=>{
+      totalQty += num(r.qty);
+      return `<tr><td style="text-align:center">${i+1}</td><td>${esc(r.item)}</td><td>${esc(r.batchNo || '-')}</td>
+        <td style="text-align:center">${esc(fmtExpiryPrint(r.expiry) || '-')}</td><td style="text-align:right">${esc(r.qty)}</td>
+        <td style="text-align:right">${to2(num(r.sRate) > 0 ? r.sRate : r.mrp)}</td><td style="text-align:right">${to2(r.amount)}</td></tr>`;
+    }).join('');
+    const taxRows = t.noTax ? '' : t.isCgst
+      ? `<tr><td>CGST (2.5%)</td><td style="text-align:right">${to2(t.cgst)}</td></tr><tr><td>SGST (2.5%)</td><td style="text-align:right">${to2(t.sgst)}</td></tr>`
+      : `<tr><td>IGST (5%)</td><td style="text-align:right">${to2(t.igst)}</td></tr>`;
+    const upi = `upi://pay?pa=${(hoPay||{}).id || ''}&pn=${encodeURIComponent((hoPay||{}).name || '')}&am=${to2(t.total)}&cu=INR&tn=${encodeURIComponent(d.supplyId || 'HO Supply')}`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sale Bill ${esc(d.supplyId)}</title>
+    <style>
+      @page { size: A4; margin: 14mm; }
+      body { font-family: Arial, Helvetica, sans-serif; color:#222; font-size:10pt; margin:0; }
+      .hdr { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #059669; padding-bottom:10px; margin-bottom:14px; }
+      .co { font-size:14pt; font-weight:bold; color:#059669; } .sm { font-size:8pt; color:#555; }
+      h1 { font-size:18pt; margin:0; color:#333; text-align:right; }
+      .box { background:#f3f4f6; border:1px solid #ddd; border-radius:4px; padding:10px; margin-bottom:12px; font-size:9.5pt; line-height:1.5; }
+      .lbl { font-weight:bold; text-transform:uppercase; color:#555; font-size:8pt; margin-bottom:3px; }
+      table.items { width:100%; border-collapse:collapse; }
+      table.items th { background:#d1fae5; color:#064e3b; border:1px solid #6ee7b7; padding:6px; font-size:9pt; text-align:left; }
+      table.items td { border:1px solid #cbd5e1; padding:6px; font-size:9pt; }
+      table.items tfoot td { font-weight:bold; background:#f0fdf4; }
+      table.tot { width:38%; margin-left:auto; margin-top:12px; border-collapse:collapse; font-size:9.5pt; }
+      table.tot td { padding:4px 6px; border-bottom:1px solid #e5e7eb; }
+      table.tot tr.g td { font-weight:bold; font-size:11pt; color:#059669; border-top:2px solid #059669; border-bottom:none; }
+      .words { margin-top:12px; border:1px solid #ddd; background:#fafafa; border-radius:4px; padding:8px; font-size:9.5pt; }
+      .pay { display:flex; align-items:center; gap:16px; margin-top:16px; border:1px dashed #059669; border-radius:6px; padding:10px; }
+      .pay img { width:130px; height:130px; }
+      .sign { display:flex; justify-content:space-between; margin-top:50px; font-size:9pt; }
+      .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
+      .foot { margin-top:20px; text-align:center; font-size:8pt; color:#777; }
+    </style></head><body>
+      <div class="hdr">
+        <div><div class="co">PRISTINE PEARL PHARMA PVT LTD</div>
+          <div class="sm">Second Floor - 2B, Door No: 129, Thottasalai East, Power House Road,</div>
+          <div class="sm">Perur Village, Coimbatore - 641010</div>
+          <div class="sm">samples.pearl@gmail.com | +91 8838001387</div>
+          <div class="sm">GSTIN/UIN: 33AAGCB2183C1Z6 | State: Tamil Nadu (33)</div></div>
+        <div><h1>SALE BILL</h1>
+          <div style="text-align:right;font-size:9pt;margin-top:4px"><b>Supply No:</b> <span style="color:#059669;font-weight:bold">${esc(d.supplyId || '-')}</span><br><b>Date:</b> ${esc(formatDateForPrint(d.date || ''))}</div></div>
+      </div>
+      <div class="box"><div class="lbl">Bill To</div><b>${esc(c.name)}</b><br>DEPARTMENT : ${esc(c.department || '')}<div style="border-top:1px solid #999;margin:4px 0"></div><b>PRISTINE HEAD OFFICE</b>${c.mobile ? '<br>Mobile: ' + esc(c.mobile) : ''}${c.gstin ? '<br>GSTIN: ' + esc(c.gstin) : ''}
+${d.remarks ? '<br><b>Remarks:</b> ' + esc(d.remarks) : ''}</div>
+      <table class="items">
+        <thead><tr><th style="width:30px;text-align:center">#</th><th>Description of Goods</th><th>Batch</th><th style="text-align:center">Expiry</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate (₹)</th><th style="text-align:right">Amount (₹)</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr><td colspan="4" style="text-align:right">Total</td><td style="text-align:right">${esc(totalQty)}</td><td></td><td style="text-align:right">${to2(t.sub)}</td></tr></tfoot>
+      </table>
+      <table class="tot">
+        <tr><td>Sub Total</td><td style="text-align:right">₹ ${to2(t.sub)}</td></tr>${taxRows}
+        <tr><td>Round Off</td><td style="text-align:right">₹ ${to2(t.round)}</td></tr>
+        <tr class="g"><td>TOTAL</td><td style="text-align:right">₹ ${to2(t.total)}</td></tr>
+      </table>
+      <div class="words"><div class="lbl">Amount (in words)</div>${esc(numberToWords(Math.round(t.total)))} Only</div>
+      <div class="pay"><img src="${hoQrSrc(upi)}" alt="UPI QR">
+        <div style="font-size:9.5pt;line-height:1.6"><div class="lbl">Scan &amp; Pay (UPI)</div><b>${esc((hoPay||{}).name || '')}</b><br>UPI ID: ${esc((hoPay||{}).id || '')}<br>Amount: <b>₹ ${to2(t.total)}</b></div></div>
+      <div class="sign"><div>Prepared By</div><div>Customer Signature</div><div>Authorised Signatory</div></div>
+      <div class="foot">This is a system generated document.</div>
+    </body></html>`;
+  }
+
+  /* ----- Saved HO bills ----- */
+  function openHoViewer(){ document.getElementById('hoViewerModal').classList.remove('hidden'); loadHoList(); }
+  function closeHoViewer(){ document.getElementById('hoViewerModal').classList.add('hidden'); }
+
+  async function loadHoList(){
+    const tbody = document.querySelector('#hoListTable tbody');
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-slate-500">Loading...</td></tr>`;
+    document.getElementById('hoSearch').value = '';
+    const r = await post('getHoSupplyReport', {});
+    if(!r || !r.success){ tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-red-600">${escapeHtml((r && r.message) || 'Could not load HO bills')}</td></tr>`; return; }
+    if(!(r.rows || []).length){ tbody.innerHTML = `<tr><td colspan="6" class="text-center p-2 text-slate-500">No saved HO bills</td></tr>`; return; }
+    hoGroups = {}; const order = [];
+    r.rows.forEach(x => {
+      const id = String(x.supplyId || '').trim(); if(!id) return;
+      if(!hoGroups[id]){
+        hoGroups[id] = { supplyId: id, date: x.date, customer: { name: x.customer, department: x.department, mobile: x.mobile, gstin: x.gstin }, remarks: x.remarks,
+          mode: x.mode, margin: num(x.margin), gst: num(x.gst), taxType: ['igst','none'].includes(x.taxType) ? x.taxType : 'cgst', rows: [] };
+        order.push(id);
+      }
+      hoGroups[id].rows.push({ item: x.item, type: x.type, batchNo: x.batch, expiry: x.expiry, qty: num(x.qty), mrp: num(x.mrp), sRate: num(x.sRate), amount: num(x.amount) || num(x.qty) * num(x.sRate) });
+    });
+    tbody.innerHTML = '';
+    order.reverse().forEach(id => {
+      const g = hoGroups[id], t = srTotals(g.rows, g.gst, g.taxType);
+      const tr = document.createElement('tr');
+      tr.dataset.search = [id, g.date, g.customer.name, g.rows.map(x => x.item).join(' ')].join(' ').toLowerCase();
+      tr.innerHTML = `<td class="border px-2 py-1">${escapeHtml(id)}</td><td class="border px-2 py-1">${escapeHtml(g.date)}</td>
+        <td class="border px-2 py-1">${escapeHtml(g.customer.name)}</td><td class="border px-2 py-1">${g.rows.length}</td>
+        <td class="border px-2 py-1 text-right">${to2(t.total)}</td>
+        <td class="border px-2 py-1 text-center"><button class="bg-emerald-600 text-white px-2 py-1 rounded-md text-sm" onclick="hoPrintSaved('${encodeURIComponent(id)}')">Print</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  function filterHoList(){
+    const v = document.getElementById('hoSearch').value.toLowerCase();
+    document.querySelectorAll('#hoListTable tbody tr').forEach(tr => { tr.style.display = (tr.dataset.search || tr.textContent.toLowerCase()).includes(v) ? '' : 'none'; });
+  }
 
   /* ===================== DISPATCH RECORD ===================== */
   let dispRows = [];          // all supplies in the loaded date range (each has ._d = supply date YYYY-MM-DD)
@@ -5812,7 +6303,7 @@ async function pmAddMissing(){
 
   /* ===================== DATE LOCK (Request, Receipt, Supply, Stock Return, Stock Adjustment, PO) =====================
      Dates are fixed to today and read-only. Changing one asks for the Stock Adjustment password (SADJ_PASSWORD). */
-  const LOCKED_DATE_IDS = ['reqDate','recDate','supDate','srDate','poDate','baDate','exrDate','qaDate'];
+  const LOCKED_DATE_IDS = ['reqDate','recDate','supDate','srDate','poDate','baDate','exrDate','qaDate','hoDate'];
   let dateLockOpen = false;
   function localTodayISO(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
   function dateLockAsk(){
@@ -5844,7 +6335,7 @@ async function pmAddMissing(){
   const _postBeforeLock = post;
   post = async function(action, payload){
     const res = await _postBeforeLock(action, payload);
-    if(dateLockOpen && res && res.success && /^(saveRequest|saveReceipt|saveSupply|saveStockReturn|saveExpiryRemoval|saveStockAdjustment|generatePO)$/.test(action)) dateRelock();
+    if(dateLockOpen && res && res.success && /^(saveRequest|saveReceipt|saveSupply|saveStockReturn|saveExpiryRemoval|saveStockAdjustment|saveHoSupply|generatePO)$/.test(action)) dateRelock();
     return res;
   };
   function initDateLock(){
