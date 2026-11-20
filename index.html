@@ -8,7 +8,6 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
@@ -467,12 +466,12 @@
         </div>
         </div>
 
-        <!-- ===== HO SUPPLY (sale bill + UPI QR) ===== -->
+        <!-- ===== HO SUPPLY (sale bill) ===== -->
         <div id="supHoPane" class="hidden">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <h2 class="text-lg font-semibold">HO Supply - Sale Bill</h2>
-              <p class="text-sm text-slate-500">Supply stock from HO and generate a sale bill with UPI payment QR. Supply ID: <b>HO-S/seq/FY</b>.</p>
+              <p class="text-sm text-slate-500">Supply stock from HO and generate a sale bill. Supply ID: <b>HO-S/seq/FY</b>.</p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <label class="text-sm text-slate-500">Date</label>
@@ -2979,14 +2978,7 @@
   }
 
 
-  /* ===================== HO SUPPLY (sale bill + UPI QR) ===================== */
-  let hoPay = null;   // UPI details come from the server (never stored in this page)
-  async function hoEnsurePay(){
-    if(hoPay) return true;
-    const r = await post('getHoPayInfo', {});
-    if(r && r.success){ hoPay = { id: r.upiId, name: r.upiName }; return true; }
-    alert('Could not load payment details: ' + ((r && r.message) || '')); return false;
-  }
+  /* ===================== HO SUPPLY (sale bill) ===================== */
   let hoLast = null, hoGroups = {}, hoInit = false;
 
   function supSwitchMode(m){
@@ -3004,7 +2996,7 @@
         document.getElementById('hoMargin').innerHTML = o;
         document.getElementById('hoMargin').value = '40';
       }
-      hoLoadCustomers(); hoEnsurePay();
+      hoLoadCustomers();
       const d = document.getElementById('hoDate'); if(!d.value) d.value = localTodayISO();
       if(!document.querySelector('#hoTable tbody tr')) addHoRow();
       hoRecalc();
@@ -3218,19 +3210,10 @@
 
   async function printLastHo(){
     if(!hoLast) return alert('Save the HO supply first.');
-    if(!(await hoEnsurePay())) return;
     printHtml(buildHoHtml(hoLast));
   }
   async function hoPrintSaved(id){
-    if(!(await hoEnsurePay())) return;
     const g = hoGroups[decodeURIComponent(id)]; if(g) printHtml(buildHoHtml(g));
-  }
-
-  function hoQrSrc(upi){
-    try{
-      if(typeof qrcode === 'function'){ const q = qrcode(0, 'M'); q.addData(upi); q.make(); return q.createDataURL(5, 2); }
-    }catch(e){ console.error(e); }
-    return '';
   }
 
   function buildHoHtml(d){
@@ -3247,7 +3230,6 @@
     const taxRows = t.noTax ? '' : t.isCgst
       ? `<tr><td>CGST (2.5%)</td><td style="text-align:right">${to2(t.cgst)}</td></tr><tr><td>SGST (2.5%)</td><td style="text-align:right">${to2(t.sgst)}</td></tr>`
       : `<tr><td>IGST (5%)</td><td style="text-align:right">${to2(t.igst)}</td></tr>`;
-    const upi = `upi://pay?pa=${(hoPay||{}).id || ''}&pn=${encodeURIComponent((hoPay||{}).name || '')}&am=${to2(t.total)}&cu=INR&tn=${encodeURIComponent(d.supplyId || 'HO Supply')}`;
     return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sale Bill ${esc(d.supplyId)}</title>
     <style>
       @page { size: A4; margin: 14mm; }
@@ -3265,8 +3247,6 @@
       table.tot td { padding:4px 6px; border-bottom:1px solid #e5e7eb; }
       table.tot tr.g td { font-weight:bold; font-size:11pt; color:#059669; border-top:2px solid #059669; border-bottom:none; }
       .words { margin-top:12px; border:1px solid #ddd; background:#fafafa; border-radius:4px; padding:8px; font-size:9.5pt; }
-      .pay { display:flex; align-items:center; gap:16px; margin-top:16px; border:1px dashed #059669; border-radius:6px; padding:10px; }
-      .pay img { width:130px; height:130px; }
       .sign { display:flex; justify-content:space-between; margin-top:50px; font-size:9pt; }
       .sign div { width:28%; border-top:1px solid #555; text-align:center; padding-top:4px; }
       .foot { margin-top:20px; text-align:center; font-size:8pt; color:#777; }
@@ -3293,8 +3273,6 @@ ${d.remarks ? '<br><b>Remarks:</b> ' + esc(d.remarks) : ''}</div>
         <tr class="g"><td>TOTAL</td><td style="text-align:right">₹ ${to2(t.total)}</td></tr>
       </table>
       <div class="words"><div class="lbl">Amount (in words)</div>${esc(numberToWords(Math.round(t.total)))} Only</div>
-      <div class="pay"><img src="${hoQrSrc(upi)}" alt="UPI QR">
-        <div style="font-size:9.5pt;line-height:1.6"><div class="lbl">Scan &amp; Pay (UPI)</div><b>${esc((hoPay||{}).name || '')}</b><br>UPI ID: ${esc((hoPay||{}).id || '')}<br>Amount: <b>₹ ${to2(t.total)}</b></div></div>
       <div class="sign"><div>Prepared By</div><div>Customer Signature</div><div>Authorised Signatory</div></div>
       <div class="foot">This is a system generated document.</div>
     </body></html>`;
