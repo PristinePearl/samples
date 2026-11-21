@@ -821,6 +821,9 @@
           <div class="mt-3 flex gap-2 flex-wrap">
             <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addBaRow()">+ Add</button>
             <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="clearBa()">Clear</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" onclick="downloadAdjTemplate('batch')">⬇ Template</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="document.getElementById('adjFile_batch').click()">⬆ Bulk Upload</button>
+            <input id="adjFile_batch" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleAdjUpload(this,'batch')" />
             <button class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="baPreview()">👁 Preview Document</button>
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="baSave()">Save &amp; Generate Document</button>
           </div>
@@ -922,6 +925,9 @@
           <div class="mt-3 flex gap-2 flex-wrap">
             <button class="px-3 py-2 rounded-md bg-emerald-600 text-white font-bold" onclick="addQaRow()">+ Add Item</button>
             <button class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold" onclick="clearQa()">Clear</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-700 bg-white" onclick="downloadAdjTemplate('qty')">⬇ Template</button>
+            <button type="button" class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 text-sm font-semibold bg-white" onclick="document.getElementById('adjFile_qty').click()">⬆ Bulk Upload</button>
+            <input id="adjFile_qty" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleAdjUpload(this,'qty')" />
             <button class="px-3 py-2 rounded-md border border-emerald-600 text-emerald-700 font-bold bg-white" onclick="qaPreview()">👁 Preview Document</button>
             <button class="px-3 py-2 rounded-md bg-emerald-500 text-white font-bold" onclick="qaSave()">Save &amp; Generate Document</button>
             <span id="qaInfo" class="text-sm font-semibold text-slate-700 self-center ml-2"></span>
@@ -4670,6 +4676,155 @@ ${d.remarks ? '<br><b>Remarks:</b> ' + esc(d.remarks) : ''}</div>
     if(!confirm(`Adjust quantity for ${c.rows.length} stock row(s)?\n\nThis changes stock records and cannot be undone.`)) return;
     const ok = await adjSubmit('qty', c.rows);
     if(ok) clearQa();
+  }
+
+
+  /* ===================== STOCK ADJUSTMENT: BULK UPLOAD (Excel) ===================== */
+  function adjFindStock(item, batch, expiry){
+    const list = inventory.filter(r => buStr(r.Product) && normKey(r.Product) === normKey(item));
+    if(!list.length) return { err: `"${item}" not found in inventory` };
+    let c = list;
+    if(batch) c = c.filter(r => normKey(r.Batch) === normKey(batch));
+    if(expiry) c = c.filter(r => buParseExpiry(r.Expiry) === expiry);
+    if(!c.length) return { err: `no stock for "${item}"${batch ? ' batch ' + batch : ''}${expiry ? ' expiry ' + fmtExpiryPrint(expiry) : ''}` };
+    if(c.length > 1) return { err: `"${item}" has ${c.length} matching rows - give BATCH${batch ? ' and EXPIRY' : ' (and EXPIRY)'}` };
+    return { inv: c[0] };
+  }
+
+  function downloadAdjTemplate(mode){
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    const isBatch = mode === 'batch';
+    const head = isBatch ? ['ITEM','CURRENT BATCH','CURRENT EXPIRY','NEW BATCH','NEW EXPIRY','NEW QTY','REMARKS']
+                         : ['ITEM','BATCH','EXPIRY','PHYSICAL QTY','REMARKS'];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([head]);
+    ws['!cols'] = isBatch ? [{wch:42},{wch:18},{wch:16},{wch:18},{wch:14},{wch:10},{wch:32}] : [{wch:42},{wch:18},{wch:16},{wch:14},{wch:32}];
+    buTextCols(ws, isBatch ? [0,1,2,3,4,6] : [0,1,2,4], head.length - 1);
+    XLSX.utils.book_append_sheet(wb, ws, 'Template');
+
+    const ref = [['TYPE','ITEM','BATCH','EXPIRY (MM-YYYY)','QTY','MRP']].concat(
+      inventory.filter(r => buStr(r.Product))
+        .sort((a,b) => buStr(a.Type).localeCompare(buStr(b.Type)) || buStr(a.Product).localeCompare(buStr(b.Product)) || buStr(a.Batch).localeCompare(buStr(b.Batch)))
+        .map(r => [r.Type || '', r.Product, r.Batch || '', fmtExpiryPrint(r.Expiry), num(r.Qty), r.MRP || '']));
+    const ws2 = XLSX.utils.aoa_to_sheet(ref);
+    ws2['!cols'] = [{wch:14},{wch:42},{wch:18},{wch:16},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Current Stock (reference)');
+
+    XLSX.utils.book_append_sheet(wb, buReadMe(isBatch ? [
+      'BATCH ADJUSTMENT BULK UPLOAD - HOW TO FILL',
+      'Columns: ITEM | CURRENT BATCH | CURRENT EXPIRY | NEW BATCH | NEW EXPIRY | NEW QTY | REMARKS  (fill the "Template" sheet only).',
+      'ITEM, CURRENT BATCH and CURRENT EXPIRY must match the "Current Stock (reference)" sheet. EXPIRY format: MM-YYYY (e.g. 03-2027).',
+      'CURRENT BATCH / CURRENT EXPIRY may be left blank only if the item has a single stock row.',
+      'NEW BATCH / NEW EXPIRY / NEW QTY: fill only what changes. Blank = keep the current value.',
+      'If the corrected batch already exists for the product, stock is merged into it when saved.',
+      'After upload the rows load into Batch Adjustment for review. Select a Reason, then Save & Generate Document.',
+      'If any row has an error, nothing is loaded and the errors are listed.'
+    ] : [
+      'QUANTITY ADJUSTMENT BULK UPLOAD - HOW TO FILL',
+      'Columns: ITEM | BATCH | EXPIRY | PHYSICAL QTY | REMARKS  (fill the "Template" sheet only).',
+      'ITEM, BATCH and EXPIRY must match the "Current Stock (reference)" sheet. EXPIRY format: MM-YYYY (e.g. 03-2027).',
+      'BATCH / EXPIRY may be left blank only if the item has a single stock row.',
+      'PHYSICAL QTY = counted quantity (0 is allowed). Rows equal to the system quantity are ignored.',
+      'After upload the rows load into Quantity Adjustment for review. Select a Reason, then Save & Generate Document.',
+      'If any row has an error, nothing is loaded and the errors are listed.'
+    ]), 'Read Me');
+    XLSX.writeFile(wb, (isBatch ? 'Batch_Adjustment' : 'Quantity_Adjustment') + '_Template.xlsx');
+  }
+
+  async function handleAdjUpload(input, mode){
+    const file = input.files && input.files[0];
+    input.value = '';
+    if(!file) return;
+    if(typeof XLSX === 'undefined') return alert('Excel library could not load. Check your internet connection and try again.');
+    const isBatch = mode === 'batch';
+    try{
+      await loadInventory();   // fresh stock before validating
+      const grid = await buReadGrid(file);
+      const spec = isBatch ? {
+        item:['item','product','itemname','productname'], batch:['currentbatch','batch','batchno','oldbatch'],
+        exp:['currentexpiry','expiry','oldexpiry','exp'], nbatch:['newbatch'], nexp:['newexpiry'],
+        nqty:['newqty','newquantity','qty'], rem:['remarks','remark']
+      } : {
+        item:['item','product','itemname','productname'], batch:['batch','batchno','currentbatch'],
+        exp:['expiry','currentexpiry','exp'], pqty:['physicalqty','physicalquantity','countedqty','newqty','qty'], rem:['remarks','remark']
+      };
+      const hd = buFindHeader(grid, spec, isBatch ? ['item'] : ['item','pqty']);
+      if(!hd) return alert('Template format not recognised. Download the template from this tab and use its columns.');
+      const col = hd.col;
+      if(isBatch && col.nbatch === undefined && col.nexp === undefined && col.nqty === undefined)
+        return alert('The file needs at least one of: NEW BATCH, NEW EXPIRY, NEW QTY.');
+
+      const out = [], errors = [], seen = new Set();
+      for(let i = hd.hIdx + 1; i < grid.length; i++){
+        const r = grid[i] || [];
+        const get = k => col[k] === undefined ? '' : r[col[k]];
+        const item = buStr(get('item')), batch = buStr(get('batch')), expRaw = get('exp'), rem = buStr(get('rem'));
+        const nb = isBatch ? buStr(get('nbatch')) : '', neRaw = isBatch ? get('nexp') : '';
+        const nqRaw = buStr(get(isBatch ? 'nqty' : 'pqty'));
+        if(!item && !batch && buStr(expRaw) === '' && !nb && buStr(neRaw) === '' && !nqRaw && !rem) continue;
+        const line = i + 1;
+        if(!item){ errors.push(`Row ${line}: ITEM is empty`); continue; }
+        const exp = buParseExpiry(expRaw);
+        if(buStr(expRaw) !== '' && !exp){ errors.push(`Row ${line}: invalid EXPIRY "${buStr(expRaw)}" (use MM-YYYY)`); continue; }
+        const f = adjFindStock(item, batch, exp);
+        if(f.err){ errors.push(`Row ${line}: ${f.err}`); continue; }
+        const inv = f.inv, k = exrKey(inv);
+        if(seen.has(k)){ errors.push(`Row ${line}: ${inv.Product} (batch ${inv.Batch || '-'}) appears more than once`); continue; }
+        seen.add(k);
+
+        let nq = null;
+        if(nqRaw !== ''){
+          nq = Number(nqRaw.replace(/,/g, ''));
+          if(!(nq >= 0)){ errors.push(`Row ${line}: invalid ${isBatch ? 'NEW QTY' : 'PHYSICAL QTY'} "${nqRaw}"`); continue; }
+        }
+        if(isBatch){
+          const ne = buParseExpiry(neRaw);
+          if(buStr(neRaw) !== '' && !ne){ errors.push(`Row ${line}: invalid NEW EXPIRY "${buStr(neRaw)}" (use MM-YYYY)`); continue; }
+          const oldYM = normExpiryMonth(inv.Expiry);
+          const fb = nb || buStr(inv.Batch), fe = ne || oldYM, fq = nq == null ? num(inv.Qty) : nq;
+          if(fb === buStr(inv.Batch) && fe === oldYM && fq === num(inv.Qty)){ errors.push(`Row ${line}: ${inv.Product} (batch ${inv.Batch || '-'}) - no change`); continue; }
+          out.push({ inv, nb: fb, ne: fe, nq: fq, rem });
+        } else {
+          if(nq === num(inv.Qty)) continue;   // no difference
+          out.push({ inv, nq, rem });
+        }
+      }
+      if(errors.length) return alert(`Nothing loaded. Fix ${errors.length} issue(s) in the file and upload again:\n\n` + errors.slice(0,15).join('\n') + (errors.length > 15 ? `\n...and ${errors.length-15} more` : ''));
+      if(!out.length) return alert('No rows to adjust' + (isBatch ? '.' : ' (all physical quantities equal the system quantities).'));
+
+      const tb = document.querySelector(isBatch ? '#baTable tbody' : '#qaTable tbody');
+      const srcSel = isBatch ? '.ba-src' : '.qa-src';
+      const hasData = [...tb.querySelectorAll('tr')].some(tr => tr.querySelector(srcSel)?.value);
+      if(hasData && !confirm('Current rows will be replaced by the uploaded file. Continue?')) return;
+      tb.innerHTML = '';
+      out.forEach(x => {
+        const tr = isBatch ? addBaRow() : addQaRow();
+        const o = x.inv;
+        tr.querySelector(srcSel).value = encodeURIComponent(JSON.stringify(o));
+        const lb = tr.querySelector(isBatch ? '.ba-label' : '.qa-label');
+        lb.textContent = o.Product; lb.classList.remove('text-slate-500'); lb.classList.add('text-slate-800');
+        if(isBatch){
+          tr.querySelector('.ba-ob').value = o.Batch || '';
+          tr.querySelector('.ba-oe').value = o.Expiry || '';
+          tr.querySelector('.ba-oq').value = num(o.Qty);
+          tr.querySelector('.ba-nb').value = x.nb;
+          tr.querySelector('.ba-ne').value = x.ne;
+          tr.querySelector('.ba-nq').value = x.nq;
+          tr.querySelector('.ba-rem').value = x.rem;
+        } else {
+          tr.querySelector('.qa-b').value = o.Batch || '';
+          tr.querySelector('.qa-e').value = o.Expiry || '';
+          tr.querySelector('.qa-sq').value = num(o.Qty);
+          const pq = tr.querySelector('.qa-pq'); pq.value = x.nq; pq.dispatchEvent(new Event('input'));
+          tr.querySelector('.qa-rem').value = x.rem;
+        }
+      });
+      if(!isBatch) qaUpdateInfo();
+      alert(`${out.length} row(s) loaded. Select a Reason, review, then click Save & Generate Document.`);
+    }catch(err){
+      console.error(err);
+      alert('Could not read the file: ' + (err && err.message ? err.message : err));
+    }
   }
 
   /* ---------- Adjustment document ---------- */
